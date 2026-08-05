@@ -38,6 +38,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageCaption, setImageCaption] = useState('');
+  const [previewModalImage, setPreviewModalImage] = useState(null);
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -364,7 +365,20 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
           <img 
             src={base64Part} 
             alt="Gambar" 
-            style={{ maxWidth: '55cqw', maxHeight: '40cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} 
+            onClick={(e) => {
+              e.stopPropagation();
+              if (!selectionMode) setPreviewModalImage(base64Part);
+            }}
+            style={{ 
+              maxWidth: '55cqw', 
+              maxHeight: '40cqh', 
+              borderRadius: '2cqw', 
+              display: 'block', 
+              margin: '0.5cqh 0', 
+              objectFit: 'cover',
+              cursor: selectionMode ? 'pointer' : 'zoom-in',
+              transition: 'transform 0.15s ease'
+            }} 
           />
         ) : (
           <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
@@ -703,6 +717,58 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
             >
               <Send size={18} style={{ marginLeft: '0.5cqw' }} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview Lightbox Modal */}
+      {previewModalImage && (
+        <div 
+          onClick={() => setPreviewModalImage(null)}
+          style={{
+            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 1000, padding: '5cqw', boxSizing: 'border-box'
+          }}
+        >
+          <div 
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              position: 'relative',
+              background: 'var(--dark-surface)',
+              border: '1px solid var(--dark-border)',
+              borderRadius: '4cqw',
+              padding: '3cqw',
+              maxWidth: '85%',
+              maxHeight: '70vh',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+            }}
+          >
+            <div 
+              style={{ 
+                position: 'absolute', top: '-2cqh', right: '-2cqw', 
+                background: 'var(--primary)', width: '8cqw', height: '8cqw', 
+                borderRadius: '50%', display: 'flex', justifyContent: 'center', 
+                alignItems: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 10 
+              }} 
+              onClick={() => setPreviewModalImage(null)}
+            >
+              <X size={18} color="white" />
+            </div>
+            <img 
+              src={previewModalImage} 
+              alt="Preview" 
+              style={{
+                maxWidth: '100%',
+                maxHeight: '62vh',
+                borderRadius: '3cqw',
+                objectFit: 'contain'
+              }} 
+            />
           </div>
         </div>
       )}
