@@ -36,6 +36,8 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imageCaption, setImageCaption] = useState('');
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -199,27 +201,32 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
       return notify.error('Ukuran gambar maksimal 5MB.');
     }
 
-    setIsImageUploading(true);
     const reader = new FileReader();
     reader.onloadend = () => {
-      const base64Image = reader.result;
-      if (socketRef.current) {
-        socketRef.current.emit('send_message', {
-          sender: currentUser,
-          recipient: chat.username,
-          text: base64Image,
-          timestamp: Date.now()
-        });
-        notify.success('Gambar berhasil dikirim!');
-      }
-      setIsImageUploading(false);
+      setSelectedImage(reader.result);
+      setImageCaption('');
     };
     reader.onerror = () => {
-      setIsImageUploading(false);
       notify.error('Gagal membaca gambar.');
     };
     reader.readAsDataURL(file);
     e.target.value = '';
+  };
+
+  const confirmSendImage = () => {
+    if (!selectedImage) return;
+    const textToSend = imageCaption.trim() ? `${selectedImage}|||CAPTION|||${imageCaption.trim()}` : selectedImage;
+    if (socketRef.current) {
+      socketRef.current.emit('send_message', {
+        sender: currentUser,
+        recipient: chat.username,
+        text: textToSend,
+        timestamp: Date.now()
+      });
+      notify.success('Gambar berhasil dikirim!');
+    }
+    setSelectedImage(null);
+    setImageCaption('');
   };
 
   const toggleSelection = (id) => {
@@ -327,8 +334,13 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
               />
             )}
             <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '16.5cqw' : '11.5cqw', paddingBottom: '2cqh' }}>
-              {typeof msg.text === 'string' && msg.text.startsWith('data:image/') ? (
-                <img src={msg.text} alt="Gambar" style={{ maxWidth: '45cqw', maxHeight: '30cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0' }} />
+              {typeof msg.text === 'string' && msg.text.includes('|||CAPTION|||') ? (
+                <div>
+                  <img src={msg.text.split('|||CAPTION|||')[0]} alt="Gambar" style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} />
+                  <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{msg.text.split('|||CAPTION|||')[1]}</div>
+                </div>
+              ) : typeof msg.text === 'string' && msg.text.startsWith('data:image/') ? (
+                <img src={msg.text} alt="Gambar" style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} />
               ) : (
                 msg.text
               )}
@@ -543,6 +555,71 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
                 Hapus
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Image Preview & Caption Modal */}
+      {selectedImage && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.92)', backdropFilter: 'blur(8px)',
+          display: 'flex', flexDirection: 'column', zIndex: 1000,
+          boxSizing: 'border-box'
+        }}>
+          {/* Top Bar */}
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3cqh 4cqw' }}>
+            <span style={{ color: 'white', fontWeight: 600, fontSize: 'var(--font-title)' }}>Kirim Gambar</span>
+            <X size={24} color="white" style={{ cursor: 'pointer' }} onClick={() => { setSelectedImage(null); setImageCaption(''); }} />
+          </div>
+
+          {/* Image Preview Container */}
+          <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2cqh 4cqw', overflow: 'hidden' }}>
+            <img 
+              src={selectedImage} 
+              alt="Preview" 
+              style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '3cqw', objectFit: 'contain', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }} 
+            />
+          </div>
+
+          {/* Caption Input & Send Controls */}
+          <div style={{ padding: '2.5cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center' }}>
+            <input 
+              type="text" 
+              value={imageCaption}
+              onChange={(e) => setImageCaption(e.target.value)}
+              placeholder="Tambah keterangan (opsional)..."
+              autoFocus
+              onKeyDown={(e) => { if (e.key === 'Enter') confirmSendImage(); }}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                borderRadius: '5cqw',
+                padding: '2cqh 4cqw',
+                color: 'white',
+                outline: 'none',
+                fontSize: 'var(--font-body)'
+              }}
+            />
+            <button 
+              onClick={confirmSendImage} 
+              style={{ 
+                background: 'var(--primary)', 
+                border: 'none', 
+                width: '9.5cqw', 
+                height: '9.5cqw', 
+                borderRadius: '50%', 
+                display: 'flex', 
+                alignItems: 'center', 
+                justifyContent: 'center',
+                cursor: 'pointer',
+                color: 'white',
+                flexShrink: 0
+              }}
+            >
+              <Send size={18} style={{ marginLeft: '0.5cqw' }} />
+            </button>
           </div>
         </div>
       )}

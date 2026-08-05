@@ -513,7 +513,11 @@ const ChatList = ({ onLogout, currentUser }) => {
                                   </span>
                                 )}
                                 <span style={{ color: chat.isSystem ? 'var(--primary)' : 'inherit' }}>
-                                  {chat.lastMessage}
+                                  {typeof chat.lastMessage === 'string' && chat.lastMessage.includes('|||CAPTION|||')
+                                    ? `📷 ${chat.lastMessage.split('|||CAPTION|||')[1] || 'Gambar'}`
+                                    : typeof chat.lastMessage === 'string' && chat.lastMessage.startsWith('data:image/')
+                                    ? '📷 Gambar'
+                                    : chat.lastMessage}
                                 </span>
                               </>
                             )}
