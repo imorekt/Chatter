@@ -364,7 +364,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
           <img 
             src={base64Part} 
             alt="Gambar" 
-            style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} 
+            style={{ maxWidth: '55cqw', maxHeight: '40cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} 
           />
         ) : (
           <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
@@ -423,7 +423,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
                 style={{ position: 'absolute', top: '1cqh', right: '1.8cqw', width: '4.2cqw', height: '4.2cqw', cursor: 'pointer', zIndex: 10 }}
               />
             )}
-            <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '16.5cqw' : '11.5cqw', paddingBottom: '2cqh' }}>
+            <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '9.5cqw' : '6.5cqw', paddingBottom: '2cqh' }}>
               {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
             </span>
             <div style={{ 
