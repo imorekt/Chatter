@@ -508,15 +508,17 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
           onChange={handleImageUpload}
           disabled={chat.isDeleted || !!selectionMode}
         />
-        <ImageIcon 
-          size={24} 
-          style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : 'var(--dark-text-muted)' }} 
-          onClick={() => !chat.isDeleted && !selectionMode && fileInputRef.current?.click()} 
-        />
-        <div style={{ position: 'relative' }} ref={emojiPickerRef}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <ImageIcon 
+            size={24} 
+            style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }} 
+            onClick={() => !chat.isDeleted && !selectionMode && fileInputRef.current?.click()} 
+          />
+        </div>
+        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={emojiPickerRef}>
           <Smile
             size={24}
-            style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)' }}
+            style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)', display: 'block' }}
             onClick={() => !chat.isDeleted && !selectionMode && setShowEmojiPicker(!showEmojiPicker)}
           />
           {showEmojiPicker && !chat.isDeleted && !selectionMode && (
