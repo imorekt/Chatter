@@ -727,7 +727,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
           onClick={() => setPreviewModalImage(null)}
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0, 0, 0, 0.85)', backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.88)', backdropFilter: 'blur(8px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center',
             zIndex: 1000, padding: '5cqw', boxSizing: 'border-box'
           }}
@@ -736,36 +736,30 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
-              background: 'var(--dark-surface)',
-              border: '1px solid var(--dark-border)',
-              borderRadius: '4cqw',
-              padding: '3cqw',
+              display: 'inline-block',
               maxWidth: '85%',
-              maxHeight: '70vh',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.7)'
+              maxHeight: '75vh'
             }}
           >
             <div 
               style={{ 
-                position: 'absolute', top: '-2cqh', right: '-2cqw', 
-                background: 'var(--primary)', width: '8cqw', height: '8cqw', 
+                position: 'absolute', top: '-1.5cqh', right: '-1.5cqw', 
+                background: 'var(--primary)', width: '7cqw', height: '7cqw', 
                 borderRadius: '50%', display: 'flex', justifyContent: 'center', 
                 alignItems: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 10 
               }} 
               onClick={() => setPreviewModalImage(null)}
             >
-              <X size={18} color="white" />
+              <X size={16} color="white" />
             </div>
             <img 
               src={previewModalImage} 
               alt="Preview" 
               style={{
                 maxWidth: '100%',
-                maxHeight: '62vh',
+                maxHeight: '75vh',
                 borderRadius: '3cqw',
+                display: 'block',
                 objectFit: 'contain'
               }} 
             />
