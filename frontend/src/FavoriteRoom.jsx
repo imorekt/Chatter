@@ -82,7 +82,7 @@ const FavoriteRoom = ({ partner, onBack, currentUser }) => {
         const res = await fetch(`${API_URL}/api/messages/delete`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messageIds })
+          body: JSON.stringify({ username: currentUser, messageIds })
         });
         if (res.ok) {
           setMessages(messages.filter(m => !selectedMessages.has(m.id)));

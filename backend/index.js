@@ -71,6 +71,10 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
     db.run(`ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0`, (err) => {
       // Ignored if column already exists
     });
+    db.run(`ALTER TABLE messages ADD COLUMN deleted_by_sender INTEGER DEFAULT 0`, (err) => {});
+    db.run(`ALTER TABLE messages ADD COLUMN deleted_by_receiver INTEGER DEFAULT 0`, (err) => {});
+    db.run(`ALTER TABLE messages ADD COLUMN is_edited INTEGER DEFAULT 0`, (err) => {});
+    db.run(`ALTER TABLE messages ADD COLUMN is_deleted_everyone INTEGER DEFAULT 0`, (err) => {});
     db.run(`
       CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -611,21 +615,23 @@ app.get('/api/chats/:username', (req, res) => {
            (SELECT COUNT(*) FROM messages 
             WHERE receiver = ? 
               AND sender = CASE WHEN m.sender = ? THEN m.receiver ELSE m.sender END 
-              AND is_read = 0) as unread_count
+              AND is_read = 0
+              AND deleted_by_receiver = 0) as unread_count
     FROM messages m
     INNER JOIN (
       SELECT MAX(created_at) as max_date, 
              CASE WHEN sender = ? THEN receiver ELSE sender END as partner
       FROM messages
-      WHERE sender = ? OR receiver = ?
+      WHERE (sender = ? AND deleted_by_sender = 0) OR (receiver = ? AND deleted_by_receiver = 0)
       GROUP BY partner
     ) latest ON (m.sender = ? AND m.receiver = latest.partner OR m.sender = latest.partner AND m.receiver = ?) 
              AND m.created_at = latest.max_date
     LEFT JOIN users u ON u.username = latest.partner
+    WHERE (m.sender = ? AND m.deleted_by_sender = 0) OR (m.receiver = ? AND m.deleted_by_receiver = 0)
     ORDER BY m.created_at DESC
   `;
   
-  db.all(query, [username, username, username, username, username, username, username], (err, rows) => {
+  db.all(query, [username, username, username, username, username, username, username, username, username], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     
     const chats = rows.map(r => {
@@ -650,7 +656,7 @@ app.get('/api/chats/:username', (req, res) => {
 
 app.get('/api/messages/:user1/:user2', (req, res) => {
   const { user1, user2 } = req.params;
-  db.all(`SELECT * FROM messages WHERE (sender = ? AND receiver = ?) OR (sender = ? AND receiver = ?) ORDER BY created_at ASC`, 
+  db.all(`SELECT * FROM messages WHERE ((sender = ? AND receiver = ? AND deleted_by_sender = 0) OR (sender = ? AND receiver = ? AND deleted_by_receiver = 0)) ORDER BY created_at ASC`, 
     [user1, user2, user2, user1], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows);
@@ -701,17 +707,24 @@ app.post('/api/messages/clear-image', (req, res) => {
 });
 
 app.post('/api/messages/delete', (req, res) => {
-  const { messageIds } = req.body;
+  const { username, messageIds } = req.body;
   if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) return res.status(400).json({ error: "Data tidak lengkap" });
 
   const placeholders = messageIds.map(() => '?').join(', ');
   
   db.serialize(() => {
-    db.run(`DELETE FROM messages WHERE id IN (${placeholders})`, messageIds, (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      db.run(`DELETE FROM favorite_messages WHERE message_id IN (${placeholders})`, messageIds, () => {
-        res.json({ success: true });
-      });
+    if (username) {
+      const params = [username, ...messageIds];
+      db.run(`UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND id IN (${placeholders})`, params);
+      db.run(`UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND id IN (${placeholders})`, params);
+      db.run(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`, () => {});
+    } else {
+      // Legacy fallback if username is not provided
+      db.run(`DELETE FROM messages WHERE id IN (${placeholders})`, messageIds);
+    }
+    
+    db.run(`DELETE FROM favorite_messages WHERE message_id IN (${placeholders}) ${username ? 'AND username = ?' : ''}`, username ? [...messageIds, username] : messageIds, () => {
+      res.json({ success: true });
     });
   });
 });
@@ -723,15 +736,14 @@ app.post('/api/chats/delete-bulk', (req, res) => {
   }
 
   const placeholders = partners.map(() => '?').join(', ');
-  const params = [username, ...partners, username, ...partners];
-  db.run(
-    `DELETE FROM messages WHERE (sender = ? AND receiver IN (${placeholders})) OR (receiver = ? AND sender IN (${placeholders}))`,
-    params,
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
+  const params = [username, ...partners];
+  
+  db.serialize(() => {
+    db.run(`UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND receiver IN (${placeholders})`, params);
+    db.run(`UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND sender IN (${placeholders})`, params);
+    db.run(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`, () => {});
+    res.json({ success: true });
+  });
 });
 
 app.post('/api/contacts/delete-bulk', (req, res) => {
@@ -817,6 +829,28 @@ io.on('connection', (socket) => {
       }
       data.id = this.lastID;
       io.emit('receive_message', data);
+    });
+  });
+
+  // Handle edit message
+  socket.on('edit_message', (data) => {
+    // data: { id, sender, text }
+    db.run(`UPDATE messages SET text = ?, is_edited = 1 WHERE id = ? AND sender = ?`, [data.text, data.id, data.sender], function(err) {
+      if (err) return console.error("Database error updating message:", err.message);
+      if (this.changes > 0) {
+        io.emit('message_edited', data);
+      }
+    });
+  });
+
+  // Handle delete message for everyone
+  socket.on('delete_message_everyone', (data) => {
+    // data: { id, sender }
+    db.run(`UPDATE messages SET is_deleted_everyone = 1 WHERE id = ? AND sender = ?`, [data.id, data.sender], function(err) {
+      if (err) return console.error("Database error deleting message for everyone:", err.message);
+      if (this.changes > 0) {
+        io.emit('message_deleted_everyone', data);
+      }
     });
   });
 
