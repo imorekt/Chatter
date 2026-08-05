@@ -82,10 +82,22 @@ const ChatList = ({ onLogout, currentUser }) => {
   }, [activeFilter, currentUser, activeFavoriteUser]);
 
   useEffect(() => {
+    if ('Notification' in window && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  }, []);
+
+  useEffect(() => {
     const socket = io(API_URL);
     socket.on('receive_message', (data) => {
       if (data.recipient === currentUser || data.sender === currentUser) {
         fetchChats();
+      }
+      if (data.recipient === currentUser && 'Notification' in window && Notification.permission === 'granted') {
+        if (document.hidden || activeChat?.username !== data.sender) {
+          const bodyText = typeof data.text === 'string' && data.text.startsWith('data:image/') ? '📷 Mengirim gambar' : data.text;
+          new Notification(`Pesan dari ${data.sender}`, { body: bodyText, icon: '/favicon.svg' });
+        }
       }
     });
     socket.on('typing_status', (data) => {
@@ -94,7 +106,7 @@ const ChatList = ({ onLogout, currentUser }) => {
       }
     });
     return () => socket.disconnect();
-  }, [currentUser]);
+  }, [currentUser, activeChat]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -108,12 +120,21 @@ const ChatList = ({ onLogout, currentUser }) => {
     };
   }, []);
 
+  const prevNotifCountRef = useRef(0);
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
         const res = await fetch(`${API_URL}/api/notifications/${currentUser}`);
         if (res.ok) {
           const data = await res.json();
+          const unreadNotifs = data.filter(n => !n.is_read);
+          if (unreadNotifs.length > prevNotifCountRef.current && 'Notification' in window && Notification.permission === 'granted') {
+            const latestNotif = unreadNotifs[0];
+            if (latestNotif && document.hidden) {
+              new Notification('Pemberitahuan Chatter', { body: latestNotif.text || 'Notifikasi baru', icon: '/favicon.svg' });
+            }
+          }
+          prevNotifCountRef.current = unreadNotifs.length;
           setNotifications(data);
         }
       } catch (e) {}
