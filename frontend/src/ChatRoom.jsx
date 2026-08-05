@@ -423,7 +423,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
                 style={{ position: 'absolute', top: '1cqh', right: '1.8cqw', width: '4.2cqw', height: '4.2cqw', cursor: 'pointer', zIndex: 10 }}
               />
             )}
-            <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '9.5cqw' : '6.5cqw', paddingBottom: '2cqh' }}>
+            <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '7.5cqw' : '4.5cqw', paddingBottom: '2cqh' }}>
               {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
             </span>
             <div style={{ 
