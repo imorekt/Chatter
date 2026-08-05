@@ -193,8 +193,9 @@ const Profile = ({ onLogout, email }) => {
           />
         </div>
         <div style={{ textAlign: 'center' }}>
-          <div style={{ fontSize: 'var(--font-body)', color: 'var(--dark-text-muted)', fontWeight: '600' }}>{originalDisplayName || email}</div>
-          <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginTop: '0.3cqh' }}>Bergabung sejak: 2026</div>
+          <div style={{ fontSize: 'var(--font-title)', color: 'white', fontWeight: 'bold', marginBottom: '0.5cqh' }}>{originalDisplayName || email}</div>
+          <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', fontWeight: '600' }}>@{email}</div>
+          <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginTop: '0.5cqh' }}>Bergabung sejak: 2026</div>
         </div>
       </div>
 

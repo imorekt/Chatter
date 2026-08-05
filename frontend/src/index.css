@@ -76,6 +76,16 @@ body {
   animation: spin 1s linear infinite;
 }
 
+@keyframes pulse-green {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7); }
+  70% { transform: scale(1); box-shadow: 0 0 0 4px rgba(37, 211, 102, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(37, 211, 102, 0); }
+}
+
+.animate-pulse-green {
+  animation: pulse-green 2s infinite;
+}
+
 .app-container {
   height: 100%;
   /* Fill #root height */
@@ -722,4 +732,30 @@ body {
 
 .blink-once {
   animation: blink-animation 1.5s ease-out;
+}
+
+/* Hide scrollbars inside EmojiPickerReact popup */
+.EmojiPickerReact,
+.EmojiPickerReact *,
+.EmojiPickerReact *::-webkit-scrollbar,
+.epr-main,
+.epr-main *,
+.epr-main *::-webkit-scrollbar,
+.epr-body,
+.epr-body *,
+.epr-body *::-webkit-scrollbar,
+.epr-emoji-list,
+.epr-emoji-list *,
+.epr-emoji-list *::-webkit-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
+}
+
+.EmojiPickerReact *::-webkit-scrollbar,
+.epr-main *::-webkit-scrollbar,
+.epr-body *::-webkit-scrollbar,
+.epr-emoji-list *::-webkit-scrollbar {
+  display: none !important;
+  width: 0 !important;
+  height: 0 !important;
 }

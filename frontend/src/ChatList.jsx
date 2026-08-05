@@ -22,6 +22,7 @@ const ChatList = ({ onLogout, currentUser }) => {
   const [notifications, setNotifications] = useState([]);
   const [showNotifications, setShowNotifications] = useState(false);
   const [highlightMomentId, setHighlightMomentId] = useState(null);
+  const [hasNewMoment, setHasNewMoment] = useState(false);
   const [showNewChatPopup, setShowNewChatPopup] = useState(false);
   const [favoriteUsers, setFavoriteUsers] = useState([]);
   const [typingUsers, setTypingUsers] = useState({});
@@ -147,6 +148,16 @@ const ChatList = ({ onLogout, currentUser }) => {
           prevNotifCountRef.current = unreadNotifs.length;
           setNotifications(data);
         }
+        
+        // Cek moment terbaru
+        const momentRes = await fetch(`${API_URL}/api/moments/latest/${currentUser}`);
+        if (momentRes.ok) {
+          const { latest_id } = await momentRes.json();
+          const lastSeenId = parseInt(localStorage.getItem('last_seen_moment_id') || '0');
+          if (latest_id > lastSeenId) {
+            setHasNewMoment(true);
+          }
+        }
       } catch (e) {}
     };
     
@@ -161,11 +172,22 @@ const ChatList = ({ onLogout, currentUser }) => {
     setSearchQuery('');
     setSelectionMode(null);
     setSelectedItems(new Set());
-    if (nav !== 'moment') setHighlightMomentId(null);
+    if (nav === 'moment') {
+      setHasNewMoment(false);
+      // Update last seen moment id from backend dynamically if possible,
+      // but the simplest way is to fetch latest and set it to storage
+      fetch(`${API_URL}/api/moments/latest/${currentUser}`)
+        .then(res => res.json())
+        .then(data => localStorage.setItem('last_seen_moment_id', data.latest_id))
+        .catch(console.error);
+    } else {
+      setHighlightMomentId(null);
+    }
   };
 
   if (activeChat) {
-    return <ChatRoom chat={activeChat} onBack={() => setActiveChat(null)} currentUser={currentUser} />;
+    const isFriend = contactsData.friends?.some(f => f.username === activeChat.username) || false;
+    return <ChatRoom chat={activeChat} onBack={() => setActiveChat(null)} currentUser={currentUser} isFriend={isFriend} />;
   }
 
   if (activeFavoriteUser) {
@@ -228,6 +250,7 @@ const ChatList = ({ onLogout, currentUser }) => {
         if (res.ok) {
           notify.success('Obrolan berhasil dihapus');
           setChats(prev => prev.filter(c => !selectedItems.has(c.username)));
+          setFavoriteUsers(prev => prev.filter(f => !selectedItems.has(f.username)));
           setSelectionMode(null);
           setSelectedItems(new Set());
           setTimeout(fetchChats, 500);
@@ -384,7 +407,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                           </div>
                         )}
                         <div style={{ flex: 1, fontSize: '13px', color: 'white' }}>
-                          <b>{n.sender}</b> {n.type === 'like' ? 'menyukai moment Anda.' : n.type === 'friend_request' ? 'mengirim permintaan pertemanan kepada Anda.' : `mengomentari moment Anda: "${n.content}"`}
+                          <b>{n.sender}</b> {n.type === 'like' ? 'menyukai moment Anda.' : n.type === 'friend_request' ? 'mengirim permintaan pertemanan kepada Anda.' : n.type === 'friend_accept' ? 'menerima permintaan pertemanan Anda.' : `mengomentari moment Anda: "${n.content}"`}
                         </div>
                       </div>
                     ))}
@@ -422,7 +445,13 @@ const ChatList = ({ onLogout, currentUser }) => {
               ) : (
                 filteredFavorites.map((fav, index) => (
                   <React.Fragment key={fav.username}>
-                    <div className="chat-item" onClick={() => setActiveFavoriteUser({ name: fav.username, displayName: fav.displayName, avatar: fav.avatar, isDeleted: fav.isDeleted })}>
+                    <div className="chat-item" onClick={() => {
+                      if (selectionMode === 'chat') {
+                        toggleSelectItem(fav.username);
+                      } else {
+                        setActiveFavoriteUser({ name: fav.username, displayName: fav.displayName, avatar: fav.avatar, isDeleted: fav.isDeleted });
+                      }
+                    }}>
                       <div className="avatar-container">
                         {fav.isDeleted ? (
                           <div className="avatar" style={{ background: '#3f3f46', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#a1a1aa', fontWeight: 'bold' }}>
@@ -446,13 +475,26 @@ const ChatList = ({ onLogout, currentUser }) => {
                           </div>
                         </div>
                       </div>
+                      {selectionMode === 'chat' && (
+                        <input 
+                          type="checkbox"
+                          checked={selectedItems.has(fav.username)}
+                          onChange={() => toggleSelectItem(fav.username)}
+                          onClick={(e) => e.stopPropagation()}
+                          style={{ width: '18px', height: '18px', cursor: 'pointer', marginLeft: '12px', flexShrink: 0 }}
+                        />
+                      )}
                     </div>
                     {index < filteredFavorites.length - 1 && <div className="divider-line"></div>}
                   </React.Fragment>
                 ))
               )
             ) : (
-              filteredChats.length === 0 ? (
+              (activeFilter === 'Online' || activeFilter === 'Grup') ? (
+                <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '40px', fontSize: '14px' }}>
+                  coming soon
+                </div>
+              ) : filteredChats.length === 0 ? (
                 <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '40px', fontSize: '14px' }}>
                   Obrolan tidak ditemukan.
                 </div>
@@ -508,15 +550,19 @@ const ChatList = ({ onLogout, currentUser }) => {
                                     {chat.isLastMessageRead ? (
                                       <CheckCheck size={14} color="#3b82f6" />
                                     ) : (
-                                      <CheckCheck size={14} color="var(--dark-text-muted)" />
+                                      (contactsData?.friends?.some(f => f.username === chat.username)) ? 
+                                        <CheckCheck size={14} color="var(--dark-text-muted)" /> : 
+                                        <Check size={14} color="var(--dark-text-muted)" />
                                     )}
                                   </span>
                                 )}
                                 <span style={{ color: chat.isSystem ? 'var(--primary)' : 'inherit' }}>
                                   {typeof chat.lastMessage === 'string' && chat.lastMessage.includes('|||CAPTION|||')
-                                    ? `📷 ${chat.lastMessage.split('|||CAPTION|||')[1] || 'Gambar'}`
-                                    : typeof chat.lastMessage === 'string' && chat.lastMessage.startsWith('data:image/')
-                                    ? '📷 Gambar'
+                                    ? `📷 ${chat.lastMessage.split('|||CAPTION|||')[1]}`
+                                    : typeof chat.lastMessage === 'string' && chat.lastMessage.includes('|||FILENAME|||')
+                                    ? `📷 ${chat.lastMessage.split('|||FILENAME|||')[1].split('|||')[0]}`
+                                    : typeof chat.lastMessage === 'string' && (chat.lastMessage.startsWith('data:image/') || chat.lastMessage.startsWith('MEDIA_LOCAL_SAVED'))
+                                    ? '📷 Foto'
                                     : chat.lastMessage}
                                 </span>
                               </>
@@ -671,6 +717,17 @@ const ChatList = ({ onLogout, currentUser }) => {
           {activeNav === 'moment' && <div className="nav-indicator"></div>}
           <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid currentColor', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'currentColor' }}></div>
+            {hasNewMoment && (
+              <div className="animate-pulse-green" style={{
+                position: 'absolute',
+                top: '-4px',
+                right: '-4px',
+                width: '10px',
+                height: '10px',
+                backgroundColor: '#25D366',
+                borderRadius: '50%'
+              }}></div>
+            )}
           </div>
           <span>Moment</span>
         </div>

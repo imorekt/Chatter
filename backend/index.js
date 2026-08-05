@@ -301,6 +301,13 @@ app.delete('/api/users/:identifier', (req, res) => {
 });
 
 // --- MOMENTS API ---
+app.get('/api/moments/latest/:username', (req, res) => {
+  db.get('SELECT id as latest_id FROM moments WHERE username != ? ORDER BY id DESC LIMIT 1', [req.params.username], (err, row) => {
+    if (err) return res.status(500).json({ error: err.message });
+    res.json(row || { latest_id: 0 });
+  });
+});
+
 app.get('/api/moments', (req, res) => {
   const query = `
     SELECT m.*, u.avatar as user_avatar, u.display_name as user_display_name,
@@ -526,9 +533,18 @@ app.post('/api/contacts/cancel', (req, res) => {
 
 app.post('/api/contacts/respond', (req, res) => {
   const { sender, receiver, action } = req.body; // action: 'accept' | 'reject'
+  
+  db.run(`DELETE FROM notifications WHERE sender = ? AND recipient = ? AND type = 'friend_request'`, [sender, receiver]);
+
   if (action === 'accept') {
     db.run(`UPDATE contacts SET status = 'accepted' WHERE sender_username = ? AND receiver_username = ?`, [sender, receiver], (err) => {
       if (err) return res.status(500).json({ error: "Gagal" });
+      
+      db.run(
+        `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
+        [sender, receiver]
+      );
+      
       res.json({ success: true });
     });
   } else {
@@ -673,9 +689,9 @@ app.post('/api/messages/clear-image', (req, res) => {
   db.get(`SELECT text FROM messages WHERE id = ?`, [messageId], (err, row) => {
     if (err || !row) return res.status(404).json({ error: "Not found" });
     let newText = 'MEDIA_LOCAL_SAVED';
-    if (row.text && row.text.includes('|||CAPTION|||')) {
-      const caption = row.text.split('|||CAPTION|||')[1];
-      newText = `MEDIA_LOCAL_SAVED|||CAPTION|||${caption}`;
+    if (row.text && row.text.includes('|||')) {
+      const firstTagIndex = row.text.indexOf('|||');
+      newText = 'MEDIA_LOCAL_SAVED' + row.text.substring(firstTagIndex);
     }
     db.run(`UPDATE messages SET text = ? WHERE id = ?`, [newText, messageId], (err2) => {
       if (err2) return res.status(500).json({ error: err2.message });
