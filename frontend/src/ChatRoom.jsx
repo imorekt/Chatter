@@ -319,7 +319,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
     }
   };
 
-  const renderMediaContent = (msgId, rawText) => {
+  const renderMediaContent = (msgId, rawText, isMe) => {
     if (typeof rawText !== 'string') return rawText;
 
     let base64Part = null;
@@ -337,11 +337,13 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
     if (base64Part.startsWith('data:image/')) {
       try {
         localStorage.setItem(`chat_media_${msgId}`, base64Part);
-        fetch(`${API_URL}/api/messages/clear-image`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ messageId: msgId })
-        }).catch(() => {});
+        if (!isMe) {
+          fetch(`${API_URL}/api/messages/clear-image`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ messageId: msgId })
+          }).catch(() => {});
+        }
       } catch (e) {}
       isMediaSaved = true;
     } else if (base64Part === 'MEDIA_LOCAL_SAVED') {
@@ -422,7 +424,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
               />
             )}
             <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '16.5cqw' : '11.5cqw', paddingBottom: '2cqh' }}>
-              {renderMediaContent(msg.id, msg.text)}
+              {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
             </span>
             <div style={{ 
               position: 'absolute',
