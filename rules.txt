@@ -1,0 +1,78 @@
+NEBULA CHAT V1 - UI NOTIFICATION & FUNCTION SPECIFICATION
+
+GLOBAL TOAST/SNACKBAR - Success: Green - Error: Red - Warning: Orange -
+Info: Blue
+
+LOGIN Success: - “Login berhasil.” Action: Home.
+
+Wrong password: - “Password salah.”
+
+Account not found: - “Akun tidak ditemukan.”
+
+Invalid email: - “Format email tidak valid.”
+
+Empty email: - “Email wajib diisi.”
+
+Empty password: - “Password wajib diisi.”
+
+Network error: - “Tidak dapat terhubung ke server.”
+
+Too many attempts: - “Terlalu banyak percobaan. Coba lagi nanti.”
+
+REGISTER Success: - “Akun berhasil dibuat.”
+
+Username exists: - “Username sudah digunakan.”
+
+Email exists: - “Email sudah terdaftar.”
+
+Weak password: - “Password minimal 8 karakter.”
+
+Password mismatch: - “Konfirmasi password tidak cocok.”
+
+PROFILE Save success: - “Profil berhasil diperbarui.”
+
+Avatar upload success: - “Foto profil berhasil diunggah.”
+
+Avatar upload failed: - “Upload foto gagal.”
+
+CHAT Send text success: - Message appears instantly.
+
+Empty message: - “Pesan tidak boleh kosong.”
+
+Image upload: - Loading indicator.
+
+Image upload failed: - “Gagal mengirim gambar.”
+
+Delete message: - Confirmation dialog. - “Pesan berhasil dihapus.”
+
+SEARCH No result: - “Pengguna tidak ditemukan.”
+
+LOGOUT Dialog: - “Yakin ingin keluar?” Buttons: - Batal - Logout
+
+Logout success: - “Berhasil logout.”
+
+SESSION Expired: - “Sesi telah berakhir. Silakan login kembali.”
+
+PUSH NOTIFICATION New message: - “: ”
+
+Image: - “ mengirim gambar.”
+
+Open notification: - Open related chat.
+
+OFFLINE If recipient offline: - Save message. - Send FCM. - Deliver on
+next connection.
+
+ONLINE STATUS Online: - Green dot + “Online”
+
+Offline: - “Terakhir dilihat …”
+
+Typing: - “Sedang mengetik…”
+
+SECURITY If banned: - “Akun dinonaktifkan.”
+
+If disabled: - Force logout.
+
+ALL BUTTONS Login, Register, Logout, Forgot Password, Save Profile,
+Change Avatar, Search, New Chat, Open Chat, Send, Attach Image, Delete
+Message, Back, Theme Switch, Notification Switch must provide loading
+state, disable while processing, and show success/error feedback.

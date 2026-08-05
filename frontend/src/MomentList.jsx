@@ -1,0 +1,465 @@
+import React, { useState, useEffect } from 'react';
+import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
+import { notify } from './utils/toast';
+
+let cachedMoments = [];
+let hasFetchedMoments = false;
+
+const getUserColor = (username) => {
+  if (!username) return 'var(--primary)';
+  const lowerUser = username.toLowerCase();
+  if (lowerUser === 'admin1' || lowerUser === 'admin 1') return '#EF4444'; // merah menyala
+  if (lowerUser === 'admin2' || lowerUser === 'admin 2') return '#991B1B'; // merah gelap
+  
+  const colors = [
+    '#3B82F6', '#10B981', '#F59E0B', '#8B5CF6', '#EC4899', 
+    '#06B6D4', '#F97316', '#14B8A6', '#6366F1', '#84CC16'
+  ];
+  let hash = 0;
+  for (let i = 0; i < username.length; i++) {
+    hash = username.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+};
+
+const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) => {
+  const [moments, setMoments] = useState(cachedMoments);
+  const [loading, setLoading] = useState(!hasFetchedMoments);
+  const [newPost, setNewPost] = useState('');
+  const [newImageUrl, setNewImageUrl] = useState('');
+  const [isPosting, setIsPosting] = useState(false);
+  const [commentTexts, setCommentTexts] = useState({});
+  const [currentUserAvatar, setCurrentUserAvatar] = useState(null);
+  const [showMenuId, setShowMenuId] = useState(null);
+  const [editingMomentId, setEditingMomentId] = useState(null);
+  const [editContent, setEditContent] = useState('');
+  const [momentToDelete, setMomentToDelete] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [openComments, setOpenComments] = useState({});
+  const [likesModalUsers, setLikesModalUsers] = useState(null);
+  
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/users/${currentUser}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.avatar) setCurrentUserAvatar(data.avatar);
+      })
+      .catch(console.error);
+  }, [currentUser]);
+
+  const fetchMoments = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/moments`);
+      if (res.ok) {
+        const data = await res.json();
+        setMoments(data);
+        cachedMoments = data;
+        hasFetchedMoments = true;
+      }
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMoments();
+    const intervalId = setInterval(() => {
+      fetchMoments();
+    }, 1000);
+    return () => clearInterval(intervalId);
+  }, [currentUser]);
+
+  useEffect(() => {
+    if (highlightMomentId && moments.length > 0) {
+      setOpenComments(prev => ({ ...prev, [highlightMomentId]: true }));
+      setTimeout(() => {
+        const element = document.getElementById(`moment-${highlightMomentId}`);
+        if (element) {
+          element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          element.classList.add('blink-once');
+          setTimeout(() => {
+            if (element) element.classList.remove('blink-once');
+            if (setHighlightMomentId) setHighlightMomentId(null);
+          }, 2000);
+        }
+      }, 300);
+    }
+  }, [highlightMomentId, moments.length, setHighlightMomentId]);
+
+  const handlePost = async () => {
+    if (!newPost.trim()) return;
+    setIsPosting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/moments`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: currentUser, content: newPost, image_url: newImageUrl })
+      });
+      if (res.ok) {
+        setNewPost('');
+        setNewImageUrl('');
+        fetchMoments();
+        notify.success('Moment diposting!');
+      }
+    } catch (error) {
+      console.error(error);
+      notify.error('Gagal memposting moment.');
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const handleDeleteMoment = (id) => {
+    setMomentToDelete(id);
+    setShowMenuId(null);
+  };
+
+  const confirmDeleteMoment = async () => {
+    if (!momentToDelete) return;
+    setIsDeleting(true);
+    try {
+      const res = await fetch(`${API_URL}/api/moments/${momentToDelete}`, { method: 'DELETE' });
+      if (res.ok) {
+        notify.success('Moment dihapus');
+        fetchMoments();
+      }
+    } catch (e) {
+      notify.error('Gagal menghapus moment');
+    } finally {
+      setIsDeleting(false);
+      setMomentToDelete(null);
+    }
+  };
+
+  const handleEditMomentSubmit = async (id) => {
+    if (!editContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/moments/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editContent })
+      });
+      if (res.ok) {
+        notify.success('Moment diperbarui');
+        setEditingMomentId(null);
+        fetchMoments();
+      }
+    } catch (e) {
+      notify.error('Gagal mengedit moment');
+    }
+  };
+
+  const handleLike = async (momentId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/moments/like`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moment_id: momentId, username: currentUser })
+      });
+      if (res.ok) {
+        fetchMoments();
+      }
+    } catch (error) {
+      notify.error("Gagal menyukai");
+    }
+  };
+
+  const handleComment = async (momentId) => {
+    const text = commentTexts[momentId] || '';
+    if (!text.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/moments/comment`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ moment_id: momentId, username: currentUser, content: text })
+      });
+      if (res.ok) {
+        setCommentTexts(prev => ({ ...prev, [momentId]: '' }));
+        fetchMoments();
+      }
+    } catch (error) {
+      notify.error("Gagal mengirim komentar");
+    }
+  };
+
+  const handleCommentClick = (momentId, replyUsername) => {
+    setOpenComments(prev => ({ ...prev, [momentId]: true }));
+    const prefix = `@${replyUsername} `;
+    setCommentTexts(prev => ({ ...prev, [momentId]: prefix }));
+    setTimeout(() => {
+      const input = document.getElementById(`comment-input-${momentId}`);
+      if (input) {
+        input.focus();
+        input.setSelectionRange(input.value.length, input.value.length);
+      }
+    }, 50);
+  };
+
+  const formatDate = (dateString) => {
+    const safeDateString = typeof dateString === 'string' && !dateString.includes('T') 
+      ? dateString.replace(' ', 'T') + 'Z' 
+      : dateString;
+    const date = new Date(safeDateString);
+    return date.toLocaleDateString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':') + ' WIB';
+  };
+
+  return (
+    <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '4cqw', background: 'transparent', minHeight: 0 }}>
+      {/* Post Creator */}
+      <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh' }}>
+        <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
+          {currentUserAvatar ? (
+            <img src={currentUserAvatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+          ) : (
+            <div style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'var(--primary)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
+              {currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}
+            </div>
+          )}
+          <textarea 
+            className="hide-scrollbar"
+            placeholder="Apa yang Anda pikirkan?"
+            value={newPost}
+            onChange={(e) => setNewPost(e.target.value)}
+            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '2.5cqw', padding: '2.5cqw', color: 'white', outline: 'none', resize: 'none', minHeight: '7cqh', overflowY: 'auto', fontSize: 'var(--font-body)', fontFamily: 'inherit' }}
+            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 50) + 'px'; }}
+          />
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ flex: 1, marginRight: '3cqw', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1.2cqh 2.5cqw', borderRadius: '2cqw' }}>
+            <ImageIcon size={16} color="var(--dark-text-muted)" style={{ marginRight: '2cqw' }} />
+            <input 
+              type="text" 
+              placeholder="URL Gambar (Opsional)" 
+              value={newImageUrl}
+              onChange={(e) => setNewImageUrl(e.target.value)}
+              style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: 'var(--font-caption)' }}
+            />
+          </div>
+          <button 
+            onClick={handlePost} 
+            disabled={isPosting || !newPost.trim()}
+            style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '1.2cqh 4cqw', borderRadius: '4cqw', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2cqw', cursor: 'pointer', opacity: (!newPost.trim() || isPosting) ? 0.5 : 1 }}
+          >
+            {isPosting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
+            Posting
+          </button>
+        </div>
+      </div>
+
+      {/* Moments Feed */}
+      {loading ? (
+        <div style={{ textAlign: 'center', marginTop: '10cqh' }}><Loader2 size={24} className="animate-spin" color="var(--primary)" style={{ margin: '0 auto' }} /></div>
+      ) : moments.length === 0 ? (
+        <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '10cqh' }}>Belum ada moment. Jadilah yang pertama memposting!</div>
+      ) : (
+        moments.map(moment => {
+          const hasLiked = moment.liked_by.includes(currentUser);
+          return (
+            <div id={`moment-${moment.id}`} key={moment.id} style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '2cqh', transition: 'background-color 0.5s ease' }}>
+              <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
+                {moment.user_avatar ? (
+                  <img src={moment.user_avatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                ) : (
+                  <div style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
+                    {moment.user_display_name ? moment.user_display_name.charAt(0).toUpperCase() : moment.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontWeight: '600', color: getUserColor(moment.username), fontSize: 'var(--font-body)' }}>{moment.user_display_name || moment.username}</div>
+                  <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{formatDate(moment.created_at)}</div>
+                </div>
+                {(moment.username === currentUser || currentUser === 'admin1' || currentUser === 'admin2') && (
+                  <div style={{ position: 'relative' }}>
+                    <div style={{ cursor: 'pointer', padding: '1cqw', color: 'var(--dark-text-muted)' }} onClick={() => setShowMenuId(showMenuId === moment.id ? null : moment.id)}>
+                      <MoreVertical size={20} />
+                    </div>
+                    {showMenuId === moment.id && (
+                      <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', borderRadius: '2cqw', zIndex: 10, padding: '1cqw', minWidth: '30cqw' }}>
+                        <div onClick={() => { setEditingMomentId(moment.id); setEditContent(moment.content); setShowMenuId(null); }} style={{ padding: '1cqw 2cqw', color: 'white', cursor: 'pointer', display: 'flex', gap: '2cqw', alignItems: 'center', fontSize: 'var(--font-caption)' }}>
+                          <Edit3 size={14} /> Edit
+                        </div>
+                        <div onClick={() => handleDeleteMoment(moment.id)} style={{ padding: '1cqw 2cqw', color: '#EF4444', cursor: 'pointer', display: 'flex', gap: '2cqw', alignItems: 'center', fontSize: 'var(--font-caption)' }}>
+                          <Trash2 size={14} /> Hapus
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+              
+              {editingMomentId === moment.id ? (
+                <div style={{ marginBottom: '1.5cqh' }}>
+                  <textarea 
+                    className="hide-scrollbar"
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    style={{ width: '100%', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--primary)', borderRadius: '2.5cqw', padding: '2.5cqw', color: 'white', outline: 'none', resize: 'none', minHeight: '7cqh', overflowY: 'auto', fontSize: 'var(--font-body)', fontFamily: 'inherit' }}
+                    onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 50) + 'px'; }}
+                  />
+                  <div style={{ display: 'flex', gap: '2cqw', marginTop: '1cqh', justifyContent: 'flex-end' }}>
+                    <button onClick={() => setEditingMomentId(null)} style={{ background: 'transparent', border: '1px solid var(--dark-border)', color: 'white', padding: '0.8cqh 2cqw', borderRadius: '1.5cqw', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1cqw', fontSize: 'var(--font-caption)' }}><X size={14}/> Batal</button>
+                    <button onClick={() => handleEditMomentSubmit(moment.id)} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '0.8cqh 2cqw', borderRadius: '1.5cqw', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '1cqw', fontSize: 'var(--font-caption)' }}><Check size={14}/> Simpan</button>
+                  </div>
+                </div>
+              ) : (
+                <div style={{ color: 'var(--dark-text)', fontSize: 'var(--font-body)', lineHeight: '1.4', marginBottom: '1.5cqh' }}>
+                  {moment.content}
+                </div>
+              )}
+              
+              {moment.image_url && (
+                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000' }}>
+                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', maxHeight: '35cqh', objectFit: 'contain' }} />
+                </div>
+              )}
+              
+              <div style={{ display: 'flex', gap: '4cqw', borderTop: '1px solid var(--dark-border)', paddingTop: '0.6cqh', marginTop: '1.2cqh' }}>
+                <div onClick={() => handleLike(moment.id)} style={{ display: 'flex', alignItems: 'center', gap: '1.5cqw', color: hasLiked ? '#EF4444' : 'var(--dark-text-muted)', cursor: 'pointer', fontSize: 'var(--font-body)', transition: 'color 0.2s' }}>
+                  <Heart size={18} fill={hasLiked ? '#EF4444' : 'none'} />
+                  {moment.like_count > 0 && <span>{moment.like_count}</span>}
+                </div>
+                <div onClick={() => setOpenComments(prev => ({ ...prev, [moment.id]: !prev[moment.id] }))} style={{ display: 'flex', alignItems: 'center', gap: '1.5cqw', color: openComments[moment.id] ? 'var(--primary)' : 'var(--dark-text-muted)', cursor: 'pointer', fontSize: 'var(--font-body)' }}>
+                  <MessageSquare size={18} />
+                  {moment.comments.length > 0 && <span>{moment.comments.length}</span>}
+                </div>
+              </div>
+
+              {/* Likes List */}
+              {moment.liked_by.length > 0 && (
+                <div 
+                  onClick={() => setLikesModalUsers(moment.liked_by)}
+                  style={{ marginTop: '0.8cqh', padding: '0.8cqh 2cqw', background: 'rgba(255,255,255,0.03)', borderRadius: '2cqw', fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', display: 'flex', alignItems: 'center', gap: '1.5cqw', cursor: 'pointer' }}
+                >
+                  <Heart size={12} fill="var(--dark-text-muted)" />
+                  <span>
+                    Disukai oleh{' '}
+                    <span style={{ color: 'var(--primary)', fontWeight: '600' }}>
+                      {moment.liked_by.slice(0, 3).join(', ')}
+                    </span>
+                    {moment.liked_by.length > 3 && (
+                      <span> dan <span style={{ fontWeight: '600', color: 'white' }}>{moment.liked_by.length - 3} orang lainnya</span></span>
+                    )}
+                  </span>
+                </div>
+              )}
+
+              {/* Comments Section & Input toggled via icon */}
+              {openComments[moment.id] && (
+                <>
+                  {moment.comments.length > 0 && (
+                    <div style={{ marginTop: '0.8cqh', display: 'flex', flexDirection: 'column', gap: '0.3cqh' }}>
+                      {moment.comments.map(c => (
+                        <div 
+                          key={c.id} 
+                          onClick={() => handleCommentClick(moment.id, c.user_display_name || c.username)}
+                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '0.1cqh 0' }}
+                        >
+                          <span style={{ color: getUserColor(c.username), fontWeight: '600', marginRight: '1.5cqw' }}>{c.user_display_name || c.username}:</span>
+                          <span style={{ color: 'var(--dark-text)', whiteSpace: 'pre-wrap' }}>{c.content}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end' }}>
+                    <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                      <textarea 
+                        id={`comment-input-${moment.id}`}
+                        className="hide-scrollbar"
+                        rows={1}
+                        placeholder="Tulis komentar..."
+                        value={commentTexts[moment.id] || ''}
+                        onChange={(e) => setCommentTexts(prev => ({...prev, [moment.id]: e.target.value}))}
+                        style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '3cqw', padding: '1cqh 3cqw', color: 'white', outline: 'none', resize: 'none', fontSize: 'var(--font-caption)', fontFamily: 'inherit', minHeight: '4.5cqh', overflowY: 'auto' }}
+                        onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 36) + 'px'; }}
+                      />
+                    </div>
+                    <button onClick={() => handleComment(moment.id)} style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '50%', width: '7cqw', height: '7cqw', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                      <Send size={14} />
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          );
+        })
+      )}
+      {momentToDelete && (
+        <div style={{ 
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 1000, padding: '5cqw'
+        }}>
+          <div style={{ 
+            background: 'var(--dark-surface)', 
+            padding: '5cqw', 
+            borderRadius: '4cqw', 
+            width: '90%', 
+            border: '1px solid var(--dark-border)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+          }}>
+            <h3 style={{ margin: '0 0 4cqh 0', fontSize: 'var(--font-title)', color: 'white' }}>Hapus Moment?</h3>
+            <p style={{ color: 'var(--dark-text-muted)', fontSize: 'var(--font-body)', marginBottom: '6cqh', lineHeight: '1.5' }}>
+              Anda yakin ingin menghapus postingan ini? Tindakan ini tidak dapat dibatalkan.
+            </p>
+            <div style={{ display: 'flex', gap: '3cqw' }}>
+              <button onClick={() => setMomentToDelete(null)} disabled={isDeleting} style={{ flex: 1, padding: '3cqw', background: 'transparent', border: '1px solid var(--dark-border)', color: 'white', borderRadius: '2cqw', cursor: 'pointer', opacity: isDeleting ? 0.5 : 1 }}>
+                Batal
+              </button>
+              <button onClick={confirmDeleteMoment} disabled={isDeleting} style={{ flex: 1, padding: '3cqw', background: '#EF4444', border: 'none', color: 'white', borderRadius: '2cqw', cursor: 'pointer', fontWeight: 600, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2cqw', opacity: isDeleting ? 0.7 : 1 }}>
+                {isDeleting ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                Hapus
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Likes Modal */}
+      {likesModalUsers && (
+        <div style={{ 
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center',
+          zIndex: 1000, padding: '5cqw'
+        }}>
+          <div style={{ 
+            background: 'var(--dark-surface)', 
+            padding: '5cqw', 
+            borderRadius: '4cqw', 
+            width: '90%', 
+            border: '1px solid var(--dark-border)',
+            boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '3cqh' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white', display: 'flex', alignItems: 'center', gap: '2cqw' }}>
+                <Heart size={18} fill="#EF4444" color="#EF4444" /> Menyukai ({likesModalUsers.length})
+              </h3>
+              <X size={20} onClick={() => setLikesModalUsers(null)} style={{ cursor: 'pointer', color: 'var(--dark-text-muted)' }} />
+            </div>
+
+            <div 
+              className="hide-scrollbar" 
+              style={{ maxHeight: '35cqh', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.5cqh' }}
+            >
+              {likesModalUsers.map(uname => (
+                <div key={uname} style={{ display: 'flex', alignItems: 'center', gap: '3cqw', padding: '1cqh 2cqw', borderRadius: '2cqw', background: 'rgba(255,255,255,0.02)' }}>
+                  <div style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'var(--primary)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
+                    {uname.charAt(0).toUpperCase()}
+                  </div>
+                  <span style={{ fontWeight: '600', fontSize: 'var(--font-body)', color: getUserColor(uname) }}>{uname}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default MomentList;

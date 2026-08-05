@@ -1,0 +1,101 @@
+Nebula Chat V1 Functional Specification
+
+Tech Stack
+
+-   Frontend: Flutter
+-   Backend: Firebase Authentication
+-   Database: Cloud Firestore
+-   Image Storage: Firebase Storage
+-   Notifications: Firebase Cloud Messaging
+-   Landing Page: Vercel
+
+Navigation
+
+Splash -> Login/Register -> Home(Chat List) Home: - Search - New Chat -
+Profile - Logout Tap chat -> Chat Room
+
+Screen Specifications
+
+Splash
+
+-   Check auth session.
+-   If logged in -> Home.
+-   Else -> Login.
+
+Login
+
+Buttons: - Login: validate email/password, sign in, go Home. - Register:
+open Register. - Forgot Password: send reset email. Validation: - Empty
+fields. - Invalid email. - Wrong password.
+
+Register
+
+Fields: - Username (unique) - Email - Password - Confirm Password
+Buttons: - Create Account. - Back to Login. Flow: - Create Firebase
+Auth. - Create Firestore user document. - Default avatar. -
+Online=false.
+
+Home (Chat List)
+
+Top: - Search button. - Profile button. - Overflow menu. Tabs: - All -
+Unread - Online Functions: - Open chat. - Swipe delete (soft delete from
+list only). - Pin chat. - Mute chat. Floating Action Button: - Start new
+conversation.
+
+Search User
+
+Search by: - Username - Display name Functions: - Open profile
+preview. - Start chat.
+
+Chat Room
+
+Header: - Avatar - Username - Online/Offline Body: - Text messages. -
+Image messages. Composer: - Emoji button. - Image picker. - Text
+input. - Send button. Functions: - Typing indicator. - Seen status. -
+Delivery status. - Timestamp. - Auto scroll.
+
+Profile
+
+Buttons: - Change avatar. - Edit display name. - Edit bio. - Save
+profile. - Logout. Display: - Email. - Join date.
+
+Settings
+
+-   Dark mode.
+-   Notifications ON/OFF.
+-   Clear cache.
+-   App version.
+
+Firestore Collections
+
+users - uid - username - displayName - email - photoURL - bio - online -
+lastSeen - createdAt
+
+rooms - roomId - members[] - lastMessage - lastMessageTime
+
+messages - messageId - roomId - senderId - type(text,image) - text -
+imageUrl - seen - delivered - createdAt
+
+Button Map
+
+Login -> authenticate Register -> create account Forgot Password ->
+email reset Search -> search users New Chat -> create/open room Avatar
+-> profile Save -> update profile Logout -> sign out Attach Image ->
+upload Firebase Storage Send -> send Firestore message Theme Switch ->
+toggle dark mode Notification Switch -> local setting Back -> previous
+page
+
+Validation
+
+-   Username unique.
+-   Image max 10 MB.
+-   Empty message blocked.
+-   Offline users still receive push notification.
+
+Future Features
+
+-   Groups
+-   Voice messages
+-   Video
+-   Calls
+-   Message reactions

@@ -1,0 +1,133 @@
+RESPONSIVE DESIGN RULES
+
+1. Seluruh halaman wajib responsive.
+
+2. Tidak boleh menggunakan ukuran tetap (fixed width/fixed height)
+kecuali icon kecil.
+
+3. Semua ukuran mengikuti ukuran layar.
+
+4. Gunakan MediaQuery atau LayoutBuilder.
+
+5. Semua margin, padding, radius, font, icon,
+button, card, avatar, image harus bersifat responsive.
+
+6. Semua Row dan Column wajib memakai
+Expanded atau Flexible bila diperlukan.
+
+7. Tidak boleh ada widget Overflow.
+
+8. Tidak boleh muncul tulisan:
+BOTTOM OVERFLOWED
+RIGHT OVERFLOWED
+
+9. Semua halaman harus aman terhadap:
+- layar kecil
+- layar besar
+- notch
+- dynamic island
+- punch hole
+- tablet
+
+10. Gunakan SafeArea.
+
+11. Gunakan SingleChildScrollView pada halaman
+yang memiliki form.
+
+12. Keyboard tidak boleh menutupi TextField.
+
+13. Semua Text otomatis menyesuaikan ukuran layar.
+
+14. Semua Card mengikuti lebar layar.
+
+15. Semua tombol mengikuti lebar parent.
+
+16. Semua gambar mengikuti aspect ratio.
+
+17. Seluruh aplikasi wajib mendukung
+portrait.
+
+18. Tidak boleh ada ukuran pixel yang dikunci
+misal:
+Container(width:300)
+
+Gunakan persentase layar.
+
+19. Semua dialog responsive.
+
+20. Semua BottomSheet responsive.
+
+21. Semua Snackbar responsive.
+
+22. Semua popup responsive.
+
+23. Semua ListView responsive.
+
+24. Semua GridView responsive.
+
+25. Semua halaman wajib terlihat sama proporsional
+di semua ukuran HP Android.
+
+DESIGN SCALE SYSTEM
+
+Design Reference
+
+Width : 390
+Height : 844
+
+Semua ukuran dihitung berdasarkan
+persentase dari ukuran design tersebut.
+
+Contoh:
+
+Button Width
+90% layar
+
+Button Height
+6% tinggi layar
+
+Padding Horizontal
+4%
+
+Padding Vertical
+2%
+
+Avatar
+12%
+
+Profile Image
+25%
+
+Border Radius
+3%
+
+Icon
+3%
+
+Font
+
+Title
+5%
+
+Subtitle
+4%
+
+Body
+3.8%
+
+Caption
+3%
+
+Spacing
+
+Small
+1%
+
+Medium
+2%
+
+Large
+4%
+
+Extra Large
+6%
