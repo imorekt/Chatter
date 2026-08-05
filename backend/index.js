@@ -113,6 +113,7 @@ app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
 const server = http.createServer(app);
 const io = new Server(server, {
+  maxHttpBufferSize: 1e8, // 100MB
   cors: {
     origin: '*',
     methods: ['GET', 'POST']
