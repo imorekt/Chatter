@@ -675,7 +675,17 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
             <img 
               src={selectedImage} 
               alt="Preview" 
-              style={{ maxWidth: '100%', maxHeight: '100%', borderRadius: '3cqw', objectFit: 'contain', boxShadow: '0 10px 30px rgba(0,0,0,0.5)' }} 
+              style={{
+                maxWidth: '100%',
+                maxHeight: '100%',
+                display: 'block',
+                objectFit: 'contain',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                boxShadow: 'none',
+                borderRadius: 0
+              }} 
             />
           </div>
 
