@@ -187,12 +187,39 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
     setNewMessage('');
   };
 
-  const handleImageUpload = () => {
+  const handleImageUpload = (e) => {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      return notify.error('Tolong pilih file gambar (JPG/PNG).');
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      return notify.error('Ukuran gambar maksimal 5MB.');
+    }
+
     setIsImageUploading(true);
-    setTimeout(() => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64Image = reader.result;
+      if (socketRef.current) {
+        socketRef.current.emit('send_message', {
+          sender: currentUser,
+          recipient: chat.username,
+          text: base64Image,
+          timestamp: Date.now()
+        });
+        notify.success('Gambar berhasil dikirim!');
+      }
       setIsImageUploading(false);
-      notify.error('Gagal mengirim gambar. Fitur belum didukung.');
-    }, 2000);
+    };
+    reader.onerror = () => {
+      setIsImageUploading(false);
+      notify.error('Gagal membaca gambar.');
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const toggleSelection = (id) => {
@@ -300,7 +327,11 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
               />
             )}
             <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '16.5cqw' : '11.5cqw', paddingBottom: '2cqh' }}>
-              {msg.text}
+              {typeof msg.text === 'string' && msg.text.startsWith('data:image/') ? (
+                <img src={msg.text} alt="Gambar" style={{ maxWidth: '45cqw', maxHeight: '30cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0' }} />
+              ) : (
+                msg.text
+              )}
             </span>
             <div style={{ 
               position: 'absolute',
