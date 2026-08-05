@@ -665,6 +665,24 @@ app.post('/api/messages/favorite', (req, res) => {
   });
 });
 
+app.post('/api/messages/clear-image', (req, res) => {
+  const { messageId } = req.body;
+  if (!messageId) return res.status(400).json({ error: "Missing messageId" });
+
+  db.get(`SELECT text FROM messages WHERE id = ?`, [messageId], (err, row) => {
+    if (err || !row) return res.status(404).json({ error: "Not found" });
+    let newText = 'MEDIA_LOCAL_SAVED';
+    if (row.text && row.text.includes('|||CAPTION|||')) {
+      const caption = row.text.split('|||CAPTION|||')[1];
+      newText = `MEDIA_LOCAL_SAVED|||CAPTION|||${caption}`;
+    }
+    db.run(`UPDATE messages SET text = ? WHERE id = ?`, [newText, messageId], (err2) => {
+      if (err2) return res.status(500).json({ error: err2.message });
+      res.json({ success: true });
+    });
+  });
+});
+
 app.post('/api/messages/delete', (req, res) => {
   const { messageIds } = req.body;
   if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) return res.status(400).json({ error: "Data tidak lengkap" });

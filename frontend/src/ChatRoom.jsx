@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
 import { io } from 'socket.io-client';
 import { notify } from './utils/toast';
@@ -287,6 +287,62 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
     }
   };
 
+  const renderMediaContent = (msgId, rawText) => {
+    if (typeof rawText !== 'string') return rawText;
+
+    let base64Part = null;
+    let captionPart = null;
+    let isMediaSaved = false;
+
+    if (rawText.includes('|||CAPTION|||')) {
+      const parts = rawText.split('|||CAPTION|||');
+      base64Part = parts[0];
+      captionPart = parts[1];
+    } else {
+      base64Part = rawText;
+    }
+
+    if (base64Part.startsWith('data:image/')) {
+      try {
+        localStorage.setItem(`chat_media_${msgId}`, base64Part);
+        fetch(`${API_URL}/api/messages/clear-image`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ messageId: msgId })
+        }).catch(() => {});
+      } catch (e) {}
+      isMediaSaved = true;
+    } else if (base64Part === 'MEDIA_LOCAL_SAVED') {
+      const localMedia = localStorage.getItem(`chat_media_${msgId}`);
+      if (localMedia) {
+        base64Part = localMedia;
+        isMediaSaved = true;
+      } else {
+        isMediaSaved = false;
+      }
+    } else {
+      return rawText;
+    }
+
+    return (
+      <div>
+        {isMediaSaved ? (
+          <img 
+            src={base64Part} 
+            alt="Gambar" 
+            style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} 
+          />
+        ) : (
+          <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
+            <ImageOff size={18} color="#ef4444" />
+            <span>Gambar tidak ditemukan</span>
+          </div>
+        )}
+        {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
+      </div>
+    );
+  };
+
   const renderMessages = () => {
     const elements = [];
     let lastDateLabel = null;
@@ -334,16 +390,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
               />
             )}
             <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '16.5cqw' : '11.5cqw', paddingBottom: '2cqh' }}>
-              {typeof msg.text === 'string' && msg.text.includes('|||CAPTION|||') ? (
-                <div>
-                  <img src={msg.text.split('|||CAPTION|||')[0]} alt="Gambar" style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} />
-                  <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{msg.text.split('|||CAPTION|||')[1]}</div>
-                </div>
-              ) : typeof msg.text === 'string' && msg.text.startsWith('data:image/') ? (
-                <img src={msg.text} alt="Gambar" style={{ maxWidth: '50cqw', maxHeight: '35cqh', borderRadius: '2cqw', display: 'block', margin: '0.5cqh 0', objectFit: 'cover' }} />
-              ) : (
-                msg.text
-              )}
+              {renderMediaContent(msg.id, msg.text)}
             </span>
             <div style={{ 
               position: 'absolute',
