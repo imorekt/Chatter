@@ -56,17 +56,14 @@ const ChatList = ({ onLogout, currentUser }) => {
   };
 
   useEffect(() => {
+    fetchContacts();
+    const interval = setInterval(fetchContacts, 2000);
+    return () => clearInterval(interval);
+  }, [currentUser]);
+
+  useEffect(() => {
     if (activeNav === 'chat' || activeNav === 'kontak') {
       fetchChats();
-
-      fetch(`${API_URL}/api/contacts/${currentUser}`)
-        .then(res => res.json())
-        .then(data => {
-          setContactsData(data);
-          setPendingRequests(data.pending_received ? data.pending_received.length : 0);
-        })
-        .catch(console.error);
-        
       const interval = setInterval(fetchChats, 1000);
       return () => clearInterval(interval);
     }
