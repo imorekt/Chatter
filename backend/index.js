@@ -1,20 +1,23 @@
-const express = require('express');
+﻿const express = require('express');
 const http = require('http');
 const { Server } = require('socket.io');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
-const sqlite3 = require('sqlite3').verbose();
+const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config();
 
 // --- DATABASE SETUP ---
-const db = new sqlite3.Database('./database.sqlite', (err) => {
-  if (err) {
-    console.error('Error opening database:', err.message);
-  } else {
-    console.log('Connected to the SQLite database.');
-    db.run(`
+const db = createClient({
+  url: process.env.TURSO_DATABASE_URL || 'file:database.sqlite',
+  authToken: process.env.TURSO_AUTH_TOKEN
+});
+
+async function initDb() {
+  try {
+    console.log('Connected to the Turso database.');
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
@@ -22,7 +25,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         password TEXT NOT NULL
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS moments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
@@ -31,7 +34,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS likes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         moment_id INTEGER NOT NULL,
@@ -39,7 +42,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         UNIQUE(moment_id, username)
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS comments (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         moment_id INTEGER NOT NULL,
@@ -48,7 +51,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS contacts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender_username TEXT NOT NULL,
@@ -58,7 +61,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         UNIQUE(sender_username, receiver_username)
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         sender TEXT NOT NULL,
@@ -68,14 +71,12 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    db.run(`ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0`, (err) => {
-      // Ignored if column already exists
-    });
-    db.run(`ALTER TABLE messages ADD COLUMN deleted_by_sender INTEGER DEFAULT 0`, (err) => {});
-    db.run(`ALTER TABLE messages ADD COLUMN deleted_by_receiver INTEGER DEFAULT 0`, (err) => {});
-    db.run(`ALTER TABLE messages ADD COLUMN is_edited INTEGER DEFAULT 0`, (err) => {});
-    db.run(`ALTER TABLE messages ADD COLUMN is_deleted_everyone INTEGER DEFAULT 0`, (err) => {});
-    db.run(`
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN is_read INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN deleted_by_sender INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN deleted_by_receiver INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN is_edited INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN is_deleted_everyone INTEGER DEFAULT 0`); } catch (e) {}
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         recipient TEXT NOT NULL,
@@ -87,7 +88,7 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
       )
     `);
-    db.run(`
+    await db.execute(`
       CREATE TABLE IF NOT EXISTS favorite_messages (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT NOT NULL,
@@ -95,20 +96,15 @@ const db = new sqlite3.Database('./database.sqlite', (err) => {
         UNIQUE(username, message_id)
       )
     `);
-    db.run("ALTER TABLE users ADD COLUMN avatar TEXT", (err) => {
-      // Ignore if column already exists
-    });
-    db.run("ALTER TABLE users ADD COLUMN display_name TEXT", (err) => {
-      // Ignore if column already exists
-    });
-    db.run("ALTER TABLE users ADD COLUMN bio TEXT", (err) => {
-      // Ignore if column already exists
-    });
-    db.run("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0", (err) => {
-      // Ignore if column already exists
-    });
+    try { await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
+    try { await db.execute("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0"); } catch (e) {}
+  } catch (err) {
+    console.error('Error opening database:', err.message);
   }
-});
+}
+initDb();
 
 const app = express();
 app.use(cors());
@@ -137,7 +133,7 @@ async function getTransporter() {
       }
     });
   } else {
-    console.log("⚠️ EMAIL_USER & EMAIL_PASS tidak ada di .env. Menggunakan akun test Ethereal.");
+    console.log("âš ï¸ EMAIL_USER & EMAIL_PASS tidak ada di .env. Menggunakan akun test Ethereal.");
     let testAccount = await nodemailer.createTestAccount();
     return nodemailer.createTransport({
       host: "smtp.ethereal.email",
@@ -194,68 +190,64 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     return res.status(400).json({ error: "OTP salah" });
   }
   
-  // Jika benar, simpan ke database
   try {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(password, salt);
     
-    db.run('INSERT INTO users (username, email, password) VALUES (?, ?, ?)', [username, email, hashedPassword], function(err) {
-      if (err) {
-        if (err.message.includes('UNIQUE constraint failed')) {
-          return res.status(400).json({ error: "Username atau Email sudah terdaftar" });
-        }
-        return res.status(500).json({ error: "Gagal menyimpan data akun" });
-      }
-      
-      otpStore.delete(email);
-      res.json({ success: true, message: "Akun berhasil dibuat dan disimpan!" });
+    await db.execute({
+      sql: 'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+      args: [username, email, hashedPassword]
     });
+    
+    otpStore.delete(email);
+    res.json({ success: true, message: "Akun berhasil dibuat dan disimpan!" });
   } catch (error) {
-    res.status(500).json({ error: "Terjadi kesalahan sistem" });
+    if (error.message && error.message.includes('UNIQUE constraint failed')) {
+      return res.status(400).json({ error: "Username atau Email sudah terdaftar" });
+    }
+    res.status(500).json({ error: "Gagal menyimpan data akun" });
   }
 });
 
-// --- LOGIN API ---
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', async (req, res) => {
   const { email, password } = req.body;
-  
-  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-    if (err) return res.status(500).json({ error: "Terjadi kesalahan database" });
+  try {
+    const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] });
+    const user = result.rows[0];
+    
     if (!user) return res.status(400).json({ error: "Email tidak ditemukan" });
     
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) return res.status(400).json({ error: "Kata sandi salah" });
     
     res.json({ success: true, username: user.username, message: "Login berhasil" });
-  });
+  } catch (error) {
+    res.status(500).json({ error: "Terjadi kesalahan database" });
+  }
 });
 
-// --- FORGOT PASSWORD API ---
-app.post('/api/auth/forgot-password-otp', (req, res) => {
+app.post('/api/auth/forgot-password-otp', async (req, res) => {
   const { email } = req.body;
-  
-  db.get('SELECT * FROM users WHERE email = ?', [email], async (err, user) => {
-    if (err) return res.status(500).json({ error: "Terjadi kesalahan database" });
+  try {
+    const result = await db.execute({ sql: 'SELECT * FROM users WHERE email = ?', args: [email] });
+    const user = result.rows[0];
     if (!user) return res.status(400).json({ error: "Email tidak terdaftar di sistem" });
     
-    // Create OTP
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
     const expires = Date.now() + 10 * 60 * 1000;
     otpStore.set(email, { otp, expires });
     
-    try {
-      const transporter = await getTransporter();
-      await transporter.sendMail({
-        from: `"ChatApp Security" <${process.env.EMAIL_USER || 'no-reply@chatapp.com'}>`,
-        to: email,
-        subject: "Pemulihan Kata Sandi",
-        html: `<h2>Pemulihan Akun</h2><p>Kode OTP Anda adalah: <b>${otp}</b></p>`
-      });
-      res.json({ success: true, message: "OTP pemulihan dikirim" });
-    } catch (error) {
-      res.status(500).json({ error: "Gagal mengirim email OTP" });
-    }
-  });
+    const transporter = await getTransporter();
+    await transporter.sendMail({
+      from: `"ChatApp Security" <${process.env.EMAIL_USER || 'no-reply@chatapp.com'}>`,
+      to: email,
+      subject: "Pemulihan Kata Sandi",
+      html: `<h2>Pemulihan Akun</h2><p>Kode OTP Anda adalah: <b>${otp}</b></p>`
+    });
+    res.json({ success: true, message: "OTP pemulihan dikirim" });
+  } catch (error) {
+    res.status(500).json({ error: "Gagal mengirim email OTP" });
+  }
 });
 
 app.post('/api/auth/reset-password', async (req, res) => {
@@ -269,308 +261,320 @@ app.post('/api/auth/reset-password', async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPassword = await bcrypt.hash(newPassword, salt);
     
-    db.run('UPDATE users SET password = ? WHERE email = ?', [hashedPassword, email], function(err) {
-      if (err) return res.status(500).json({ error: "Gagal mengubah kata sandi" });
-      otpStore.delete(email);
-      res.json({ success: true, message: "Kata sandi berhasil diubah" });
-    });
+    await db.execute({ sql: 'UPDATE users SET password = ? WHERE email = ?', args: [hashedPassword, email] });
+    otpStore.delete(email);
+    res.json({ success: true, message: "Kata sandi berhasil diubah" });
   } catch (error) {
     res.status(500).json({ error: "Terjadi kesalahan sistem" });
   }
 });
-// -----------------
 
-app.delete('/api/users/:identifier', (req, res) => {
+app.delete('/api/users/:identifier', async (req, res) => {
   const { identifier } = req.params;
   const { keyword } = req.body;
-  
-  db.get('SELECT * FROM users WHERE username = ? OR email = ?', [identifier, identifier], (err, user) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const result = await db.execute({ sql: 'SELECT * FROM users WHERE username = ? OR email = ?', args: [identifier, identifier] });
+    const user = result.rows[0];
     if (!user) return res.status(404).json({ error: 'User tidak ditemukan' });
     if (!keyword || keyword.toLowerCase() !== 'setuju') return res.status(400).json({ error: 'Kata kunci konfirmasi salah' });
     
     const targetUsername = user.username;
-    db.serialize(() => {
-      db.run('DELETE FROM moments WHERE username = ?', [targetUsername]);
-      db.run('DELETE FROM comments WHERE username = ?', [targetUsername]);
-      db.run('DELETE FROM likes WHERE username = ?', [targetUsername]);
-      db.run('DELETE FROM contacts WHERE sender_username = ? OR receiver_username = ?', [targetUsername, targetUsername]);
-      db.run('DELETE FROM notifications WHERE recipient = ? OR sender = ?', [targetUsername, targetUsername]);
-      db.run('DELETE FROM users WHERE id = ?', [user.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        res.json({ success: true });
-      });
-    });
-  });
+    await db.execute({ sql: 'DELETE FROM moments WHERE username = ?', args: [targetUsername] });
+    await db.execute({ sql: 'DELETE FROM comments WHERE username = ?', args: [targetUsername] });
+    await db.execute({ sql: 'DELETE FROM likes WHERE username = ?', args: [targetUsername] });
+    await db.execute({ sql: 'DELETE FROM contacts WHERE sender_username = ? OR receiver_username = ?', args: [targetUsername, targetUsername] });
+    await db.execute({ sql: 'DELETE FROM notifications WHERE recipient = ? OR sender = ?', args: [targetUsername, targetUsername] });
+    await db.execute({ sql: 'DELETE FROM users WHERE id = ?', args: [user.id] });
+    
+    res.json({ success: true, message: 'Akun dan semua data terkait berhasil dihapus' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
 // --- MOMENTS API ---
-app.get('/api/moments/latest/:username', (req, res) => {
-  db.get('SELECT id as latest_id FROM moments WHERE username != ? ORDER BY id DESC LIMIT 1', [req.params.username], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(row || { latest_id: 0 });
-  });
-});
-
-app.get('/api/moments', (req, res) => {
-  const query = `
-    SELECT m.*, u.avatar as user_avatar, u.display_name as user_display_name,
-           (SELECT COUNT(*) FROM likes WHERE moment_id = m.id) as like_count,
-           (SELECT GROUP_CONCAT(username) FROM likes WHERE moment_id = m.id) as liked_by
-    FROM moments m
-    LEFT JOIN users u ON m.username = u.username
-    ORDER BY m.created_at DESC
-  `;
-  db.all(query, [], (err, moments) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    // Fetch comments for all moments
-    db.all(`SELECT c.*, u.display_name as user_display_name FROM comments c LEFT JOIN users u ON c.username = u.username ORDER BY c.created_at ASC`, [], (err, allComments) => {
-      if (err) return res.status(500).json({ error: err.message });
-      
-      const formattedMoments = moments.map(m => {
-        return {
-          ...m,
-          liked_by: m.liked_by ? m.liked_by.split(',') : [],
-          comments: allComments.filter(c => c.moment_id === m.id)
-        };
-      });
-      res.json(formattedMoments);
-    });
-  });
-});
-
-app.post('/api/moments', (req, res) => {
-  const { username, content, image_url } = req.body;
-  if (!username || !content) return res.status(400).json({ error: "Username dan konten wajib diisi" });
-  
-  db.run(`INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, [username, content, image_url || null], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true, id: this.lastID });
-  });
-});
-
-app.put('/api/moments/:id', (req, res) => {
-  const { content } = req.body;
-  if (!content) return res.status(400).json({ error: "Konten wajib diisi" });
-  
-  db.run(`UPDATE moments SET content = ? WHERE id = ?`, [content, req.params.id], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true });
-  });
-});
-
-app.delete('/api/moments/:id', (req, res) => {
-  const momentId = req.params.id;
-  db.serialize(() => {
-    db.run(`DELETE FROM moments WHERE id = ?`, [momentId]);
-    db.run(`DELETE FROM likes WHERE moment_id = ?`, [momentId]);
-    db.run(`DELETE FROM comments WHERE moment_id = ?`, [momentId]);
-    db.run(`DELETE FROM notifications WHERE moment_id = ?`, [momentId]);
-    res.json({ success: true });
-  });
-});
-
-app.post('/api/moments/like', (req, res) => {
-  const { moment_id, username } = req.body;
-  
-  // Toggle like: Check if exists
-  db.get(`SELECT id FROM likes WHERE moment_id = ? AND username = ?`, [moment_id, username], (err, row) => {
-    if (err) return res.status(500).json({ error: err.message });
-    
-    if (row) {
-      // Unlike
-      db.run(`DELETE FROM likes WHERE id = ?`, [row.id], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-        
-        db.get('SELECT username FROM moments WHERE id = ?', [moment_id], (err, moment) => {
-          if (moment && moment.username !== username) {
-            db.run(`DELETE FROM notifications WHERE recipient = ? AND sender = ? AND type = 'like' AND moment_id = ?`, [moment.username, username, moment_id]);
-          }
-        });
-
-        res.json({ success: true, action: 'unliked' });
-      });
-    } else {
-      // Like
-      db.run(`INSERT INTO likes (moment_id, username) VALUES (?, ?)`, [moment_id, username], (err) => {
-        if (err) return res.status(500).json({ error: err.message });
-
-        db.get('SELECT username FROM moments WHERE id = ?', [moment_id], (err, moment) => {
-          if (moment && moment.username !== username) {
-            db.run(`INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, [moment.username, username, moment_id]);
-          }
-        });
-
-        res.json({ success: true, action: 'liked' });
-      });
-    }
-  });
-});
-
-app.post('/api/moments/comment', (req, res) => {
-  const { moment_id, username, content } = req.body;
-  if (!moment_id || !username || !content) return res.status(400).json({ error: "Data tidak lengkap" });
-  
-  db.run(`INSERT INTO comments (moment_id, username, content) VALUES (?, ?, ?)`, [moment_id, username, content], function(err) {
-    if (err) return res.status(500).json({ error: err.message });
-
-    db.get('SELECT username FROM moments WHERE id = ?', [moment_id], (err, moment) => {
-      if (moment && moment.username !== username) {
-        db.run(`INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, [moment.username, username, moment_id, content]);
-      }
-    });
-
-    res.json({ success: true, id: this.lastID });
-  });
-});
-// -----------------
-
-// --- NOTIFICATIONS API ---
-app.get('/api/notifications/:username', (req, res) => {
-  const { username } = req.params;
-  const query = `
-    SELECT n.*, u.avatar as sender_avatar 
-    FROM notifications n
-    LEFT JOIN users u ON n.sender = u.username
-    WHERE n.recipient = ?
-    ORDER BY n.created_at DESC
-  `;
-  db.all(query, [username], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows || []);
-  });
-});
-
-app.post('/api/notifications/read', (req, res) => {
-  const { username } = req.body;
-  db.run('UPDATE notifications SET is_read = 1 WHERE recipient = ?', [username], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true });
-  });
-});
-
-app.post('/api/notifications/click', (req, res) => {
-  const { id } = req.body;
-  db.run('UPDATE notifications SET is_clicked = 1 WHERE id = ?', [id], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json({ success: true });
-  });
-});
-// -----------------
-
-// --- USER API ---
-app.post('/api/users/avatar', (req, res) => {
-  const { username, avatar } = req.body;
-  db.run(`UPDATE users SET avatar = ? WHERE username = ?`, [avatar, username], (err) => {
-    if (err) return res.status(500).json({ error: "Gagal menyimpan avatar" });
-    res.json({ success: true });
-  });
-});
-
-app.put('/api/users/:username', (req, res) => {
-  const { display_name, bio } = req.body;
-  db.run(`UPDATE users SET display_name = ?, bio = ? WHERE username = ?`, [display_name, bio, req.params.username], (err) => {
-    if (err) return res.status(500).json({ error: "Gagal menyimpan profil" });
-    res.json({ success: true });
-  });
-});
-
-app.get('/api/users/search', (req, res) => {
-  const { q, username } = req.query;
-  if (!q || !username) return res.json([]);
-  
-  const query = `
-    SELECT u.username, u.avatar, u.display_name, u.bio, 
-           c.status, c.sender_username, c.receiver_username
-    FROM users u
-    LEFT JOIN contacts c ON 
-      (c.sender_username = u.username AND c.receiver_username = ?) OR
-      (c.sender_username = ? AND c.receiver_username = u.username)
-    WHERE u.username = ? AND u.username != ?
-    LIMIT 10
-  `;
-  db.all(query, [username, username, q, username], (err, users) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(users);
-  });
-});
-
-app.get('/api/users/:username', (req, res) => {
-  db.get(`SELECT username, display_name, avatar, bio FROM users WHERE username = ?`, [req.params.username], (err, user) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(user || {});
-  });
-});
-
-app.post('/api/contacts/request', (req, res) => {
-  const { sender, receiver } = req.body;
-  if (!sender || !receiver) return res.status(400).json({ error: "Data tidak lengkap" });
-  
-  db.run(`INSERT INTO contacts (sender_username, receiver_username, status) VALUES (?, ?, 'pending')`, [sender, receiver], (err) => {
-    if (err) return res.status(500).json({ error: "Gagal mengirim permintaan" });
-    
-    db.run(
-      `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
-      [receiver, sender]
-    );
-    
-    res.json({ success: true });
-  });
-});
-
-app.post('/api/contacts/cancel', (req, res) => {
-  const { sender, receiver } = req.body;
-  if (!sender || !receiver) return res.status(400).json({ error: "Data tidak lengkap" });
-  
-  db.run(`DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ? AND status = 'pending'`, [sender, receiver], (err) => {
-    if (err) return res.status(500).json({ error: "Gagal membatalkan permintaan" });
-    
-    db.run(
-      `DELETE FROM notifications WHERE sender = ? AND recipient = ? AND type = 'friend_request'`,
-      [sender, receiver]
-    );
-    
-    res.json({ success: true });
-  });
-});
-
-app.post('/api/contacts/respond', (req, res) => {
-  const { sender, receiver, action } = req.body; // action: 'accept' | 'reject'
-  
-  db.run(`DELETE FROM notifications WHERE sender = ? AND recipient = ? AND type = 'friend_request'`, [sender, receiver]);
-
-  if (action === 'accept') {
-    db.run(`UPDATE contacts SET status = 'accepted' WHERE sender_username = ? AND receiver_username = ?`, [sender, receiver], (err) => {
-      if (err) return res.status(500).json({ error: "Gagal" });
-      
-      db.run(
-        `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
-        [sender, receiver]
-      );
-      
-      res.json({ success: true });
-    });
-  } else {
-    db.run(`DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ?`, [sender, receiver], (err) => {
-      if (err) return res.status(500).json({ error: "Gagal" });
-      res.json({ success: true });
-    });
+app.get('/api/moments/latest/:username', async (req, res) => {
+  try {
+    const result = await db.execute({ sql: 'SELECT id as latest_id FROM moments WHERE username != ? ORDER BY id DESC LIMIT 1', args: [req.params.username] });
+    res.json(result.rows[0] || { latest_id: 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.get('/api/contacts/:username', (req, res) => {
+app.get('/api/moments', async (req, res) => {
+  try {
+    const query = `
+      SELECT m.*, u.avatar as user_avatar, u.display_name as user_display_name,
+             (SELECT COUNT(*) FROM likes WHERE moment_id = m.id) as like_count,
+             (SELECT GROUP_CONCAT(username) FROM likes WHERE moment_id = m.id) as liked_by
+      FROM moments m
+      LEFT JOIN users u ON m.username = u.username
+      ORDER BY m.created_at DESC
+    `;
+    const result = await db.execute(query);
+    const moments = result.rows;
+    
+    const commentsResult = await db.execute(`SELECT c.*, u.display_name as user_display_name FROM comments c LEFT JOIN users u ON c.username = u.username ORDER BY c.created_at ASC`);
+    const allComments = commentsResult.rows;
+    
+    const formattedMoments = moments.map(m => {
+      return {
+        ...m,
+        liked_by: m.liked_by ? m.liked_by.split(',') : [],
+        comments: allComments.filter(c => c.moment_id === m.id)
+      };
+    });
+    res.json(formattedMoments);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/moments', async (req, res) => {
+  const { username, content, image_url } = req.body;
+  if (!username || !content) return res.status(400).json({ error: "Username dan konten wajib diisi" });
+  
+  try {
+    const result = await db.execute({ sql: `INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, args: [username, content, image_url || null] });
+    res.json({ success: true, id: result.lastInsertRowid.toString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/moments/:id', async (req, res) => {
+  const { content } = req.body;
+  if (!content) return res.status(400).json({ error: "Konten wajib diisi" });
+  
+  try {
+    await db.execute({ sql: `UPDATE moments SET content = ? WHERE id = ?`, args: [content, req.params.id] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/moments/:id', async (req, res) => {
+  const momentId = req.params.id;
+  try {
+    await db.execute({ sql: `DELETE FROM moments WHERE id = ?`, args: [momentId] });
+    await db.execute({ sql: `DELETE FROM likes WHERE moment_id = ?`, args: [momentId] });
+    await db.execute({ sql: `DELETE FROM comments WHERE moment_id = ?`, args: [momentId] });
+    await db.execute({ sql: `DELETE FROM notifications WHERE moment_id = ?`, args: [momentId] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/moments/like', async (req, res) => {
+  const { moment_id, username } = req.body;
+  
+  try {
+    const result = await db.execute({ sql: `SELECT id FROM likes WHERE moment_id = ? AND username = ?`, args: [moment_id, username] });
+    const row = result.rows[0];
+    
+    if (row) {
+      // Unlike
+      await db.execute({ sql: `DELETE FROM likes WHERE id = ?`, args: [row.id] });
+      const momentResult = await db.execute({ sql: 'SELECT username FROM moments WHERE id = ?', args: [moment_id] });
+      const moment = momentResult.rows[0];
+      if (moment && moment.username !== username) {
+        await db.execute({ sql: `DELETE FROM notifications WHERE recipient = ? AND sender = ? AND type = 'like' AND moment_id = ?`, args: [moment.username, username, moment_id] });
+      }
+      res.json({ success: true, action: 'unliked' });
+    } else {
+      // Like
+      await db.execute({ sql: `INSERT INTO likes (moment_id, username) VALUES (?, ?)`, args: [moment_id, username] });
+      const momentResult = await db.execute({ sql: 'SELECT username FROM moments WHERE id = ?', args: [moment_id] });
+      const moment = momentResult.rows[0];
+      if (moment && moment.username !== username) {
+        await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, args: [moment.username, username, moment_id] });
+      }
+      res.json({ success: true, action: 'liked' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/moments/comment', async (req, res) => {
+  const { moment_id, username, content } = req.body;
+  if (!moment_id || !username || !content) return res.status(400).json({ error: "Data tidak lengkap" });
+  
+  try {
+    const insertResult = await db.execute({ sql: `INSERT INTO comments (moment_id, username, content) VALUES (?, ?, ?)`, args: [moment_id, username, content] });
+    const momentResult = await db.execute({ sql: 'SELECT username FROM moments WHERE id = ?', args: [moment_id] });
+    const moment = momentResult.rows[0];
+    if (moment && moment.username !== username) {
+      await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
+    }
+    res.json({ success: true, id: insertResult.lastInsertRowid.toString() });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- NOTIFICATIONS API ---
+app.get('/api/notifications/:username', async (req, res) => {
+  const { username } = req.params;
+  try {
+    const query = `
+      SELECT n.*, u.avatar as sender_avatar 
+      FROM notifications n
+      LEFT JOIN users u ON n.sender = u.username
+      WHERE n.recipient = ?
+      ORDER BY n.created_at DESC
+    `;
+    const result = await db.execute({ sql: query, args: [username] });
+    res.json(result.rows || []);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/read', async (req, res) => {
+  const { username } = req.body;
+  try {
+    await db.execute({ sql: 'UPDATE notifications SET is_read = 1 WHERE recipient = ?', args: [username] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/notifications/click', async (req, res) => {
+  const { id } = req.body;
+  try {
+    await db.execute({ sql: 'UPDATE notifications SET is_clicked = 1 WHERE id = ?', args: [id] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- USER API ---
+app.post('/api/users/avatar', async (req, res) => {
+  const { username, avatar } = req.body;
+  try {
+    await db.execute({ sql: `UPDATE users SET avatar = ? WHERE username = ?`, args: [avatar, username] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menyimpan avatar" });
+  }
+});
+
+app.put('/api/users/:username', async (req, res) => {
+  const { display_name, bio } = req.body;
+  try {
+    await db.execute({ sql: `UPDATE users SET display_name = ?, bio = ? WHERE username = ?`, args: [display_name, bio, req.params.username] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal menyimpan profil" });
+  }
+});
+
+app.get('/api/users/search', async (req, res) => {
+  const { q, username } = req.query;
+  if (!q || !username) return res.json([]);
+  
+  try {
+    const query = `
+      SELECT u.username, u.avatar, u.display_name, u.bio, 
+             c.status, c.sender_username, c.receiver_username
+      FROM users u
+      LEFT JOIN contacts c ON 
+        (c.sender_username = u.username AND c.receiver_username = ?) OR
+        (c.sender_username = ? AND c.receiver_username = u.username)
+      WHERE u.username = ? AND u.username != ?
+      LIMIT 10
+    `;
+    const result = await db.execute({ sql: query, args: [username, username, q, username] });
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/users/:username', async (req, res) => {
+  try {
+    const result = await db.execute({ sql: `SELECT username, display_name, avatar, bio FROM users WHERE username = ?`, args: [req.params.username] });
+    res.json(result.rows[0] || {});
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/contacts/request', async (req, res) => {
+  const { sender, receiver } = req.body;
+  if (!sender || !receiver) return res.status(400).json({ error: "Data tidak lengkap" });
+  
+  try {
+    await db.execute({ sql: `INSERT INTO contacts (sender_username, receiver_username, status) VALUES (?, ?, 'pending')`, args: [sender, receiver] });
+    await db.execute({
+      sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
+      args: [receiver, sender]
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal mengirim permintaan" });
+  }
+});
+
+app.post('/api/contacts/cancel', async (req, res) => {
+  const { sender, receiver } = req.body;
+  if (!sender || !receiver) return res.status(400).json({ error: "Data tidak lengkap" });
+  
+  try {
+    await db.execute({ sql: `DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ? AND status = 'pending'`, args: [sender, receiver] });
+    await db.execute({
+      sql: `DELETE FROM notifications WHERE sender = ? AND recipient = ? AND type = 'friend_request'`,
+      args: [sender, receiver]
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: "Gagal membatalkan permintaan" });
+  }
+});
+
+app.post('/api/contacts/respond', async (req, res) => {
+  const { sender, receiver, action } = req.body; 
+  
+  try {
+    await db.execute({ sql: `DELETE FROM notifications WHERE sender = ? AND recipient = ? AND type = 'friend_request'`, args: [sender, receiver] });
+
+    if (action === 'accept') {
+      await db.execute({ sql: `UPDATE contacts SET status = 'accepted' WHERE sender_username = ? AND receiver_username = ?`, args: [sender, receiver] });
+      await db.execute({
+        sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
+        args: [sender, receiver]
+      });
+      res.json({ success: true });
+    } else {
+      await db.execute({ sql: `DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ?`, args: [sender, receiver] });
+      res.json({ success: true });
+    }
+  } catch (err) {
+    res.status(500).json({ error: "Gagal" });
+  }
+});
+
+app.get('/api/contacts/:username', async (req, res) => {
   const { username } = req.params;
   
-  db.all(`
-    SELECT c.*, u1.avatar as sender_avatar, u1.display_name as sender_display_name, u1.bio as sender_bio, u2.avatar as receiver_avatar, u2.display_name as receiver_display_name, u2.bio as receiver_bio
-    FROM contacts c
-    LEFT JOIN users u1 ON c.sender_username = u1.username
-    LEFT JOIN users u2 ON c.receiver_username = u2.username
-    WHERE c.sender_username = ? OR c.receiver_username = ?
-  `, [username, username], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const result = await db.execute({
+      sql: `
+        SELECT c.*, u1.avatar as sender_avatar, u1.display_name as sender_display_name, u1.bio as sender_bio, u2.avatar as receiver_avatar, u2.display_name as receiver_display_name, u2.bio as receiver_bio
+        FROM contacts c
+        LEFT JOIN users u1 ON c.sender_username = u1.username
+        LEFT JOIN users u2 ON c.receiver_username = u2.username
+        WHERE c.sender_username = ? OR c.receiver_username = ?
+      `,
+      args: [username, username]
+    });
     
+    const rows = result.rows;
     const friends = [];
     const pending_received = [];
     const pending_sent = [];
@@ -603,36 +607,38 @@ app.get('/api/contacts/:username', (req, res) => {
     });
     
     res.json({ friends, pending_received, pending_sent });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
-
 // --- CHATS API ---
-app.get('/api/chats/:username', (req, res) => {
+app.get('/api/chats/:username', async (req, res) => {
   const { username } = req.params;
   
-  const query = `
-    SELECT m.*, u.avatar, u.display_name, u.username as partner_exists,
-           (SELECT COUNT(*) FROM messages 
-            WHERE receiver = ? 
-              AND sender = CASE WHEN m.sender = ? THEN m.receiver ELSE m.sender END 
-              AND is_read = 0
-              AND deleted_by_receiver = 0) as unread_count
-    FROM messages m
-    INNER JOIN (
-      SELECT MAX(created_at) as max_date, 
-             CASE WHEN sender = ? THEN receiver ELSE sender END as partner
-      FROM messages
-      WHERE (sender = ? AND deleted_by_sender = 0) OR (receiver = ? AND deleted_by_receiver = 0)
-      GROUP BY partner
-    ) latest ON (m.sender = ? AND m.receiver = latest.partner OR m.sender = latest.partner AND m.receiver = ?) 
-             AND m.created_at = latest.max_date
-    LEFT JOIN users u ON u.username = latest.partner
-    WHERE (m.sender = ? AND m.deleted_by_sender = 0) OR (m.receiver = ? AND m.deleted_by_receiver = 0)
-    ORDER BY m.created_at DESC
-  `;
-  
-  db.all(query, [username, username, username, username, username, username, username, username, username], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const query = `
+      SELECT m.*, u.avatar, u.display_name, u.username as partner_exists,
+             (SELECT COUNT(*) FROM messages 
+              WHERE receiver = ? 
+                AND sender = CASE WHEN m.sender = ? THEN m.receiver ELSE m.sender END 
+                AND is_read = 0
+                AND deleted_by_receiver = 0) as unread_count
+      FROM messages m
+      INNER JOIN (
+        SELECT MAX(created_at) as max_date, 
+               CASE WHEN sender = ? THEN receiver ELSE sender END as partner
+        FROM messages
+        WHERE (sender = ? AND deleted_by_sender = 0) OR (receiver = ? AND deleted_by_receiver = 0)
+        GROUP BY partner
+      ) latest ON (m.sender = ? AND m.receiver = latest.partner OR m.sender = latest.partner AND m.receiver = ?) 
+               AND m.created_at = latest.max_date
+      LEFT JOIN users u ON u.username = latest.partner
+      WHERE (m.sender = ? AND m.deleted_by_sender = 0) OR (m.receiver = ? AND m.deleted_by_receiver = 0)
+      ORDER BY m.created_at DESC
+    `;
+    
+    const result = await db.execute({ sql: query, args: [username, username, username, username, username, username, username, username, username] });
+    const rows = result.rows;
     
     const chats = rows.map(r => {
       const partner = r.sender === username ? r.receiver : r.sender;
@@ -651,85 +657,104 @@ app.get('/api/chats/:username', (req, res) => {
       };
     });
     res.json(chats);
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/messages/:user1/:user2', (req, res) => {
+app.get('/api/messages/:user1/:user2', async (req, res) => {
   const { user1, user2 } = req.params;
-  db.all(`SELECT * FROM messages WHERE ((sender = ? AND receiver = ? AND deleted_by_sender = 0) OR (sender = ? AND receiver = ? AND deleted_by_receiver = 0)) ORDER BY created_at ASC`, 
-    [user1, user2, user2, user1], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+  try {
+    const result = await db.execute({
+      sql: `SELECT * FROM messages WHERE ((sender = ? AND receiver = ? AND deleted_by_sender = 0) OR (sender = ? AND receiver = ? AND deleted_by_receiver = 0)) ORDER BY created_at ASC`,
+      args: [user1, user2, user2, user1]
+    });
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/messages/read', (req, res) => {
+app.post('/api/messages/read', async (req, res) => {
   const { sender, receiver } = req.body;
   if (!sender || !receiver) return res.status(400).json({ error: 'Missing data' });
-  db.run(`UPDATE messages SET is_read = 1 WHERE sender = ? AND receiver = ?`, [sender, receiver], (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    await db.execute({ sql: `UPDATE messages SET is_read = 1 WHERE sender = ? AND receiver = ?`, args: [sender, receiver] });
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/messages/favorite', (req, res) => {
+app.post('/api/messages/favorite', async (req, res) => {
   const { username, messageIds } = req.body;
   if (!username || !messageIds || !Array.isArray(messageIds) || messageIds.length === 0) return res.status(400).json({ error: "Data tidak lengkap" });
 
-  const placeholders = messageIds.map(() => '(?, ?)').join(', ');
-  const values = [];
-  messageIds.forEach(id => {
-    values.push(username, id);
-  });
-
-  db.run(`INSERT OR IGNORE INTO favorite_messages (username, message_id) VALUES ${placeholders}`, values, (err) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    for (let id of messageIds) {
+      try {
+        await db.execute({ sql: `INSERT INTO favorite_messages (username, message_id) VALUES (?, ?)`, args: [username, id] });
+      } catch(e) {
+        // Ignore UNIQUE constraint errors (INSERT OR IGNORE fallback)
+      }
+    }
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/messages/clear-image', (req, res) => {
+app.post('/api/messages/clear-image', async (req, res) => {
   const { messageId } = req.body;
   if (!messageId) return res.status(400).json({ error: "Missing messageId" });
 
-  db.get(`SELECT text FROM messages WHERE id = ?`, [messageId], (err, row) => {
-    if (err || !row) return res.status(404).json({ error: "Not found" });
+  try {
+    const result = await db.execute({ sql: `SELECT text FROM messages WHERE id = ?`, args: [messageId] });
+    const row = result.rows[0];
+    if (!row) return res.status(404).json({ error: "Not found" });
+    
     let newText = 'MEDIA_LOCAL_SAVED';
     if (row.text && row.text.includes('|||')) {
       const firstTagIndex = row.text.indexOf('|||');
       newText = 'MEDIA_LOCAL_SAVED' + row.text.substring(firstTagIndex);
     }
-    db.run(`UPDATE messages SET text = ? WHERE id = ?`, [newText, messageId], (err2) => {
-      if (err2) return res.status(500).json({ error: err2.message });
-      res.json({ success: true });
-    });
-  });
+    
+    await db.execute({ sql: `UPDATE messages SET text = ? WHERE id = ?`, args: [newText, messageId] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/messages/delete', (req, res) => {
+app.post('/api/messages/delete', async (req, res) => {
   const { username, messageIds } = req.body;
   if (!messageIds || !Array.isArray(messageIds) || messageIds.length === 0) return res.status(400).json({ error: "Data tidak lengkap" });
 
   const placeholders = messageIds.map(() => '?').join(', ');
   
-  db.serialize(() => {
+  try {
     if (username) {
       const params = [username, ...messageIds];
-      db.run(`UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND id IN (${placeholders})`, params);
-      db.run(`UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND id IN (${placeholders})`, params);
-      db.run(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`, () => {});
+      await db.execute({ sql: `UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND id IN (${placeholders})`, args: params });
+      await db.execute({ sql: `UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND id IN (${placeholders})`, args: params });
+      await db.execute(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`);
     } else {
-      // Legacy fallback if username is not provided
-      db.run(`DELETE FROM messages WHERE id IN (${placeholders})`, messageIds);
+      await db.execute({ sql: `DELETE FROM messages WHERE id IN (${placeholders})`, args: messageIds });
     }
     
-    db.run(`DELETE FROM favorite_messages WHERE message_id IN (${placeholders}) ${username ? 'AND username = ?' : ''}`, username ? [...messageIds, username] : messageIds, () => {
-      res.json({ success: true });
-    });
-  });
+    if (username) {
+      await db.execute({ sql: `DELETE FROM favorite_messages WHERE message_id IN (${placeholders}) AND username = ?`, args: [...messageIds, username] });
+    } else {
+      await db.execute({ sql: `DELETE FROM favorite_messages WHERE message_id IN (${placeholders})`, args: messageIds });
+    }
+    
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/chats/delete-bulk', (req, res) => {
+app.post('/api/chats/delete-bulk', async (req, res) => {
   const { username, partners } = req.body;
   if (!username || !partners || !Array.isArray(partners) || partners.length === 0) {
     return res.status(400).json({ error: "Data tidak lengkap" });
@@ -738,15 +763,17 @@ app.post('/api/chats/delete-bulk', (req, res) => {
   const placeholders = partners.map(() => '?').join(', ');
   const params = [username, ...partners];
   
-  db.serialize(() => {
-    db.run(`UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND receiver IN (${placeholders})`, params);
-    db.run(`UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND sender IN (${placeholders})`, params);
-    db.run(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`, () => {});
+  try {
+    await db.execute({ sql: `UPDATE messages SET deleted_by_sender = 1 WHERE sender = ? AND receiver IN (${placeholders})`, args: params });
+    await db.execute({ sql: `UPDATE messages SET deleted_by_receiver = 1 WHERE receiver = ? AND sender IN (${placeholders})`, args: params });
+    await db.execute(`DELETE FROM messages WHERE deleted_by_sender = 1 AND deleted_by_receiver = 1`);
     res.json({ success: true });
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post('/api/contacts/delete-bulk', (req, res) => {
+app.post('/api/contacts/delete-bulk', async (req, res) => {
   const { username, targets } = req.body;
   if (!username || !targets || !Array.isArray(targets) || targets.length === 0) {
     return res.status(400).json({ error: "Data tidak lengkap" });
@@ -754,17 +781,18 @@ app.post('/api/contacts/delete-bulk', (req, res) => {
 
   const placeholders = targets.map(() => '?').join(', ');
   const params = [username, ...targets, username, ...targets];
-  db.run(
-    `DELETE FROM contacts WHERE (sender_username = ? AND receiver_username IN (${placeholders})) OR (receiver_username = ? AND sender_username IN (${placeholders}))`,
-    params,
-    (err) => {
-      if (err) return res.status(500).json({ error: err.message });
-      res.json({ success: true });
-    }
-  );
+  try {
+    await db.execute({
+      sql: `DELETE FROM contacts WHERE (sender_username = ? AND receiver_username IN (${placeholders})) OR (receiver_username = ? AND sender_username IN (${placeholders}))`,
+      args: params
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/favorites/:username', (req, res) => {
+app.get('/api/favorites/:username', async (req, res) => {
   const { username } = req.params;
   const query = `
     SELECT DISTINCT 
@@ -775,8 +803,9 @@ app.get('/api/favorites/:username', (req, res) => {
     LEFT JOIN users u ON u.username = (CASE WHEN m.sender = ? THEN m.receiver ELSE m.sender END)
     WHERE fm.username = ?
   `;
-  db.all(query, [username, username, username], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
+  try {
+    const result = await db.execute({ sql: query, args: [username, username, username] });
+    const rows = result.rows;
     
     const partners = {};
     rows.forEach(r => {
@@ -789,10 +818,12 @@ app.get('/api/favorites/:username', (req, res) => {
       };
     });
     res.json(Object.values(partners));
-  });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.get('/api/favorites/messages/:username/:partner', (req, res) => {
+app.get('/api/favorites/messages/:username/:partner', async (req, res) => {
   const { username, partner } = req.params;
   const query = `
     SELECT m.* 
@@ -801,10 +832,12 @@ app.get('/api/favorites/messages/:username/:partner', (req, res) => {
     WHERE fm.username = ? AND ((m.sender = ? AND m.receiver = ?) OR (m.sender = ? AND m.receiver = ?))
     ORDER BY m.created_at ASC
   `;
-  db.all(query, [username, username, partner, partner, username], (err, rows) => {
-    if (err) return res.status(500).json({ error: err.message });
-    res.json(rows);
-  });
+  try {
+    const result = await db.execute({ sql: query, args: [username, username, partner, partner, username] });
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 let onlineUsers = {}; // map of socket.id -> { username, status }
@@ -812,66 +845,56 @@ let onlineUsers = {}; // map of socket.id -> { username, status }
 io.on('connection', (socket) => {
   console.log(`User connected: ${socket.id}`);
 
-  // When a user logs in / connects
   socket.on('user_login', (username) => {
     onlineUsers[socket.id] = { username, status: 'online' };
     io.emit('online_users', Object.values(onlineUsers));
     console.log(`${username} logged in`);
   });
 
-  // Handle incoming messages
-  socket.on('send_message', (data) => {
-    // data: { sender, recipient, text, timestamp }
-    db.run(`INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, [data.sender, data.recipient, data.text], function(err) {
-      if (err) {
-        console.error("Database error saving message:", err.message);
-        return;
-      }
-      data.id = this.lastID;
+  socket.on('send_message', async (data) => {
+    try {
+      const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
+      data.id = result.lastInsertRowid.toString();
       io.emit('receive_message', data);
-    });
+    } catch (err) {
+      console.error("Database error saving message:", err.message);
+    }
   });
 
-  // Handle edit message
-  socket.on('edit_message', (data) => {
-    // data: { id, sender, text }
-    db.run(`UPDATE messages SET text = ?, is_edited = 1 WHERE id = ? AND sender = ?`, [data.text, data.id, data.sender], function(err) {
-      if (err) return console.error("Database error updating message:", err.message);
-      if (this.changes > 0) {
+  socket.on('edit_message', async (data) => {
+    try {
+      const result = await db.execute({ sql: `UPDATE messages SET text = ?, is_edited = 1 WHERE id = ? AND sender = ?`, args: [data.text, data.id, data.sender] });
+      if (result.rowsAffected > 0) {
         io.emit('message_edited', data);
       }
-    });
+    } catch (err) {
+      console.error("Database error updating message:", err.message);
+    }
   });
 
-  // Handle delete message for everyone
-  socket.on('delete_message_everyone', (data) => {
-    // data: { id, sender }
-    db.run(`UPDATE messages SET is_deleted_everyone = 1 WHERE id = ? AND sender = ?`, [data.id, data.sender], function(err) {
-      if (err) return console.error("Database error deleting message for everyone:", err.message);
-      if (this.changes > 0) {
+  socket.on('delete_message_everyone', async (data) => {
+    try {
+      const result = await db.execute({ sql: `UPDATE messages SET is_deleted_everyone = 1 WHERE id = ? AND sender = ?`, args: [data.id, data.sender] });
+      if (result.rowsAffected > 0) {
         io.emit('message_deleted_everyone', data);
       }
-    });
+    } catch (err) {
+      console.error("Database error deleting message for everyone:", err.message);
+    }
   });
 
-  // Handle typing indicator
   socket.on('typing', (data) => {
-    // data: { sender, recipient, isTyping }
     socket.broadcast.emit('typing_status', data);
   });
 
-  // Handle messages read
   socket.on('messages_read', (data) => {
-    // data: { sender, recipient } (sender is the one who read the messages)
     io.emit('messages_read_update', data);
   });
 
-  // Handle contact request/response realtime updates
   socket.on('contact_update', (data) => {
     io.emit('contact_update', data);
   });
 
-  // Disconnect
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
     if (onlineUsers[socket.id]) {
@@ -883,10 +906,8 @@ io.on('connection', (socket) => {
   });
 });
 
-// Serve static files from the 'dist' directory
 app.use(express.static(path.join(__dirname, 'dist')));
 
-// Handle all other routes by sending the index.html
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
