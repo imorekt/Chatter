@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: chatapp-service
+    env: node
+    plan: free
+    region: singapore
+    rootDir: .
+    buildCommand: "cd backend && npm install && cd ../frontend && npm install && export VITE_API_URL=$RENDER_EXTERNAL_URL && npm run build && cp -r dist ../backend/dist"
+    startCommand: "cd backend && node index.js"
+    envVars:
+      - key: NODE_ENV
+        value: production
