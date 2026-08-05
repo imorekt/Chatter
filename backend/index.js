@@ -793,8 +793,12 @@ io.on('connection', (socket) => {
   // Handle incoming messages
   socket.on('send_message', (data) => {
     // data: { sender, recipient, text, timestamp }
-    db.run(`INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, [data.sender, data.recipient, data.text], (err) => {
-      if (err) console.error("Database error saving message:", err.message);
+    db.run(`INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, [data.sender, data.recipient, data.text], function(err) {
+      if (err) {
+        console.error("Database error saving message:", err.message);
+        return;
+      }
+      data.id = this.lastID;
       io.emit('receive_message', data);
     });
   });

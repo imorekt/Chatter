@@ -111,7 +111,7 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
         (data.sender === currentUser && data.recipient === chat.username)
       ) {
         setMessages(prev => [...prev, {
-          id: data.timestamp || Date.now(),
+          id: data.id || data.timestamp || Date.now(),
           text: data.text,
           sender: data.sender === currentUser ? 'me' : 'them',
           time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':'),
