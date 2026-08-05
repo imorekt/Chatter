@@ -1,16 +1,25 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Search, UserPlus, Check, X, Loader2, MessageSquare, User } from 'lucide-react';
+import { io } from 'socket.io-client';
 import { notify } from './utils/toast';
 
-const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, selectionMode, selectedItems, toggleSelectItem }) => {
+const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, selectionMode, selectedItems, toggleSelectItem, onRefreshContacts }) => {
   const friends = contactsData?.friends || [];
   const pendingReceived = contactsData?.pending_received || [];
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [viewProfileUser, setViewProfileUser] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const socketRef = useRef(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    socketRef.current = io(API_URL);
+    return () => {
+      if (socketRef.current) socketRef.current.disconnect();
+    };
+  }, [API_URL]);
 
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
@@ -46,6 +55,10 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
       if (res.ok) {
         notify.success('Permintaan dikirim!');
         setSearchResults(prev => prev.map(u => u.username === receiver ? { ...u, status: 'pending', sender_username: currentUser } : u));
+        if (socketRef.current) {
+          socketRef.current.emit('contact_update', { sender: currentUser, recipient: receiver });
+        }
+        if (onRefreshContacts) onRefreshContacts();
       } else {
         notify.error('Gagal mengirim permintaan');
       }
@@ -81,6 +94,10 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
       if (res.ok) {
         notify.success('Permintaan dibatalkan');
         setSearchResults(prev => prev.map(u => u.username === receiver ? { ...u, status: null } : u));
+        if (socketRef.current) {
+          socketRef.current.emit('contact_update', { sender: currentUser, recipient: receiver });
+        }
+        if (onRefreshContacts) onRefreshContacts();
       }
     } catch (err) {
       notify.error('Gagal membatalkan permintaan');
@@ -96,6 +113,12 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
       });
       if (res.ok) {
         notify.success(action === 'accept' ? 'Teman ditambahkan!' : 'Permintaan ditolak.');
+        if (socketRef.current) {
+          socketRef.current.emit('contact_update', { sender: currentUser, recipient: sender });
+        }
+        if (onRefreshContacts) onRefreshContacts();
+      } else {
+        notify.error('Gagal merespons');
       }
     } catch (err) {
       notify.error('Gagal merespons');

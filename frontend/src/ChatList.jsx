@@ -87,6 +87,16 @@ const ChatList = ({ onLogout, currentUser }) => {
     }
   }, []);
 
+  const fetchContacts = () => {
+    fetch(`${API_URL}/api/contacts/${currentUser}`)
+      .then(res => res.json())
+      .then(data => {
+        setContactsData(data);
+        setPendingRequests(data.pending_received ? data.pending_received.length : 0);
+      })
+      .catch(console.error);
+  };
+
   useEffect(() => {
     const socket = io(API_URL);
     socket.on('receive_message', (data) => {
@@ -99,6 +109,9 @@ const ChatList = ({ onLogout, currentUser }) => {
           new Notification(`Pesan dari ${data.sender}`, { body: bodyText, icon: '/favicon.svg' });
         }
       }
+    });
+    socket.on('contact_update', (data) => {
+      fetchContacts();
     });
     socket.on('typing_status', (data) => {
       if (data.recipient === currentUser) {
@@ -592,6 +605,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           selectionMode={selectionMode}
           selectedItems={selectedItems}
           toggleSelectItem={toggleSelectItem}
+          onRefreshContacts={fetchContacts}
         />
       )}
       {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} />}

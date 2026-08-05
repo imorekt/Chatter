@@ -793,6 +793,11 @@ io.on('connection', (socket) => {
     io.emit('messages_read_update', data);
   });
 
+  // Handle contact request/response realtime updates
+  socket.on('contact_update', (data) => {
+    io.emit('contact_update', data);
+  });
+
   // Disconnect
   socket.on('disconnect', () => {
     console.log(`User disconnected: ${socket.id}`);
