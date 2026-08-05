@@ -727,18 +727,18 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
           onClick={() => setPreviewModalImage(null)}
           style={{
             position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0, 0, 0, 0.88)', backdropFilter: 'blur(8px)',
+            background: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(8px)',
             display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 1000, padding: '5cqw', boxSizing: 'border-box'
+            zIndex: 1000, padding: '4cqw', boxSizing: 'border-box'
           }}
         >
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
               position: 'relative',
-              display: 'inline-block',
-              maxWidth: '85%',
-              maxHeight: '75vh'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
             }}
           >
             <div 
@@ -756,11 +756,14 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
               src={previewModalImage} 
               alt="Preview" 
               style={{
-                maxWidth: '100%',
-                maxHeight: '75vh',
-                borderRadius: '3cqw',
+                maxWidth: '85cqw',
+                maxHeight: '75cqh',
                 display: 'block',
-                objectFit: 'contain'
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                boxShadow: 'none',
+                borderRadius: 0
               }} 
             />
           </div>
