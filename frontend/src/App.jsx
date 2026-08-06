@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { OneSignal as OneSignalCapacitor } from '@onesignal/capacitor-plugin';
 import Login from './Login';
 import Register from './Register';
 import ChatList from './ChatList';
@@ -14,15 +15,12 @@ function App() {
       if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         // NATIVE ANDROID INIT
         try {
-          const OneSignal = window.plugins?.OneSignal;
-          if (OneSignal) {
-            OneSignal.setAppId(appId);
-            OneSignal.promptForPushNotificationsWithUserResponse((accepted) => {
-              console.log("User accepted notifications: " + accepted);
-            });
-            if (user) {
-              OneSignal.setExternalUserId(user);
-            }
+          OneSignalCapacitor.initialize(appId);
+          OneSignalCapacitor.Notifications.requestPermission(true).then((success) => {
+            console.log("Notification permission granted: " + success);
+          });
+          if (user) {
+            OneSignalCapacitor.login(user);
           }
         } catch (e) {
           console.error("OneSignal Native Init Error:", e);
@@ -47,13 +45,10 @@ function App() {
   useEffect(() => {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
       try {
-        const OneSignal = window.plugins?.OneSignal;
-        if (OneSignal) {
-          if (user) {
-            OneSignal.setExternalUserId(user);
-          } else {
-            OneSignal.removeExternalUserId();
-          }
+        if (user) {
+          OneSignalCapacitor.login(user);
+        } else {
+          OneSignalCapacitor.logout();
         }
       } catch (e) {
         console.error("OneSignal User Change Error:", e);
