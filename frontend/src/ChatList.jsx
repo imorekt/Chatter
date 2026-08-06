@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Search, X, MessageSquare, Phone, Users, Settings, LogOut, Check, CheckCheck, Moon, Trash2, Info, Bell, Plus, MoreVertical, Edit2, Image as ImageIcon, MessageCircle, User, Loader2 } from 'lucide-react';
-import { io } from 'socket.io-client';
 import ChatRoom from './ChatRoom';
 import ContactList from './ContactList';
 import MomentList from './MomentList';
@@ -95,29 +94,7 @@ const ChatList = ({ onLogout, currentUser }) => {
       .catch(console.error);
   };
 
-  useEffect(() => {
-    const socket = io(API_URL);
-    socket.on('receive_message', (data) => {
-      if (data.recipient === currentUser || data.sender === currentUser) {
-        fetchChats();
-      }
-      if (data.recipient === currentUser && 'Notification' in window && Notification.permission === 'granted') {
-        if (document.hidden || activeChat?.username !== data.sender) {
-          const bodyText = typeof data.text === 'string' && data.text.startsWith('data:image/') ? '📷 Mengirim gambar' : data.text;
-          new Notification(`Pesan dari ${data.sender}`, { body: bodyText, icon: '/favicon.svg' });
-        }
-      }
-    });
-    socket.on('contact_update', (data) => {
-      fetchContacts();
-    });
-    socket.on('typing_status', (data) => {
-      if (data.recipient === currentUser) {
-        setTypingUsers(prev => ({ ...prev, [data.sender]: data.isTyping }));
-      }
-    });
-    return () => socket.disconnect();
-  }, [currentUser, activeChat]);
+  // Socket.io dihapus, UI chat list sudah di-refresh otomatis setiap 1 detik oleh fetchChats
 
   useEffect(() => {
     const handleClickOutside = (event) => {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2 } from 'lucide-react';
 import EmojiPicker from 'emoji-picker-react';
-import { io } from 'socket.io-client';
 import { notify } from './utils/toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -49,7 +48,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
-  const socketRef = useRef(null);
+  // removed socketRef
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
@@ -86,7 +85,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
 
-  useEffect(() => {
+  const fetchMessages = () => {
     fetch(`${API_URL}/api/messages/${currentUser}/${chat.username}`)
       .then(res => res.json())
       .then(data => {
@@ -103,6 +102,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             is_deleted_everyone: m.is_deleted_everyone
           };
         });
+        
         setMessages(history);
         setLoading(false);
         markMessagesRead();
@@ -111,49 +111,12 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         console.error(err);
         setLoading(false);
       });
+  };
 
-    socketRef.current = io(API_URL);
-    socketRef.current.emit('user_login', currentUser);
-
-    socketRef.current.on('receive_message', (data) => {
-      if (
-        (data.sender === chat.username && data.recipient === currentUser) ||
-        (data.sender === currentUser && data.recipient === chat.username)
-      ) {
-        setMessages(prev => [...prev, {
-          id: data.id || data.timestamp || Date.now(),
-          text: data.text,
-          sender: data.sender === currentUser ? 'me' : 'them',
-          time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':'),
-          rawDate: new Date().toISOString(),
-          status: 'delivered'
-        }]);
-
-        if (data.recipient === currentUser) {
-          markMessagesRead();
-        }
-      }
-    });
-
-    socketRef.current.on('messages_read_update', (data) => {
-      setMessages(prev => prev.map(m => (m.sender === currentUser && m.status !== 'read') ? { ...m, status: 'read' } : m));
-    });
-
-    socketRef.current.on('message_edited', (data) => {
-      setMessages(prev => prev.map(m => m.id === data.id ? { ...m, text: data.text, is_edited: 1 } : m));
-    });
-
-    socketRef.current.on('message_deleted_everyone', (data) => {
-      setMessages(prev => prev.map(m => m.id === data.id ? { ...m, is_deleted_everyone: 1 } : m));
-    });
-
-    socketRef.current.on('typing_status', (data) => {
-      if (data.sender === chat.username && data.recipient === currentUser) {
-        setIsTyping(data.isTyping);
-      }
-    });
-
-    return () => socketRef.current.disconnect();
+  useEffect(() => {
+    fetchMessages();
+    const interval = setInterval(fetchMessages, 3000);
+    return () => clearInterval(interval);
   }, [currentUser, chat.username]);
 
   const markMessagesRead = () => {
@@ -162,10 +125,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sender: chat.username, receiver: currentUser })
     }).catch(console.error);
-
-    if (socketRef.current) {
-      socketRef.current.emit('messages_read', { sender: currentUser, recipient: chat.username });
-    }
   };
 
   useEffect(() => {
@@ -178,31 +137,26 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   }, [chat, selectionMode]);
 
-  const typingTimeoutRef = useRef(null);
   const handleTyping = () => {
-    if (socketRef.current) {
-      socketRef.current.emit('typing', { sender: currentUser, recipient: chat.username, isTyping: true });
-      clearTimeout(typingTimeoutRef.current);
-      typingTimeoutRef.current = setTimeout(() => {
-        socketRef.current.emit('typing', { sender: currentUser, recipient: chat.username, isTyping: false });
-      }, 1500);
-    }
+    // Polling mode: Fitur typing dimatikan agar hemat request
   };
 
-  const handleSend = (e) => {
+  const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return notify.error('Pesan tidak boleh kosong.');
     
-    if (socketRef.current) {
-      socketRef.current.emit('send_message', {
-        sender: currentUser,
-        recipient: chat.username,
-        text: newMessage,
-        timestamp: Date.now()
-      });
-      socketRef.current.emit('typing', { sender: currentUser, recipient: chat.username, isTyping: false });
-    }
+    const textToSend = newMessage;
     setNewMessage('');
+    try {
+      await fetch(`${API_URL}/api/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
+      });
+      fetchMessages();
+    } catch (err) {
+      notify.error("Gagal mengirim pesan");
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -244,17 +198,19 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     e.target.value = '';
   };
 
-  const confirmSendImage = () => {
+  const confirmSendImage = async () => {
     if (!selectedImage) return;
     const textToSend = imageCaption.trim() ? `${selectedImage}|||CAPTION|||${imageCaption.trim()}` : selectedImage;
-    if (socketRef.current) {
-      socketRef.current.emit('send_message', {
-        sender: currentUser,
-        recipient: chat.username,
-        text: textToSend,
-        timestamp: Date.now()
+    try {
+      await fetch(`${API_URL}/api/messages/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
       });
       notify.success('Gambar berhasil dikirim!');
+      fetchMessages();
+    } catch (err) {
+      notify.error('Gagal kirim gambar');
     }
     setSelectedImage(null);
     setImageCaption('');
@@ -272,10 +228,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (pressTimer.current) clearTimeout(pressTimer.current);
   };
 
-  const handleEditSubmit = () => {
+  const handleEditSubmit = async () => {
     if (!editMessageText.trim() || !showEditModal) return;
-    socketRef.current.emit('edit_message', { id: showEditModal.id, sender: currentUser, text: editMessageText });
-    setMessages(messages.map(m => m.id === showEditModal.id ? { ...m, text: editMessageText, is_edited: 1 } : m));
+    await fetch(`${API_URL}/api/messages/edit`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: showEditModal.id, sender: currentUser, text: editMessageText })
+    });
+    fetchMessages();
     setShowEditModal(null);
   };
 
@@ -291,9 +251,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
 
-  const handleDeleteForEveryone = (msgId) => {
-    socketRef.current.emit('delete_message_everyone', { id: msgId, sender: currentUser });
-    setMessages(messages.map(m => m.id === msgId ? { ...m, is_deleted_everyone: 1 } : m));
+  const handleDeleteForEveryone = async (msgId) => {
+    await fetch(`${API_URL}/api/messages/delete_everyone`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: msgId, sender: currentUser })
+    });
+    fetchMessages();
     setShowDeleteActionModal(null);
   };
 

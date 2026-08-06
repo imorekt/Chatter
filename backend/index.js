@@ -1,6 +1,4 @@
-﻿const express = require('express');
-const http = require('http');
-const { Server } = require('socket.io');
+const express = require('express');
 const cors = require('cors');
 const nodemailer = require('nodemailer');
 const { createClient } = require('@libsql/client');
@@ -110,15 +108,6 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-const server = http.createServer(app);
-const io = new Server(server, {
-  maxHttpBufferSize: 1e8, // 100MB
-  cors: {
-    origin: '*',
-    methods: ['GET', 'POST']
-  }
-});
 
 // --- OTP LOGIC ---
 const otpStore = new Map(); // Store OTPs in memory: { email: { otp: "123456", expires: Date.now() + 5mins } }
@@ -840,70 +829,35 @@ app.get('/api/favorites/messages/:username/:partner', async (req, res) => {
   }
 });
 
-let onlineUsers = {}; // map of socket.id -> { username, status }
+app.post('/api/messages/send', async (req, res) => {
+  const data = req.body;
+  try {
+    const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
+    data.id = result.lastInsertRowid.toString();
+    res.json(data);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-io.on('connection', (socket) => {
-  console.log(`User connected: ${socket.id}`);
+app.put('/api/messages/edit', async (req, res) => {
+  const data = req.body;
+  try {
+    const result = await db.execute({ sql: `UPDATE messages SET text = ?, is_edited = 1 WHERE id = ? AND sender = ?`, args: [data.text, data.id, data.sender] });
+    res.json({ success: result.rowsAffected > 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
-  socket.on('user_login', (username) => {
-    onlineUsers[socket.id] = { username, status: 'online' };
-    io.emit('online_users', Object.values(onlineUsers));
-    console.log(`${username} logged in`);
-  });
-
-  socket.on('send_message', async (data) => {
-    try {
-      const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
-      data.id = result.lastInsertRowid.toString();
-      io.emit('receive_message', data);
-    } catch (err) {
-      console.error("Database error saving message:", err.message);
-    }
-  });
-
-  socket.on('edit_message', async (data) => {
-    try {
-      const result = await db.execute({ sql: `UPDATE messages SET text = ?, is_edited = 1 WHERE id = ? AND sender = ?`, args: [data.text, data.id, data.sender] });
-      if (result.rowsAffected > 0) {
-        io.emit('message_edited', data);
-      }
-    } catch (err) {
-      console.error("Database error updating message:", err.message);
-    }
-  });
-
-  socket.on('delete_message_everyone', async (data) => {
-    try {
-      const result = await db.execute({ sql: `UPDATE messages SET is_deleted_everyone = 1 WHERE id = ? AND sender = ?`, args: [data.id, data.sender] });
-      if (result.rowsAffected > 0) {
-        io.emit('message_deleted_everyone', data);
-      }
-    } catch (err) {
-      console.error("Database error deleting message for everyone:", err.message);
-    }
-  });
-
-  socket.on('typing', (data) => {
-    socket.broadcast.emit('typing_status', data);
-  });
-
-  socket.on('messages_read', (data) => {
-    io.emit('messages_read_update', data);
-  });
-
-  socket.on('contact_update', (data) => {
-    io.emit('contact_update', data);
-  });
-
-  socket.on('disconnect', () => {
-    console.log(`User disconnected: ${socket.id}`);
-    if (onlineUsers[socket.id]) {
-      const username = onlineUsers[socket.id].username;
-      delete onlineUsers[socket.id];
-      io.emit('online_users', Object.values(onlineUsers));
-      console.log(`${username} logged out`);
-    }
-  });
+app.post('/api/messages/delete_everyone', async (req, res) => {
+  const data = req.body;
+  try {
+    const result = await db.execute({ sql: `UPDATE messages SET is_deleted_everyone = 1 WHERE id = ? AND sender = ?`, args: [data.id, data.sender] });
+    res.json({ success: result.rowsAffected > 0 });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));
@@ -912,7 +866,11 @@ app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
 });
 
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+  const PORT = process.env.PORT || 3001;
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server listening on port ${PORT}`);
+  });
+}
