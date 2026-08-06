@@ -417,6 +417,11 @@ const ChatList = ({ onLogout, currentUser }) => {
                         )}
                         <div style={{ flex: 1, fontSize: '13px', color: 'white' }}>
                           <b>{n.sender}</b> {n.type === 'like' ? 'menyukai moment Anda.' : n.type === 'friend_request' ? 'mengirim permintaan pertemanan kepada Anda.' : n.type === 'friend_accept' ? 'menerima permintaan pertemanan Anda.' : `mengomentari moment Anda: "${n.content}"`}
+                          {n.created_at && (
+                            <div style={{ fontSize: '11px', color: 'rgba(255,255,255,0.5)', marginTop: '4px' }}>
+                              {new Date(n.created_at.replace(' ', 'T') + 'Z').toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
+                            </div>
+                          )}
                         </div>
                       </div>
                     ))}
