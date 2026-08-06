@@ -549,6 +549,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                       <div className="chat-info">
                         <div className="chat-header">
                           <div className="chat-name" style={{ color: (chat.partner === 'admin1' || chat.name === 'admin1' ? '#ff4444' : chat.partner === 'admin2' || chat.name === 'admin2' ? '#8b0000' : 'inherit') }}>{chat.isDeleted ? <span style={{ color: '#a1a1aa', fontStyle: 'italic' }}>Deleted Account</span> : chat.name} {chat.isSystem && <span style={{ fontSize: '10px' }}>⭐</span>}</div>
+                          {chat.time && <div style={{ fontSize: '11px', color: 'var(--dark-text-muted)', whiteSpace: 'nowrap', flexShrink: 0, marginLeft: '8px' }}>{chat.time.replace(' WIB', '')}</div>}
                         </div>
                         <div className="chat-message-row">
                           <div className="chat-preview">
