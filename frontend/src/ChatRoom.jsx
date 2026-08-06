@@ -28,6 +28,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
   const [loading, setLoading] = useState(true);
+  const [partnerLastSeen, setPartnerLastSeen] = useState(null);
   
   // Long Press State
   const [longPressMessage, setLongPressMessage] = useState(null);
@@ -114,7 +115,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const fetchMessages = () => {
     fetch(`${API_URL}/api/messages/${currentUser}/${chat.username}`)
-      .then(res => res.json())
+      .then(res => {
+        const lastSeen = res.headers.get('x-partner-last-seen');
+        if (lastSeen) setPartnerLastSeen(lastSeen);
+        return res.json();
+      })
       .then(data => {
         const history = data.map(m => {
           const rawDate = typeof m.created_at === 'string' && !m.created_at.includes('T') ? m.created_at.replace(' ', 'T') + 'Z' : m.created_at;
@@ -553,14 +558,39 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: chat.isDeleted ? '#a1a1aa' : (chat.name === 'admin1' || chat.username === 'admin1' ? '#ff4444' : chat.name === 'admin2' || chat.username === 'admin2' ? '#8b0000' : 'white'), fontStyle: chat.isDeleted ? 'italic' : 'normal' }}>
-                  {chat.isDeleted ? 'Deleted Account' : chat.name}
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: chat.isDeleted ? '#a1a1aa' : (chat.name === 'admin1' || chat.username === 'admin1' ? '#ff4444' : chat.name === 'admin2' || chat.username === 'admin2' ? '#8b0000' : 'white'), fontStyle: chat.isDeleted ? 'italic' : 'normal', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {chat.isDeleted ? 'Deleted Account' : chat.name} {chat.isSystem && <span style={{ fontSize: '12px' }}>⭐</span>}
                 </span>
-                <span style={{ fontSize: 'var(--font-caption)', color: isTyping ? 'var(--primary)' : 'var(--dark-text-muted)', fontStyle: isTyping ? 'italic' : 'normal', fontWeight: isTyping ? 500 : 'normal' }}>
+                <span style={{ fontSize: 'var(--font-caption)', color: isTyping ? 'var(--primary)' : 'rgba(255,255,255,0.7)', fontStyle: isTyping ? 'italic' : 'normal', fontWeight: isTyping ? 500 : 'normal', display: 'flex', alignItems: 'center', gap: '4px' }}>
                   {isTyping ? (
                     <>Sedang mengetik<span className="typing-dots"></span></>
                   ) : (
-                    chat.isDeleted ? 'Akun telah dihapus' : (chat.isSystem ? 'Sistem Chat' : 'Berteman')
+                    (() => {
+                      if (chat.isDeleted) return 'Akun telah dihapus';
+                      if (chat.isSystem) return 'Sistem Chat';
+                      if (!isFriend) return 'Tidak berteman';
+                      if (!partnerLastSeen) return 'Memuat status...';
+                      
+                      const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
+                      const last = new Date(lastSeenStr).getTime();
+                      const now = Date.now();
+                      const diffMinutes = (now - last) / (1000 * 60);
+                      const diffHours = diffMinutes / 60;
+                      
+                      if (diffMinutes < 2) {
+                        return (
+                          <>
+                            <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10B981', display: 'inline-block' }}></span>
+                            Sedang online
+                          </>
+                        );
+                      }
+                      if (diffHours < 24) {
+                        return `Terakhir online ${new Date(last).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':')}`;
+                      }
+                      const diffDays = Math.floor(diffHours / 24);
+                      return `Terakhir online ${diffDays} hari yang lalu`;
+                    })()
                   )}
                 </span>
               </div>

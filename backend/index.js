@@ -124,6 +124,7 @@ async function initDb() {
     try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
   } catch (err) {
     console.error('Error opening database:', err.message);
   }
@@ -134,6 +135,18 @@ const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+// --- HELPER FUNCTIONS ---
+const lastSeenMap = new Map();
+async function updateLastSeen(username) {
+  const now = Date.now();
+  if (!lastSeenMap.has(username) || now - lastSeenMap.get(username) > 30000) { // Throttle DB writes to 30s
+    lastSeenMap.set(username, now);
+    try {
+      await db.execute({ sql: `UPDATE users SET last_seen = CURRENT_TIMESTAMP WHERE username = ?`, args: [username] });
+    } catch (e) {}
+  }
+}
 
 // --- OTP LOGIC ---
 const otpStore = new Map(); // Store OTPs in memory: { email: { otp: "123456", expires: Date.now() + 5mins } }
@@ -655,6 +668,7 @@ app.get('/api/contacts/:username', async (req, res) => {
 // --- CHATS API ---
 app.get('/api/chats/:username', async (req, res) => {
   const { username } = req.params;
+  updateLastSeen(username); // Hijacked heartbeat
   
   try {
     const query = `
@@ -705,7 +719,14 @@ app.get('/api/chats/:username', async (req, res) => {
 
 app.get('/api/messages/:user1/:user2', async (req, res) => {
   const { user1, user2 } = req.params;
+  updateLastSeen(user1); // Hijacked heartbeat
   try {
+    const partnerResult = await db.execute({ sql: `SELECT last_seen FROM users WHERE username = ?`, args: [user2] });
+    if (partnerResult.rows.length > 0) {
+      res.setHeader('Access-Control-Expose-Headers', 'X-Partner-Last-Seen');
+      res.setHeader('X-Partner-Last-Seen', partnerResult.rows[0].last_seen || '');
+    }
+
     const result = await db.execute({
       sql: `SELECT * FROM messages WHERE ((sender = ? AND receiver = ? AND deleted_by_sender = 0) OR (sender = ? AND receiver = ? AND deleted_by_receiver = 0)) ORDER BY created_at ASC`,
       args: [user1, user2, user2, user1]
