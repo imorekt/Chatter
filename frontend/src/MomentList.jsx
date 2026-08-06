@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
 import { notify } from './utils/toast';
 
@@ -37,6 +37,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const [isDeleting, setIsDeleting] = useState(false);
   const [openComments, setOpenComments] = useState({});
   const [likesModalUsers, setLikesModalUsers] = useState(null);
+  const [previewModalImage, setPreviewModalImage] = useState(null);
+  const fileInputRef = useRef(null);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -48,6 +50,35 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
       })
       .catch(console.error);
   }, [currentUser]);
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        } else {
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        setNewImageUrl(canvas.toDataURL('image/jpeg', 0.6));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
 
   const fetchMoments = async () => {
     try {
@@ -219,25 +250,41 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
               {currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}
             </div>
           )}
-          <textarea 
-            className="hide-scrollbar"
-            placeholder="Apa yang Anda pikirkan?"
-            value={newPost}
-            onChange={(e) => setNewPost(e.target.value)}
-            style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: 'none', borderRadius: '2.5cqw', padding: '2.5cqw', color: 'white', outline: 'none', resize: 'none', minHeight: '7cqh', overflowY: 'auto', fontSize: 'var(--font-body)', fontFamily: 'inherit' }}
-            onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 50) + 'px'; }}
-          />
+          <div style={{ flex: 1, background: 'rgba(255,255,255,0.05)', borderRadius: '2.5cqw', padding: '2.5cqw', display: 'flex', flexDirection: 'column' }}>
+            <textarea 
+              className="hide-scrollbar"
+              placeholder="Apa yang Anda pikirkan?"
+              value={newPost}
+              onChange={(e) => setNewPost(e.target.value)}
+              style={{ width: '100%', background: 'transparent', border: 'none', color: 'white', outline: 'none', resize: 'none', minHeight: '5cqh', overflowY: 'auto', fontSize: 'var(--font-body)', fontFamily: 'inherit' }}
+              onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 40) + 'px'; }}
+            />
+            {newImageUrl && (
+              <div style={{ position: 'relative', marginTop: '1.5cqh', width: 'fit-content' }}>
+                <img src={newImageUrl} alt="Preview" style={{ maxHeight: '15cqh', borderRadius: '1.5cqw', objectFit: 'cover' }} />
+                <div onClick={() => setNewImageUrl('')} style={{ position: 'absolute', top: '-1cqw', right: '-1cqw', background: '#EF4444', color: 'white', borderRadius: '50%', padding: '0.5cqw', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                  <X size={14} />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ flex: 1, marginRight: '3cqw', display: 'flex', alignItems: 'center', background: 'rgba(255,255,255,0.05)', padding: '1.2cqh 2.5cqw', borderRadius: '2cqw' }}>
-            <ImageIcon size={16} color="var(--dark-text-muted)" style={{ marginRight: '2cqw' }} />
+          <div style={{ display: 'flex', alignItems: 'center' }}>
             <input 
-              type="text" 
-              placeholder="URL Gambar (Opsional)" 
-              value={newImageUrl}
-              onChange={(e) => setNewImageUrl(e.target.value)}
-              style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', width: '100%', fontSize: 'var(--font-caption)' }}
+              type="file" 
+              accept="image/*" 
+              ref={fileInputRef} 
+              style={{ display: 'none' }} 
+              onChange={handleImageUpload} 
             />
+            <div 
+              onClick={() => fileInputRef.current?.click()} 
+              style={{ display: 'flex', alignItems: 'center', gap: '2cqw', background: 'rgba(255,255,255,0.05)', padding: '1.2cqh 3cqw', borderRadius: '2cqw', cursor: 'pointer', color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)' }}
+            >
+              <ImageIcon size={18} />
+              <span>Gambar</span>
+            </div>
           </div>
           <button 
             onClick={handlePost} 
@@ -312,8 +359,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
               )}
               
               {moment.image_url && (
-                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000' }}>
-                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', maxHeight: '35cqh', objectFit: 'contain' }} />
+                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000', cursor: 'pointer' }} onClick={() => setPreviewModalImage(moment.image_url)}>
+                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', maxHeight: '25cqh', objectFit: 'cover' }} />
                 </div>
               )}
               
@@ -456,6 +503,19 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Lightbox Modal */}
+      {previewModalImage && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999,
+          padding: '2cqh'
+        }} onClick={() => setPreviewModalImage(null)}>
+          <X size={24} color="white" style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', zIndex: 10000 }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
+          <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '90%', objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
         </div>
       )}
     </div>
