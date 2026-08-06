@@ -151,8 +151,6 @@ const ChatList = ({ onLogout, currentUser }) => {
     setSelectedItems(new Set());
     if (nav === 'moment') {
       setHasNewMoment(false);
-      // Update last seen moment id from backend dynamically if possible,
-      // but the simplest way is to fetch latest and set it to storage
       fetch(`${API_URL}/api/moments/latest/${currentUser}`)
         .then(res => res.json())
         .then(data => localStorage.setItem('last_seen_moment_id', data.latest_id))
@@ -162,13 +160,47 @@ const ChatList = ({ onLogout, currentUser }) => {
     }
   };
 
+  useEffect(() => {
+    if (activeChat || activeFavoriteUser || showNewChatPopup || selectionMode || showBulkDeleteConfirm) {
+      window.history.pushState({ modalOpen: true }, '');
+    }
+  }, [!!activeChat, !!activeFavoriteUser, !!showNewChatPopup, !!selectionMode, !!showBulkDeleteConfirm]);
+
+  useEffect(() => {
+    const handlePopState = (e) => {
+      if (showBulkDeleteConfirm) setShowBulkDeleteConfirm(false);
+      else if (showNewChatPopup) setShowNewChatPopup(false);
+      else if (selectionMode) {
+        setSelectionMode(null);
+        setSelectedItems(new Set());
+      }
+      else if (activeFavoriteUser) setActiveFavoriteUser(null);
+      else if (activeChat) setActiveChat(null);
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [activeChat, activeFavoriteUser, showNewChatPopup, selectionMode, showBulkDeleteConfirm]);
+
+  const closeModal = () => {
+    if (window.history.state && window.history.state.modalOpen) {
+      window.history.back();
+    } else {
+      setActiveChat(null);
+      setActiveFavoriteUser(null);
+      setShowNewChatPopup(false);
+      setSelectionMode(null);
+      setSelectedItems(new Set());
+      setShowBulkDeleteConfirm(false);
+    }
+  };
+
   if (activeChat) {
     const isFriend = contactsData.friends?.some(f => f.username === activeChat.username) || false;
-    return <ChatRoom chat={activeChat} onBack={() => setActiveChat(null)} currentUser={currentUser} isFriend={isFriend} />;
+    return <ChatRoom chat={activeChat} onBack={closeModal} currentUser={currentUser} isFriend={isFriend} />;
   }
 
   if (activeFavoriteUser) {
-    return <FavoriteRoom partner={activeFavoriteUser} onBack={() => setActiveFavoriteUser(null)} currentUser={currentUser} />;
+    return <FavoriteRoom partner={activeFavoriteUser} onBack={closeModal} currentUser={currentUser} />;
   }
 
   const filteredChats = chats.filter(chat => {
@@ -268,7 +300,7 @@ const ChatList = ({ onLogout, currentUser }) => {
       <div className="chat-header-bar">
         {selectionMode ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw', width: '100%' }}>
-            <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => { setSelectionMode(null); setSelectedItems(new Set()); }} />
+            <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={closeModal} />
             <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: 'white' }}>{selectedItems.size} dipilih</span>
             <div style={{ flex: 1 }} />
             <button 
