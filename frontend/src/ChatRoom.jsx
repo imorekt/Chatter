@@ -127,9 +127,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }).catch(console.error);
   };
 
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isTyping]);
+  }, [lastMessageId, isTyping]);
 
   useEffect(() => {
     if (inputRef.current && !chat.isDeleted && !selectionMode) {
