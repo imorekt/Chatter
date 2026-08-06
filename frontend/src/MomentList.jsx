@@ -38,6 +38,10 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const [openComments, setOpenComments] = useState({});
   const [likesModalUsers, setLikesModalUsers] = useState(null);
   const [previewModalImage, setPreviewModalImage] = useState(null);
+  const [commentActionModal, setCommentActionModal] = useState(null);
+  const [editingCommentId, setEditingCommentId] = useState(null);
+  const [editCommentContent, setEditCommentContent] = useState('');
+  const commentPressTimer = useRef(null);
   const fileInputRef = useRef(null);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -50,6 +54,23 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
       })
       .catch(console.error);
   }, [currentUser]);
+
+  useEffect(() => {
+    const handleHardwareBack = (e) => {
+      if (previewModalImage || likesModalUsers || momentToDelete || editingMomentId || showMenuId || commentActionModal || editingCommentId) {
+        e.preventDefault();
+        setPreviewModalImage(null);
+        setLikesModalUsers(null);
+        setMomentToDelete(null);
+        setEditingMomentId(null);
+        setShowMenuId(null);
+        setCommentActionModal(null);
+        setEditingCommentId(null);
+      }
+    };
+    window.addEventListener('hardwareBack', handleHardwareBack);
+    return () => window.removeEventListener('hardwareBack', handleHardwareBack);
+  }, [previewModalImage, likesModalUsers, momentToDelete, editingMomentId, showMenuId, commentActionModal, editingCommentId]);
 
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
@@ -230,6 +251,49 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
     }, 50);
   };
 
+  const handleCommentPressStart = (c, momentId) => {
+    if (c.username !== currentUser) return;
+    commentPressTimer.current = setTimeout(() => {
+      setCommentActionModal({ ...c, momentId });
+    }, 500);
+  };
+
+  const handleCommentPressEnd = () => {
+    if (commentPressTimer.current) clearTimeout(commentPressTimer.current);
+  };
+
+  const handleDeleteComment = async (commentId) => {
+    try {
+      const res = await fetch(`${API_URL}/api/moments/comment/${commentId}`, { method: 'DELETE' });
+      if (res.ok) {
+        notify.success('Komentar dihapus');
+        setCommentActionModal(null);
+        fetchMoments();
+      }
+    } catch (e) {
+      notify.error('Gagal menghapus');
+    }
+  };
+
+  const handleEditCommentSubmit = async () => {
+    if (!editCommentContent.trim()) return;
+    try {
+      const res = await fetch(`${API_URL}/api/moments/comment/${editingCommentId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: editCommentContent })
+      });
+      if (res.ok) {
+        notify.success('Komentar diubah');
+        setEditingCommentId(null);
+        setEditCommentContent('');
+        fetchMoments();
+      }
+    } catch (e) {
+      notify.error('Gagal mengubah');
+    }
+  };
+
   const formatDate = (dateString) => {
     const safeDateString = typeof dateString === 'string' && !dateString.includes('T') 
       ? dateString.replace(' ', 'T') + 'Z' 
@@ -403,7 +467,13 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
                         <div 
                           key={c.id} 
                           onClick={() => handleCommentClick(moment.id, c.user_display_name || c.username)}
-                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '0.1cqh 0' }}
+                          onTouchStart={() => handleCommentPressStart(c, moment.id)}
+                          onTouchEnd={handleCommentPressEnd}
+                          onTouchMove={handleCommentPressEnd}
+                          onMouseDown={() => handleCommentPressStart(c, moment.id)}
+                          onMouseUp={handleCommentPressEnd}
+                          onMouseLeave={handleCommentPressEnd}
+                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '2px 4px', background: commentActionModal?.id === c.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '4px' }}
                         >
                           <span style={{ color: getUserColor(c.username), fontWeight: '600', marginRight: '1.5cqw' }}>{c.user_display_name || c.username}:</span>
                           <span style={{ color: 'var(--dark-text)', whiteSpace: 'pre-wrap' }}>{c.content}</span>
@@ -435,6 +505,48 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
           );
         })
       )}
+      
+      {/* Comment Action Modal */}
+      {commentActionModal && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }} onClick={() => setCommentActionModal(null)}>
+          <div style={{ background: 'var(--dark-surface)', width: '100%', padding: '4cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }} onClick={e => e.stopPropagation()}>
+            <button onClick={() => {
+              setEditingCommentId(commentActionModal.id);
+              setEditCommentContent(commentActionModal.content);
+              setCommentActionModal(null);
+            }} style={{ width: '100%', padding: '4cqh 0', background: 'transparent', border: 'none', color: 'white', fontSize: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', borderBottom: '1px solid var(--dark-border)' }}>
+              <Edit2 size={20} /> Edit Komentar
+            </button>
+            <button onClick={() => handleDeleteComment(commentActionModal.id)} style={{ width: '100%', padding: '4cqh 0', background: 'transparent', border: 'none', color: '#EF4444', fontSize: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer' }}>
+              <Trash2 size={20} /> Hapus Komentar
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Comment Modal */}
+      {editingCommentId && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '5cqw' }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderRadius: '4cqw', width: '90%', border: '1px solid var(--dark-border)' }}>
+            <h3 style={{ margin: '0 0 3cqh 0', fontSize: 'var(--font-title)', color: 'white' }}>Edit Komentar</h3>
+            <textarea 
+              value={editCommentContent}
+              onChange={(e) => setEditCommentContent(e.target.value)}
+              className="hide-scrollbar"
+              style={{ width: '100%', minHeight: '12cqh', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '2cqw', padding: '3cqw', color: 'white', resize: 'none', fontSize: 'var(--font-body)', outline: 'none' }}
+            />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '3cqw', marginTop: '4cqh' }}>
+              <button onClick={() => setEditingCommentId(null)} style={{ background: 'transparent', color: 'var(--dark-text-muted)', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                Batal
+              </button>
+              <button onClick={handleEditCommentSubmit} style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2cqw', padding: '1.5cqh 4cqw', fontWeight: '600', cursor: 'pointer' }}>
+                Simpan
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {momentToDelete && (
         <div style={{ 
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 

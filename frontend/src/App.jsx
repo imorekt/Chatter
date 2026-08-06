@@ -10,6 +10,20 @@ function App() {
   const [isRegistering, setIsRegistering] = useState(false);
 
   useEffect(() => {
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      import('@capacitor/app').then(({ App: CapApp }) => {
+        CapApp.addListener('backButton', () => {
+          const event = new Event('hardwareBack', { cancelable: true });
+          window.dispatchEvent(event);
+          if (!event.defaultPrevented) {
+            CapApp.exitApp();
+          }
+        });
+      });
+    }
+  }, []);
+
+  useEffect(() => {
     const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
     if (appId) {
       if (window.Capacitor && window.Capacitor.isNativePlatform()) {

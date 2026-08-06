@@ -432,6 +432,28 @@ app.post('/api/moments/comment', async (req, res) => {
   }
 });
 
+app.put('/api/moments/comment/:id', async (req, res) => {
+  const { id } = req.params;
+  const { content } = req.body;
+  if (!content) return res.status(400).json({ error: "Isi komentar tidak boleh kosong" });
+  try {
+    await db.execute({ sql: `UPDATE comments SET content = ? WHERE id = ?`, args: [content, id] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/moments/comment/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    await db.execute({ sql: `DELETE FROM comments WHERE id = ?`, args: [id] });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // --- NOTIFICATIONS API ---
 app.get('/api/notifications/:username', async (req, res) => {
   const { username } = req.params;

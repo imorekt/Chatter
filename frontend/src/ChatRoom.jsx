@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2 } from 'lucide-react';
-import EmojiPicker from 'emoji-picker-react';
+import EmojiPicker, { Categories } from 'emoji-picker-react';
 import { notify } from './utils/toast';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -52,6 +52,33 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+
+  useEffect(() => {
+    const handleHardwareBack = (e) => {
+      e.preventDefault();
+      if (previewModalImage) {
+        setPreviewModalImage(null);
+      } else if (selectedImage) {
+        setSelectedImage(null);
+        setImageCaption('');
+      } else if (showEditModal || showDeleteActionModal || showDeleteModal) {
+        setShowEditModal(null);
+        setShowDeleteActionModal(null);
+        setShowDeleteModal(false);
+      } else if (showEmojiPicker) {
+        setShowEmojiPicker(false);
+      } else if (showMenu) {
+        setShowMenu(false);
+      } else if (selectionMode) {
+        setSelectionMode(null);
+        setSelectedMessages(new Set());
+      } else {
+        onBack();
+      }
+    };
+    window.addEventListener('hardwareBack', handleHardwareBack);
+    return () => window.removeEventListener('hardwareBack', handleHardwareBack);
+  }, [previewModalImage, selectedImage, showEditModal, showDeleteActionModal, showDeleteModal, showEmojiPicker, showMenu, selectionMode, onBack]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -463,22 +490,22 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               </div>
             )}
             {msg.is_deleted_everyone === 1 ? (
-              <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px', paddingRight: msg.sender === 'me' ? '7.5cqw' : '4.5cqw', paddingBottom: '2cqh' }}>
+              <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '40px', paddingBottom: '12px' }}>
                 <Ban size={14} /> Pesan ini telah dihapus
               </span>
             ) : (
-              <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '7.5cqw' : '4.5cqw', paddingBottom: '2cqh' }}>
+              <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '50px' : '40px', paddingBottom: '12px', minWidth: '40px', minHeight: '20px' }}>
                 {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
               </span>
             )}
             <div style={{ 
               position: 'absolute',
-              bottom: '1cqh',
-              right: '2cqw',
+              bottom: '4px',
+              right: '8px',
               display: 'flex', 
               alignItems: 'center', 
-              gap: '1cqw',
-              fontSize: 'var(--font-caption)',
+              gap: '4px',
+              fontSize: '11px',
               color: 'rgba(255,255,255,0.6)'
             }}>
               {msg.is_edited === 1 && msg.is_deleted_everyone !== 1 && <span style={{ fontStyle: 'italic', fontSize: '10px', marginRight: '4px' }}>(diedit)</span>}
@@ -610,6 +637,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 theme="dark"
                 searchDisabled={true}
                 skinTonesDisabled={true}
+                categories={[
+                  { name: 'Emot Wajah', category: Categories.SMILEYS_PEOPLE },
+                  { name: 'Lope Lope', category: Categories.SYMBOLS }
+                ]}
               />
             </div>
           )}
