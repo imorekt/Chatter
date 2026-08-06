@@ -17,5 +17,14 @@
       "sizes": "512x512",
       "type": "image/png"
     }
+  ],
+  "id": "/",
+  "orientation": "portrait",
+  "screenshots": [
+    {
+      "src": "/splash_hd_transparent.png",
+      "sizes": "1080x2400",
+      "type": "image/png"
+    }
   ]
 }
