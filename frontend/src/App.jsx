@@ -15,7 +15,11 @@ function App() {
       window.OneSignalDeferred.push(async function(OneSignal) {
         await OneSignal.init({
           appId: appId,
+          notifyButton: {
+            enable: true,
+          },
         });
+        OneSignal.Slidedown.promptPush();
         if (user) {
           await OneSignal.login(user);
         }
