@@ -8,7 +8,7 @@ RUN cd backend && npm install
 
 # Copy the frontend files
 COPY frontend/package*.json ./frontend/
-RUN cd frontend && npm install
+RUN cd frontend && npm install --legacy-peer-deps
 
 # Copy all source files
 COPY . .
