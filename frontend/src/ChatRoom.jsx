@@ -490,13 +490,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               </div>
             )}
             {msg.is_deleted_everyone === 1 ? (
-              <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '40px', paddingBottom: '12px' }}>
+              <span style={{ fontStyle: 'italic', color: 'rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', gap: '4px', paddingRight: '40px', paddingBottom: '4px' }}>
                 <Ban size={14} /> Pesan ini telah dihapus
               </span>
             ) : (
-              <span style={{ display: 'inline-block', paddingRight: msg.sender === 'me' ? '50px' : '40px', paddingBottom: '12px', minWidth: '40px', minHeight: '20px' }}>
+              <div style={{ display: 'inline' }}>
                 {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
-              </span>
+                <span style={{ display: 'inline-block', width: msg.sender === 'me' ? '50px' : '40px', height: '10px' }} />
+              </div>
             )}
             <div style={{ 
               position: 'absolute',
