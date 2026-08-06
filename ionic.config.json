@@ -1,8 +1,0 @@
-{
-  "name": "Chatter",
-  "integrations": {
-    "capacitor": {}
-  },
-  "type": "react",
-  "root": "frontend"
-}
