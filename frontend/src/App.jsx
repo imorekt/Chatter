@@ -13,13 +13,19 @@ function App() {
     if (appId) {
       if (window.Capacitor && window.Capacitor.isNativePlatform()) {
         // NATIVE ANDROID INIT
-        const OneSignal = window.plugins.OneSignal;
-        OneSignal.setAppId(appId);
-        OneSignal.promptForPushNotificationsWithUserResponse((accepted) => {
-          console.log("User accepted notifications: " + accepted);
-        });
-        if (user) {
-          OneSignal.setExternalUserId(user);
+        try {
+          const OneSignal = window.plugins?.OneSignal;
+          if (OneSignal) {
+            OneSignal.setAppId(appId);
+            OneSignal.promptForPushNotificationsWithUserResponse((accepted) => {
+              console.log("User accepted notifications: " + accepted);
+            });
+            if (user) {
+              OneSignal.setExternalUserId(user);
+            }
+          }
+        } catch (e) {
+          console.error("OneSignal Native Init Error:", e);
         }
       } else {
         // WEB BROWSER INIT
@@ -39,11 +45,18 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (window.Capacitor && window.Capacitor.isNativePlatform() && window.plugins && window.plugins.OneSignal) {
-      if (user) {
-        window.plugins.OneSignal.setExternalUserId(user);
-      } else {
-        window.plugins.OneSignal.removeExternalUserId();
+    if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+      try {
+        const OneSignal = window.plugins?.OneSignal;
+        if (OneSignal) {
+          if (user) {
+            OneSignal.setExternalUserId(user);
+          } else {
+            OneSignal.removeExternalUserId();
+          }
+        }
+      } catch (e) {
+        console.error("OneSignal User Change Error:", e);
       }
     } else {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
