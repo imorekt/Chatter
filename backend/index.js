@@ -858,7 +858,8 @@ app.post('/api/messages/send', async (req, res) => {
             },
             target_channel: 'push',
             headings: { "en": `Pesan baru dari ${data.sender}` },
-            contents: { "en": pushText }
+            contents: { "en": pushText },
+            url: "https://frontend-brown-three-57.vercel.app"
           })
         });
       } catch (e) {
