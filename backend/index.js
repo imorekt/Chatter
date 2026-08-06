@@ -12,6 +12,32 @@ const db = createClient({
   authToken: process.env.TURSO_AUTH_TOKEN
 });
 
+// --- HELPER FUNCTIONS ---
+async function sendPushNotification(recipient, title, text) {
+  if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
+    try {
+      await fetch('https://api.onesignal.com/notifications', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
+        },
+        body: JSON.stringify({
+          app_id: process.env.ONESIGNAL_APP_ID,
+          include_aliases: {
+            external_id: [recipient]
+          },
+          target_channel: 'push',
+          headings: { "en": title },
+          contents: { "en": text }
+        })
+      });
+    } catch (e) {
+      console.error("Gagal mengirim push notification:", e);
+    }
+  }
+}
+
 async function initDb() {
   try {
     console.log('Connected to the Turso database.');
@@ -379,6 +405,7 @@ app.post('/api/moments/like', async (req, res) => {
       const moment = momentResult.rows[0];
       if (moment && moment.username !== username) {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, args: [moment.username, username, moment_id] });
+        sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`);
       }
       res.json({ success: true, action: 'liked' });
     }
@@ -397,6 +424,7 @@ app.post('/api/moments/comment', async (req, res) => {
     const moment = momentResult.rows[0];
     if (moment && moment.username !== username) {
       await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
+      sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`);
     }
     res.json({ success: true, id: insertResult.lastInsertRowid.toString() });
   } catch (err) {
@@ -504,6 +532,7 @@ app.post('/api/contacts/request', async (req, res) => {
       sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
       args: [receiver, sender]
     });
+    sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Gagal mengirim permintaan" });
@@ -538,6 +567,7 @@ app.post('/api/contacts/respond', async (req, res) => {
         sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
         args: [sender, receiver]
       });
+      sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`);
       res.json({ success: true });
     } else {
       await db.execute({ sql: `DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ?`, args: [sender, receiver] });
@@ -836,35 +866,13 @@ app.post('/api/messages/send', async (req, res) => {
     data.id = result.lastInsertRowid.toString();
     
     // Send Push Notification via OneSignal
-    if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
-      try {
-        let pushText = data.text;
-        if (pushText.includes('|||CAPTION|||')) {
-          pushText = 'ð· Mengirim Gambar: ' + pushText.split('|||CAPTION|||')[1];
-        } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
-          pushText = 'ð· Mengirim Gambar';
-        }
-
-        await fetch('https://api.onesignal.com/notifications', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
-          },
-          body: JSON.stringify({
-            app_id: process.env.ONESIGNAL_APP_ID,
-            include_aliases: {
-              external_id: [data.recipient]
-            },
-            target_channel: 'push',
-            headings: { "en": `Pesan baru dari ${data.sender}` },
-            contents: { "en": pushText }
-          })
-        });
-      } catch (e) {
-        console.error("Gagal mengirim push notification:", e);
-      }
+    let pushText = data.text;
+    if (pushText.includes('|||CAPTION|||')) {
+      pushText = '📸 Mengirim Gambar: ' + pushText.split('|||CAPTION|||')[1];
+    } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
+      pushText = '📸 Mengirim Gambar';
     }
+    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText);
 
     res.json(data);
   } catch (err) {
