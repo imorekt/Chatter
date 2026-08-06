@@ -1,0 +1,6 @@
+{
+  "appId": "com.kangrekt.chatter",
+  "appName": "Chatter",
+  "webDir": "dist",
+  "bundledWebRuntime": false
+}

@@ -11,31 +11,50 @@ function App() {
   useEffect(() => {
     const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
     if (appId) {
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
-        await OneSignal.init({
-          appId: appId,
-          notifyButton: {
-            enable: true,
-          },
+      if (window.Capacitor && window.Capacitor.isNativePlatform()) {
+        // NATIVE ANDROID INIT
+        const OneSignal = window.plugins.OneSignal;
+        OneSignal.setAppId(appId);
+        OneSignal.promptForPushNotificationsWithUserResponse((accepted) => {
+          console.log("User accepted notifications: " + accepted);
         });
-        OneSignal.Slidedown.promptPush();
         if (user) {
-          await OneSignal.login(user);
+          OneSignal.setExternalUserId(user);
         }
-      });
+      } else {
+        // WEB BROWSER INIT
+        window.OneSignalDeferred = window.OneSignalDeferred || [];
+        window.OneSignalDeferred.push(async function(OneSignal) {
+          await OneSignal.init({
+            appId: appId,
+            notifyButton: { enable: true },
+          });
+          OneSignal.Slidedown.promptPush();
+          if (user) {
+            await OneSignal.login(user);
+          }
+        });
+      }
     }
   }, []);
 
   useEffect(() => {
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    window.OneSignalDeferred.push(async function(OneSignal) {
+    if (window.Capacitor && window.Capacitor.isNativePlatform() && window.plugins && window.plugins.OneSignal) {
       if (user) {
-        await OneSignal.login(user);
+        window.plugins.OneSignal.setExternalUserId(user);
       } else {
-        await OneSignal.logout();
+        window.plugins.OneSignal.removeExternalUserId();
       }
-    });
+    } else {
+      window.OneSignalDeferred = window.OneSignalDeferred || [];
+      window.OneSignalDeferred.push(async function(OneSignal) {
+        if (user) {
+          await OneSignal.login(user);
+        } else {
+          await OneSignal.logout();
+        }
+      });
+    }
   }, [user]);
 
   const handleLogin = (username) => {
