@@ -28,13 +28,14 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (window.OneSignal) {
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push(async function(OneSignal) {
       if (user) {
-        window.OneSignal.login(user);
+        await OneSignal.login(user);
       } else {
-        window.OneSignal.logout();
+        await OneSignal.logout();
       }
-    }
+    });
   }, [user]);
 
   const handleLogin = (username) => {
