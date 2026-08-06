@@ -182,14 +182,18 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     const textToSend = newMessage;
     setNewMessage('');
     try {
-      await fetch(`${API_URL}/api/messages/send`, {
+      const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
       });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal mengirim pesan");
+      }
       fetchMessages();
     } catch (err) {
-      notify.error("Gagal mengirim pesan");
+      notify.error(err.message || "Gagal mengirim pesan");
     }
   };
 
@@ -236,15 +240,19 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (!selectedImage) return;
     const textToSend = imageCaption.trim() ? `${selectedImage}|||CAPTION|||${imageCaption.trim()}` : selectedImage;
     try {
-      await fetch(`${API_URL}/api/messages/send`, {
+      const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
       });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || "Gagal kirim gambar");
+      }
       notify.success('Gambar berhasil dikirim!');
       fetchMessages();
     } catch (err) {
-      notify.error('Gagal kirim gambar');
+      notify.error(err.message || 'Gagal kirim gambar');
     }
     setSelectedImage(null);
     setImageCaption('');
