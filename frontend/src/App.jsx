@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { OneSignal as OneSignalCapacitor } from '@onesignal/capacitor-plugin';
+import OneSignalCapacitor from '@onesignal/capacitor-plugin';
 import Login from './Login';
 import Register from './Register';
 import ChatList from './ChatList';
