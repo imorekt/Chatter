@@ -467,7 +467,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                       </div>
                       <div className="chat-info">
                         <div className="chat-header">
-                          <div className="chat-name">{fav.isDeleted ? <span style={{ color: '#a1a1aa', fontStyle: 'italic' }}>Deleted Account</span> : (fav.displayName || fav.username)}</div>
+                          <div className="chat-name" style={{ color: (fav.username === 'admin1' ? '#ff4444' : fav.username === 'admin2' ? '#8b0000' : 'inherit') }}>{fav.isDeleted ? <span style={{ color: '#a1a1aa', fontStyle: 'italic' }}>Deleted Account</span> : (fav.displayName || fav.username)}</div>
                         </div>
                         <div className="chat-message-row">
                           <div className="chat-preview">
@@ -534,7 +534,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                       
                       <div className="chat-info">
                         <div className="chat-header">
-                          <div className="chat-name">{chat.isDeleted ? <span style={{ color: '#a1a1aa', fontStyle: 'italic' }}>Deleted Account</span> : chat.name} {chat.isSystem && <span style={{ fontSize: '10px' }}>⭐</span>}</div>
+                          <div className="chat-name" style={{ color: (chat.partner === 'admin1' || chat.name === 'admin1' ? '#ff4444' : chat.partner === 'admin2' || chat.name === 'admin2' ? '#8b0000' : 'inherit') }}>{chat.isDeleted ? <span style={{ color: '#a1a1aa', fontStyle: 'italic' }}>Deleted Account</span> : chat.name} {chat.isSystem && <span style={{ fontSize: '10px' }}>⭐</span>}</div>
                         </div>
                         <div className="chat-message-row">
                           <div className="chat-preview">
@@ -631,7 +631,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                             {(friend.displayName || friend.username).charAt(0).toUpperCase()}
                           </div>
                         )}
-                        <span style={{ fontWeight: '600', fontSize: '15px' }}>{friend.displayName || friend.username}</span>
+                        <span style={{ fontWeight: '600', fontSize: '15px', color: (friend.username === 'admin1' ? '#ff4444' : friend.username === 'admin2' ? '#8b0000' : 'inherit') }}>{friend.displayName || friend.username}</span>
                       </div>
                     ))
                   )}

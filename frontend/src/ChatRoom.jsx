@@ -559,7 +559,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 )}
               </div>
               <div style={{ display: 'flex', flexDirection: 'column' }}>
-                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: chat.isDeleted ? '#a1a1aa' : 'white', fontStyle: chat.isDeleted ? 'italic' : 'normal' }}>
+                <span style={{ fontSize: 'var(--font-body)', fontWeight: 600, color: chat.isDeleted ? '#a1a1aa' : (chat.name === 'admin1' || chat.username === 'admin1' ? '#ff4444' : chat.name === 'admin2' || chat.username === 'admin2' ? '#8b0000' : 'white'), fontStyle: chat.isDeleted ? 'italic' : 'normal' }}>
                   {chat.isDeleted ? 'Deleted Account' : chat.name}
                 </span>
                 <span style={{ fontSize: 'var(--font-caption)', color: isTyping ? 'var(--primary)' : 'var(--dark-text-muted)', fontStyle: isTyping ? 'italic' : 'normal', fontWeight: isTyping ? 500 : 'normal' }}>
