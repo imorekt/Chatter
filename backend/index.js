@@ -884,6 +884,15 @@ app.get('/api/favorites/messages/:username/:partner', async (req, res) => {
 app.post('/api/messages/send', async (req, res) => {
   const data = req.body;
   try {
+    const contactCheck = await db.execute({
+      sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
+      args: [data.sender, data.recipient, data.recipient, data.sender]
+    });
+    
+    if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
+      return res.status(403).json({ error: "Anda tidak berteman dengan pengguna ini" });
+    }
+
     const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
     data.id = result.lastInsertRowid.toString();
     
