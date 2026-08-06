@@ -834,6 +834,38 @@ app.post('/api/messages/send', async (req, res) => {
   try {
     const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
     data.id = result.lastInsertRowid.toString();
+    
+    // Send Push Notification via OneSignal
+    if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
+      try {
+        let pushText = data.text;
+        if (pushText.includes('|||CAPTION|||')) {
+          pushText = 'ð· Mengirim Gambar: ' + pushText.split('|||CAPTION|||')[1];
+        } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
+          pushText = 'ð· Mengirim Gambar';
+        }
+
+        await fetch('https://api.onesignal.com/notifications', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
+          },
+          body: JSON.stringify({
+            app_id: process.env.ONESIGNAL_APP_ID,
+            include_aliases: {
+              external_id: [data.recipient]
+            },
+            target_channel: 'push',
+            headings: { "en": `Pesan baru dari ${data.sender}` },
+            contents: { "en": pushText }
+          })
+        });
+      } catch (e) {
+        console.error("Gagal mengirim push notification:", e);
+      }
+    }
+
     res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
