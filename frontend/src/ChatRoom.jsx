@@ -536,9 +536,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   };
 
   return (
-    <div className="chat-app" style={{ zIndex: 50, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'transparent' }}>
+    <div className="chat-app" style={{ zIndex: 50, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)' }}>
       {/* Header */}
-      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, height: '8.5cqh', minHeight: '72px', maxHeight: '72px', padding: '0 var(--pad-h)', borderBottom: '1px solid var(--dark-border)', background: 'var(--dark-surface)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', boxSizing: 'border-box', flexShrink: 0 }}>
+      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'transparent' }}>
         {selectionMode ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4cqw', width: '100%' }}>
             <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => { setSelectionMode(null); setSelectedMessages(new Set()); }} />
@@ -550,9 +550,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           </div>
         ) : (
           <>
-            <div className="header-left" style={{ gap: '4cqw' }}>
+            <div className="header-left">
               <ArrowLeft size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={onBack} />
-              <div className="avatar-container" style={{ width: '10cqw', height: '10cqw' }}>
+              <div className="avatar-container">
                 {chat.isDeleted ? (
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#3f3f46', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#a1a1aa', fontWeight: 'bold' }}>
                     X
@@ -645,7 +645,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {/* Composer */}
-      <form onSubmit={handleSend} style={{ padding: '3cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center', minHeight: '85px', maxHeight: '85px', boxSizing: 'border-box', flexShrink: 0 }}>
+      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'transparent', borderTop: '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
         <input
           type="file"
           accept="image/*"
