@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.vercel.chatter_qq66_pi.twa",
+        "sha256_cert_fingerprints": ["4A:99:54:8B:32:C6:CC:6F:63:EE:A7:A5:CF:D6:94:F8:44:3C:01:9F:05:DA:25:E6:F0:3A:29:E3:9D:08:C8:7A"]
+      }
+    }]
