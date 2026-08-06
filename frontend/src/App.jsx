@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { App as CapApp } from '@capacitor/app';
 import OneSignalCapacitor from '@onesignal/capacitor-plugin';
 import Login from './Login';
 import Register from './Register';
@@ -11,14 +12,12 @@ function App() {
 
   useEffect(() => {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
-      import('@capacitor/app').then(({ App: CapApp }) => {
-        CapApp.addListener('backButton', () => {
-          const event = new Event('hardwareBack', { cancelable: true });
-          window.dispatchEvent(event);
-          if (!event.defaultPrevented) {
-            CapApp.exitApp();
-          }
-        });
+      CapApp.addListener('backButton', () => {
+        const event = new Event('hardwareBack', { cancelable: true });
+        window.dispatchEvent(event);
+        if (!event.defaultPrevented) {
+          CapApp.exitApp();
+        }
       });
     }
   }, []);
