@@ -70,11 +70,11 @@ jobs:
 
       - name: Build APK
         working-directory: frontend/android
-        run: ./gradlew assembleDebug
+        run: ./gradlew assembleRelease
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          files: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          files: frontend/android/app/build/outputs/apk/release/app-release.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
