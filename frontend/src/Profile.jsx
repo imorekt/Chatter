@@ -273,7 +273,7 @@ const Profile = ({ onLogout, email }) => {
         </button>
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: '3cqh', color: 'var(--dark-text-muted)', fontSize: '13px' }}>
+      <div style={{ textAlign: 'center', marginTop: 'auto', marginBottom: '1cqh', color: 'var(--dark-text-muted)', fontSize: '10px' }}>
         Versi App: v{import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}
       </div>
 
