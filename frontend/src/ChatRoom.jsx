@@ -36,6 +36,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
+  const [viewProfileUser, setViewProfileUser] = useState(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
   const isFirstLoad = useRef(true);
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
   const [partnerLastSeen, setPartnerLastSeen] = useState(null);
@@ -63,6 +66,32 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+
+  useEffect(() => {
+    localforage.getItem(`chat_${cacheKey}`).then(data => {
+      if (data && isFirstLoad.current) {
+        setMessages(data);
+        setLoading(false);
+      }
+    });
+  }, [cacheKey]);
+
+  const handleViewProfile = async (username) => {
+    setIsLoadingProfile(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        setViewProfileUser({ ...data, username });
+      } else {
+        notify.error('Gagal memuat profil');
+      }
+    } catch (err) {
+      notify.error('Terjadi kesalahan jaringan');
+    } finally {
+      setIsLoadingProfile(false);
+    }
+  };
 
   useEffect(() => {
     if (!cachedMessages[cacheKey]) {
@@ -97,13 +126,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       } else if (selectionMode) {
         setSelectionMode(null);
         setSelectedMessages(new Set());
+      } else if (viewProfileUser) {
+        setViewProfileUser(null);
       } else {
         onBack();
       }
     };
     window.addEventListener('hardwareBack', handleHardwareBack);
     return () => window.removeEventListener('hardwareBack', handleHardwareBack);
-  }, [previewModalImage, selectedImage, showEditModal, showDeleteActionModal, showDeleteModal, showEmojiPicker, showMenu, selectionMode, onBack]);
+  }, [previewModalImage, selectedImage, showEditModal, showDeleteActionModal, showDeleteModal, showEmojiPicker, showMenu, selectionMode, viewProfileUser, onBack]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -486,12 +517,12 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
             const localStored = await localforage.getItem(`r2_media_${msgId}`);
             if (localStored) {
-              if (isMounted.current) setImgSrc(localStored);
+              if (isMounted) setImgSrc(localStored);
               return;
             }
 
             // Jika belum di-download, tampilkan dulu dari R2 Url
-            if (isMounted.current) setImgSrc(imageUrl);
+            if (isMounted) setImgSrc(imageUrl);
 
             // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
             if (!isMe) {
@@ -516,7 +547,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                     // Save to localforage cache so it doesn't download again
                     await localforage.setItem(`r2_media_${msgId}`, base64data);
                     
-                    if (isMounted.current) {
+                    if (isMounted) {
                       setImgSrc(base64data);
                     }
                     
@@ -747,7 +778,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <>
             <div className="header-left">
               <ArrowLeft size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={onBack} />
-              <div className="avatar-container">
+              <div className="avatar-container" onClick={() => !chat.isDeleted && handleViewProfile(chat.username)} style={{ cursor: chat.isDeleted ? 'default' : 'pointer' }}>
                 {chat.isDeleted ? (
                   <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: '#3f3f46', display: 'flex', justifyContent: 'center', alignItems: 'center', color: '#a1a1aa', fontWeight: 'bold' }}>
                     X
@@ -897,7 +928,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           value={newMessage}
           onChange={(e) => {
             setNewMessage(e.target.value);
-            handleTyping();
           }}
           placeholder={chat.isDeleted ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
           disabled={chat.isDeleted || !!selectionMode}
@@ -1040,55 +1070,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         </div>
       )}
 
-      {/* Image Preview Lightbox Modal */}
-      {previewModalImage && (
-        <div 
-          onClick={() => setPreviewModalImage(null)}
-          style={{
-            position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-            background: 'rgba(0, 0, 0, 0.9)', backdropFilter: 'blur(8px)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 1000, padding: '4cqw', boxSizing: 'border-box'
-          }}
-        >
-          <div 
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              position: 'relative',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}
-          >
-            <div 
-              style={{ 
-                position: 'absolute', top: '-1.5cqh', right: '-1.5cqw', 
-                background: 'var(--primary)', width: '7cqw', height: '7cqw', 
-                borderRadius: '50%', display: 'flex', justifyContent: 'center', 
-                alignItems: 'center', cursor: 'pointer', boxShadow: '0 4px 12px rgba(0,0,0,0.5)', zIndex: 10 
-              }} 
-              onClick={() => setPreviewModalImage(null)}
-            >
-              <X size={16} color="white" />
-            </div>
-            <img 
-              src={previewModalImage} 
-              alt="Preview" 
-              style={{
-                maxWidth: '85cqw',
-                maxHeight: '75cqh',
-                display: 'block',
-                border: 'none',
-                outline: 'none',
-                background: 'transparent',
-                boxShadow: 'none',
-                borderRadius: 0
-              }} 
-            />
-          </div>
-        </div>
-      )}
-
       {/* Long Press Action Modal */}
       {longPressMessage && (
         <div onClick={() => setLongPressMessage(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1154,6 +1135,55 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           40% { transform: scale(1); }
         }
       `}} />
+
+      {/* Loading Profile Popup */}
+      {isLoadingProfile && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <Loader2 className="animate-spin" size={32} color="var(--primary)" />
+        </div>
+      )}
+
+      {/* View Profile Popup */}
+      {viewProfileUser && (
+        <>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, backdropFilter: 'blur(4px)' }} onClick={() => setViewProfileUser(null)} />
+          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '6cqw', padding: '8cqw 6cqw', width: '90%', maxWidth: '85vw', zIndex: 10001, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+            <div 
+              style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', marginBottom: '4cqh', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
+              onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
+            >
+              {viewProfileUser.avatar ? <img src={viewProfileUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : viewProfileUser.username.charAt(0).toUpperCase()}
+            </div>
+            <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
+            <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '5cqh' }}>@{viewProfileUser.username}</div>
+            
+            <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)' }}>
+              <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '2cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
+              <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
+                {viewProfileUser.bio || 'Tidak ada bio.'}
+              </div>
+            </div>
+            
+            <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3.5cqw', borderRadius: '3cqw', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
+              Tutup
+            </button>
+          </div>
+        </>
+      )}
+
+      {/* Lightbox Modal */}
+      {previewModalImage && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10002,
+          padding: '2cqh'
+        }} onClick={() => setPreviewModalImage(null)}>
+          <X size={24} color="white" style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', zIndex: 10003 }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
+          <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '90%', objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
+        </div>
+      )}
+
     </div>
   );
 };

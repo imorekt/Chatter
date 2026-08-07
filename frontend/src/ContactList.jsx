@@ -17,6 +17,7 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
   const [loading, setLoading] = useState(false);
   const [viewProfileUser, setViewProfileUser] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [previewModalImage, setPreviewModalImage] = useState(null);
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
@@ -268,7 +269,10 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
         <>
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 99, backdropFilter: 'blur(4px)' }} onClick={() => setViewProfileUser(null)} />
           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '6cqw', padding: '8cqw 6cqw', width: '90%', maxWidth: '85vw', zIndex: 100, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', marginBottom: '4cqh', overflow: 'hidden' }}>
+            <div 
+              style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', marginBottom: '4cqh', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
+              onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
+            >
               {viewProfileUser.avatar ? <img src={viewProfileUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : viewProfileUser.username.charAt(0).toUpperCase()}
             </div>
             <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
@@ -286,6 +290,19 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
             </button>
           </div>
         </>
+      )}
+
+      {/* Lightbox Modal */}
+      {previewModalImage && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(8px)',
+          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999,
+          padding: '2cqh'
+        }} onClick={() => setPreviewModalImage(null)}>
+          <X size={24} color="white" style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', zIndex: 10000 }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
+          <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '90%', objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
+        </div>
       )}
     </div>
   );
