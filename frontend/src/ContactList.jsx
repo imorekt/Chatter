@@ -3,8 +3,16 @@ import { Search, UserPlus, Check, X, Loader2, MessageSquare, User } from 'lucide
 import { notify } from './utils/toast';
 
 const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, selectionMode, selectedItems, toggleSelectItem, onRefreshContacts }) => {
-  const friends = contactsData?.friends || [];
-  const pendingReceived = contactsData?.pending_received || [];
+  const [optimisticAccepted, setOptimisticAccepted] = useState([]);
+  const [optimisticRejected, setOptimisticRejected] = useState(new Set());
+
+  useEffect(() => {
+    setOptimisticAccepted([]);
+    setOptimisticRejected(new Set());
+  }, [contactsData]);
+
+  const friends = [...(contactsData?.friends || []), ...optimisticAccepted];
+  const pendingReceived = (contactsData?.pending_received || []).filter(s => !optimisticRejected.has(s.username));
   const [searchResults, setSearchResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [viewProfileUser, setViewProfileUser] = useState(null);
@@ -90,7 +98,13 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
     }
   };
 
-  const handleRespond = async (sender, action) => {
+  const handleRespond = async (sender, action, senderObj = null) => {
+    setOptimisticRejected(prev => new Set(prev).add(sender));
+    if (action === 'accept') {
+      const friendObj = senderObj || { username: sender, displayName: sender, avatar: null };
+      setOptimisticAccepted(prev => [...prev, friendObj]);
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/contacts/respond`, {
         method: 'POST',
@@ -101,10 +115,11 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
         notify.success(action === 'accept' ? 'Teman ditambahkan!' : 'Permintaan ditolak.');
         if (onRefreshContacts) onRefreshContacts();
       } else {
-        notify.error('Gagal merespons');
+        throw new Error();
       }
     } catch (err) {
       notify.error('Gagal merespons');
+      if (onRefreshContacts) onRefreshContacts();
     }
   };
 
@@ -137,7 +152,7 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
                     <X size={18} />
                   </button>
                 ) : user.status === 'pending' && user.receiver_username === currentUser ? (
-                  <button onClick={() => handleRespond(user.username, 'accept')} style={{ background: 'var(--primary)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <button onClick={() => handleRespond(user.username, 'accept', user)} style={{ background: 'var(--primary)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Check size={18} />
                   </button>
                 ) : (
@@ -173,10 +188,10 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
                   <b>{sender.displayName || sender.username}</b> menambahkan Anda
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => handleRespond(sender.username, 'accept')} style={{ background: '#10B981', border: 'none', borderRadius: '50%', width: 32, height: 32, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <button onClick={() => handleRespond(sender.username, 'accept', sender)} style={{ background: '#10B981', border: 'none', borderRadius: '50%', width: 32, height: 32, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <Check size={16} />
                   </button>
-                  <button onClick={() => handleRespond(sender.username, 'reject')} style={{ background: '#EF4444', border: 'none', borderRadius: '50%', width: 32, height: 32, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  <button onClick={() => handleRespond(sender.username, 'reject', sender)} style={{ background: '#EF4444', border: 'none', borderRadius: '50%', width: 32, height: 32, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                     <X size={16} />
                   </button>
                 </div>
