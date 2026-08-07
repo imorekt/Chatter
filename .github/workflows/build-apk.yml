@@ -39,10 +39,10 @@ jobs:
 
       - name: Build APK
         working-directory: ./frontend/android
-        run: bash ./gradlew assembleDebug
+        run: bash ./gradlew assembleRelease
 
       - name: Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Chatter-App-Debug
-          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+          name: Chatter-App-Release
+          path: frontend/android/app/build/outputs/apk/release/app-release.apk
