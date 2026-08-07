@@ -29,14 +29,7 @@ jobs:
         working-directory: frontend
         run: npm ci || npm install
 
-      - name: Create .env.production
-        working-directory: frontend
-        run: |
-          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env.production
-          echo "VITE_PUSHER_KEY=${{ secrets.VITE_PUSHER_KEY }}" >> .env.production
-          echo "VITE_PUSHER_CLUSTER=${{ secrets.VITE_PUSHER_CLUSTER }}" >> .env.production
-          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.production
-          echo "VITE_IMGBB_API_KEY=${{ secrets.VITE_IMGBB_API_KEY }}" >> .env.production
+
 
       - name: Build Frontend (Vite)
         working-directory: frontend
