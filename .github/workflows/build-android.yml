@@ -1,0 +1,57 @@
+name: Build Android APK
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci || npm install
+
+      - name: Create .env.production
+        working-directory: frontend
+        run: |
+          echo "VITE_API_URL=${{ secrets.VITE_API_URL }}" > .env.production
+          echo "VITE_PUSHER_KEY=${{ secrets.VITE_PUSHER_KEY }}" >> .env.production
+          echo "VITE_PUSHER_CLUSTER=${{ secrets.VITE_PUSHER_CLUSTER }}" >> .env.production
+          echo "VITE_ONESIGNAL_APP_ID=${{ secrets.VITE_ONESIGNAL_APP_ID }}" >> .env.production
+          echo "VITE_IMGBB_API_KEY=${{ secrets.VITE_IMGBB_API_KEY }}" >> .env.production
+
+      - name: Build Frontend (Vite)
+        working-directory: frontend
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Build Android APK (Debug)
+        working-directory: frontend/android
+        run: chmod +x ./gradlew && ./gradlew assembleDebug
+
+      - name: Upload APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-debug
+          path: frontend/android/app/build/outputs/apk/debug/app-debug.apk
