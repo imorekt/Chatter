@@ -388,18 +388,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     setImageCaption('');
   };
 
-  const handlePressStart = (msg) => {
-    if (selectionMode) return;
-    pressTimer.current = setTimeout(() => {
-      setLongPressMessage(msg);
-      if (navigator.vibrate) navigator.vibrate(50);
-    }, 500);
-  };
-
-  const handlePressEnd = () => {
-    if (pressTimer.current) clearTimeout(pressTimer.current);
-  };
-
   const handleEditSubmit = async () => {
     if (!editMessageText.trim() || !showEditModal) return;
     await fetch(`${API_URL}/api/messages/edit`, {
@@ -668,12 +656,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           maxWidth: '80%',
           position: 'relative'
         }}
-        onTouchStart={() => handlePressStart(msg)}
-        onTouchEnd={handlePressEnd}
-        onTouchMove={handlePressEnd}
-        onMouseDown={() => handlePressStart(msg)}
-        onMouseUp={handlePressEnd}
-        onMouseLeave={handlePressEnd}
         >
           <div style={{
             background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : '#202c33'),
@@ -691,7 +673,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             position: 'relative',
             border: selectedMessages.has(msg.id) ? '2px solid var(--primary)' : '2px solid transparent',
             boxSizing: 'border-box'
-          }} onClick={() => { if (selectionMode) toggleSelection(msg.id); }}>
+          }} onClick={() => { 
+            if (selectionMode) {
+              toggleSelection(msg.id); 
+            } else {
+              setLongPressMessage(msg);
+            }
+          }}>
             
             {selectionMode && (
               <div style={{
