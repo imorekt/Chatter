@@ -538,7 +538,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   return (
     <div className="chat-app" style={{ zIndex: 50, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)' }}>
       {/* Header */}
-      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'red' }}>
+      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'var(--dark-surface)' }}>
         {selectionMode ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4cqw', width: '100%' }}>
             <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => { setSelectionMode(null); setSelectedMessages(new Set()); }} />
@@ -576,8 +576,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                     (() => {
                       if (chat.isDeleted) return 'Akun telah dihapus';
                       if (chat.isSystem) return 'Sistem Chat';
+                      if (partnerLastSeen === '') return 'Belum pernah online';
                       if (!isFriend) return 'Tidak berteman';
-                      if (!partnerLastSeen) return 'Memuat status (V2)...';
+                      if (!partnerLastSeen) return 'Memuat status...';
                       
                       const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
                       const last = new Date(lastSeenStr).getTime();
@@ -645,7 +646,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {/* Composer */}
-      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'transparent', borderTop: '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
+      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
         <input
           type="file"
           accept="image/*"
