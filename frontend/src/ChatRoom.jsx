@@ -10,6 +10,8 @@ import pusher from './pusher';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const cachedMessages = {};
+
 const formatDateDivider = (dateString) => {
   const d = new Date(dateString);
   const today = new Date();
@@ -26,13 +28,14 @@ const formatDateDivider = (dateString) => {
 };
 
 const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
-  const [messages, setMessages] = useState([]);
+  const cacheKey = `${currentUser}_${chat.username}`;
+  const [messages, setMessages] = useState(cachedMessages[cacheKey] || []);
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
   const [partnerLastSeen, setPartnerLastSeen] = useState(null);
   
   // Long Press State
@@ -60,13 +63,18 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const emojiPickerRef = useRef(null);
 
   useEffect(() => {
-    localforage.getItem(`messages_${currentUser}_${chat.username}`).then(val => {
-      if (val) {
-        setMessages(val);
+    if (!cachedMessages[cacheKey]) {
+      localforage.getItem(`messages_${cacheKey}`).then(val => {
+        if (val) {
+          cachedMessages[cacheKey] = val;
+          setMessages(val);
+        }
         setLoading(false);
-      }
-    });
-  }, [currentUser, chat.username]);
+      });
+    } else {
+      setLoading(false);
+    }
+  }, [cacheKey]);
 
   useEffect(() => {
     const handleHardwareBack = (e) => {
@@ -150,6 +158,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         });
         
         setMessages(history);
+        cachedMessages[cacheKey] = history;
         setLoading(false);
         markMessagesRead();
       })

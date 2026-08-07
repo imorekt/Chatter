@@ -26,7 +26,7 @@ const getUserColor = (username) => {
 
 const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) => {
   const [moments, setMoments] = useState(cachedMoments);
-  const [loading, setLoading] = useState(!hasFetchedMoments);
+  const [loading, setLoading] = useState(cachedMoments.length === 0 && !hasFetchedMoments);
   const [newPost, setNewPost] = useState('');
   const [newImageUrl, setNewImageUrl] = useState('');
   const [isPosting, setIsPosting] = useState(false);
@@ -49,12 +49,17 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
-    localforage.getItem('moments').then(val => {
-      if (val) {
-        setMoments(val);
-        setLoading(false);
-      }
-    });
+    if (cachedMoments.length === 0) {
+      localforage.getItem('moments').then(val => {
+        if (val && val.length > 0) {
+          setMoments(val);
+          cachedMoments = val;
+          setLoading(false);
+        }
+      });
+    } else {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {

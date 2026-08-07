@@ -3,6 +3,8 @@ import { ArrowLeft, Loader2, Check, CheckCheck, MoreVertical, Trash2, X } from '
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+const cachedFavorites = {};
+
 const formatDateDivider = (dateString) => {
   const d = new Date(dateString);
   const today = new Date();
@@ -19,15 +21,16 @@ const formatDateDivider = (dateString) => {
 };
 
 const FavoriteRoom = ({ partner, onBack, currentUser }) => {
-  const [messages, setMessages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const cacheKey = `${currentUser}_${partner.username}`;
+  const [messages, setMessages] = useState(cachedFavorites[cacheKey] || []);
+  const [loading, setLoading] = useState(!cachedFavorites[cacheKey]);
   const [showMenu, setShowMenu] = useState(false);
   const [selectionMode, setSelectionMode] = useState(null); // null | 'delete'
   const [selectedMessages, setSelectedMessages] = useState(new Set());
   const messagesEndRef = useRef(null);
   const menuRef = useRef(null);
 
-  useEffect(() => {
+  const fetchFavorites = () => {
     fetch(`${API_URL}/api/favorites/messages/${currentUser}/${partner.name}`)
       .then(res => res.json())
       .then(data => {
@@ -43,12 +46,23 @@ const FavoriteRoom = ({ partner, onBack, currentUser }) => {
           };
         });
         setMessages(history);
+        cachedFavorites[cacheKey] = history;
         setLoading(false);
       })
       .catch(err => {
         console.error(err);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    if (!cachedFavorites[cacheKey]) {
+      fetchFavorites();
+    } else {
+      setLoading(false);
+      // Optional: still fetch in background to update
+      fetchFavorites();
+    }
   }, [currentUser, partner.name]);
 
   useEffect(() => {
