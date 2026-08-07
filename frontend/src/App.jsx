@@ -178,7 +178,7 @@ function App() {
           }}>
             <h2 style={{ marginBottom: '1rem', color: 'var(--text)' }}>Update Tersedia!</h2>
             <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-              Versi terbaru aplikasi telah tersedia. Anda diwajibkan untuk memperbarui aplikasi untuk melanjutkan.
+              Kiw versi baru tersedia,, tolong update ya!
             </p>
             <button 
               onClick={handleUpdate}
