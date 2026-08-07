@@ -32,6 +32,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const [isPosting, setIsPosting] = useState(false);
   const [commentTexts, setCommentTexts] = useState({});
   const [currentUserAvatar, setCurrentUserAvatar] = useState(null);
+  const [currentUserDisplayName, setCurrentUserDisplayName] = useState(currentUser);
   const [showMenuId, setShowMenuId] = useState(null);
   const [editingMomentId, setEditingMomentId] = useState(null);
   const [editContent, setEditContent] = useState('');
@@ -67,6 +68,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
       .then(res => res.json())
       .then(data => {
         if (data.avatar) setCurrentUserAvatar(data.avatar);
+        if (data.display_name) setCurrentUserDisplayName(data.display_name);
       })
       .catch(console.error);
   }, [currentUser]);
@@ -270,12 +272,18 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
       if (m.id === momentId) {
         const hasLiked = m.liked_by.includes(currentUser);
         let newLikedBy = [...m.liked_by];
+        let newLikedByDisplays = [...(m.liked_by_displays || [])];
         if (hasLiked) {
-          newLikedBy = newLikedBy.filter(u => u !== currentUser);
+          const index = newLikedBy.indexOf(currentUser);
+          if (index > -1) {
+            newLikedBy.splice(index, 1);
+            newLikedByDisplays.splice(index, 1);
+          }
         } else {
           newLikedBy.push(currentUser);
+          newLikedByDisplays.push(currentUserDisplayName);
         }
-        return { ...m, liked_by: newLikedBy, like_count: newLikedBy.length };
+        return { ...m, liked_by: newLikedBy, liked_by_displays: newLikedByDisplays, like_count: newLikedBy.length };
       }
       return m;
     }));
@@ -299,7 +307,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
     if (!text.trim()) return;
     
     // Optimistic Update
-    const tempComment = { id: `temp-${Date.now()}`, username: currentUser, content: text, created_at: new Date().toISOString() };
+    const tempComment = { id: `temp-${Date.now()}`, username: currentUser, user_display_name: currentUserDisplayName, content: text, created_at: new Date().toISOString() };
     setMoments(prev => prev.map(m => {
       if (m.id === momentId) {
         return { ...m, comments: [...m.comments, tempComment] };
@@ -526,14 +534,14 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
               {/* Likes List */}
               {moment.liked_by.length > 0 && (
                 <div 
-                  onClick={() => setLikesModalUsers(moment.liked_by)}
+                  onClick={() => setLikesModalUsers(moment.liked_by_displays || moment.liked_by)}
                   style={{ marginTop: '0.8cqh', padding: '0.8cqh 2cqw', background: 'rgba(255,255,255,0.03)', borderRadius: '2cqw', fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', display: 'flex', alignItems: 'center', gap: '1.5cqw', cursor: 'pointer' }}
                 >
                   <Heart size={12} fill="var(--dark-text-muted)" />
                   <span>
                     Disukai oleh{' '}
                     <span style={{ color: 'var(--primary)', fontWeight: '600' }}>
-                      {moment.liked_by.slice(0, 3).join(', ')}
+                      {(moment.liked_by_displays || moment.liked_by).slice(0, 3).join(', ')}
                     </span>
                     {moment.liked_by.length > 3 && (
                       <span> dan <span style={{ fontWeight: '600', color: 'white' }}>{moment.liked_by.length - 3} orang lainnya</span></span>

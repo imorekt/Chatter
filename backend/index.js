@@ -362,21 +362,29 @@ app.get('/api/moments', async (req, res) => {
     const query = `
       SELECT m.*, u.avatar as user_avatar, u.display_name as user_display_name,
              (SELECT COUNT(*) FROM likes WHERE moment_id = m.id) as like_count,
-             (SELECT GROUP_CONCAT(username) FROM likes WHERE moment_id = m.id) as liked_by
+             (SELECT GROUP_CONCAT(username) FROM likes WHERE moment_id = m.id) as liked_by,
+             (SELECT GROUP_CONCAT(COALESCE(u2.display_name, u2.username)) FROM likes l2 LEFT JOIN users u2 ON l2.username = u2.username WHERE l2.moment_id = m.id) as liked_by_displays
       FROM moments m
       LEFT JOIN users u ON m.username = u.username
       ORDER BY m.created_at DESC
     `;
     const result = await db.execute(query);
-    const moments = result.rows;
+    const moments = result.rows || [];
     
-    const commentsResult = await db.execute(`SELECT c.*, u.display_name as user_display_name FROM comments c LEFT JOIN users u ON c.username = u.username ORDER BY c.created_at ASC`);
-    const allComments = commentsResult.rows;
+    const commentsQuery = `
+      SELECT c.*, u.display_name as user_display_name 
+      FROM comments c 
+      LEFT JOIN users u ON c.username = u.username 
+      ORDER BY c.created_at ASC
+    `;
+    const commentsResult = await db.execute(commentsQuery);
+    const allComments = commentsResult.rows || [];
     
     const formattedMoments = moments.map(m => {
       return {
         ...m,
         liked_by: m.liked_by ? m.liked_by.split(',') : [],
+        liked_by_displays: m.liked_by_displays ? m.liked_by_displays.split(',') : [],
         comments: allComments.filter(c => c.moment_id === m.id)
       };
     });
