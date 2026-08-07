@@ -174,23 +174,26 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     const channelName = `user-${currentUser}`;
     const channel = pusher.subscribe(channelName);
     
-    channel.bind('new-message', (data) => {
+    const handleNewMessage = (data) => {
       // Refresh messages when a new one arrives (from or to the partner)
       if (data.sender === chat.username || data.recipient === chat.username) {
         fetchMessages();
       }
-    });
+    };
 
-    channel.bind('messages-read', (data) => {
+    const handleMessagesRead = (data) => {
       if (data.by === chat.username) {
         fetchMessages();
       }
-    });
+    };
+
+    channel.bind('new-message', handleNewMessage);
+    channel.bind('messages-read', handleMessagesRead);
 
     return () => {
-      channel.unbind('new-message');
-      channel.unbind('messages-read');
-      pusher.unsubscribe(channelName);
+      channel.unbind('new-message', handleNewMessage);
+      channel.unbind('messages-read', handleMessagesRead);
+      // Removed pusher.unsubscribe to prevent breaking other active subscribers like ChatList
     };
   }, [currentUser, chat.username]);
 

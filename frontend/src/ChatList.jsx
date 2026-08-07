@@ -43,21 +43,21 @@ const ChatList = ({ onLogout, currentUser }) => {
     const channelName = `user-${currentUser}`;
     const channel = pusher.subscribe(channelName);
     
-    channel.bind('new-message', (data) => {
+    const handleNewMessage = (data) => {
       fetchChats();
-    });
+    };
     
-    channel.bind('new-notification', (data) => {
-      // Re-fetch notifications and contacts when a notification (like, comment, friend request/accept) arrives
-      // Note: fetchNotifications is defined later, so we just trigger state change or fetch them directly.
-      // But since fetchContacts is available here, let's call it. The notifications effect will handle its own.
+    const handleNewNotification = (data) => {
       fetchContacts();
-    });
+    };
+
+    channel.bind('new-message', handleNewMessage);
+    channel.bind('new-notification', handleNewNotification);
 
     return () => {
-      channel.unbind('new-message');
-      channel.unbind('new-notification');
-      pusher.unsubscribe(channelName);
+      channel.unbind('new-message', handleNewMessage);
+      channel.unbind('new-notification', handleNewNotification);
+      // Removed pusher.unsubscribe to prevent breaking other active subscribers like ChatRoom
     };
   }, [currentUser]);
 
