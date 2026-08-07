@@ -1034,11 +1034,29 @@ app.delete('/api/messages/media/:id', async (req, res) => {
   }
 });
 
-app.get('/api/version', (req, res) => {
-  res.json({
-    latest_version: parseInt(process.env.LATEST_APK_VERSION || '1'),
-    update_url: process.env.APK_DOWNLOAD_URL || ''
-  });
+app.get('/api/version', async (req, res) => {
+  try {
+    const response = await fetch('https://api.github.com/repos/kangrekt/Chatter/releases/latest');
+    if (!response.ok) throw new Error('Failed to fetch from Github');
+    
+    const data = await response.json();
+    
+    // Extract numbers from tag (e.g., "v2", "Versi 2.0" -> "2")
+    const versionStr = data.tag_name.replace(/[^0-9]/g, '');
+    const latest_version = parseInt(versionStr || '1');
+    
+    // Find the APK file URL
+    const apkAsset = data.assets.find(a => a.name.endsWith('.apk'));
+    const update_url = apkAsset ? apkAsset.browser_download_url : '';
+    
+    res.json({ latest_version, update_url });
+  } catch (err) {
+    // Fallback to manual Vercel env vars just in case
+    res.json({
+      latest_version: parseInt(process.env.LATEST_APK_VERSION || '1'),
+      update_url: process.env.APK_DOWNLOAD_URL || ''
+    });
+  }
 });
 
 app.use(express.static(path.join(__dirname, 'dist')));

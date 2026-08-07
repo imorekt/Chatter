@@ -1,0 +1,68 @@
+name: Build and Upload Release APK
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Extract Version from Tag
+        id: extract_version
+        run: |
+          # Remove non-numeric characters to get a clean version number (e.g., v2 -> 2)
+          VERSION_NUM=$(echo "${{ github.event.release.tag_name }}" | sed 's/[^0-9]*//g')
+          if [ -z "$VERSION_NUM" ]; then
+            VERSION_NUM="1"
+          fi
+          echo "VERSION_NUM=$VERSION_NUM" >> $GITHUB_ENV
+          echo "Extracted Version: $VERSION_NUM"
+
+      - name: Update VITE_APP_VERSION in .env.production
+        run: |
+          # Check if VITE_APP_VERSION exists, replace it, otherwise append
+          if grep -q "VITE_APP_VERSION" frontend/.env.production; then
+            sed -i "s/VITE_APP_VERSION=.*/VITE_APP_VERSION=$VERSION_NUM/" frontend/.env.production
+          else
+            sed -i "1s/^/VITE_APP_VERSION=$VERSION_NUM\n/" frontend/.env.production
+          fi
+          cat frontend/.env.production
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 18
+
+      - name: Install Frontend Dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Build Web
+        working-directory: frontend
+        run: npm run build
+
+      - name: Sync Capacitor
+        working-directory: frontend
+        run: npx cap sync android
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Build APK
+        working-directory: frontend/android
+        run: ./gradlew assembleDebug
+
+      - name: Upload APK to GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: frontend/android/app/build/outputs/apk/debug/app-debug.apk
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
