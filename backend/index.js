@@ -121,6 +121,7 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE messages ADD COLUMN deleted_by_receiver INTEGER DEFAULT 0`); } catch (e) {}
     try { await db.execute(`ALTER TABLE messages ADD COLUMN is_edited INTEGER DEFAULT 0`); } catch (e) {}
     try { await db.execute(`ALTER TABLE messages ADD COLUMN is_deleted_everyone INTEGER DEFAULT 0`); } catch (e) {}
+    try { await db.execute(`ALTER TABLE messages ADD COLUMN reply_to INTEGER DEFAULT NULL`); } catch (e) {}
     await db.execute(`
       CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -754,7 +755,7 @@ app.get('/api/messages/:user1/:user2', async (req, res) => {
     }
 
     const result = await db.execute({
-      sql: `SELECT * FROM messages WHERE ((sender = ? AND receiver = ? AND deleted_by_sender = 0) OR (sender = ? AND receiver = ? AND deleted_by_receiver = 0)) ORDER BY created_at ASC`,
+      sql: `SELECT m.*, r.text as reply_text, r.sender as reply_sender FROM messages m LEFT JOIN messages r ON m.reply_to = r.id WHERE ((m.sender = ? AND m.receiver = ? AND m.deleted_by_sender = 0) OR (m.sender = ? AND m.receiver = ? AND m.deleted_by_receiver = 0)) ORDER BY m.created_at ASC`,
       args: [user1, user2, user2, user1]
     });
     res.json(result.rows);
@@ -943,7 +944,7 @@ app.post('/api/messages/send', async (req, res) => {
       return res.status(403).json({ error: "Anda tidak berteman dengan pengguna ini" });
     }
 
-    const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text) VALUES (?, ?, ?)`, args: [data.sender, data.recipient, data.text] });
+    const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text, reply_to) VALUES (?, ?, ?, ?)`, args: [data.sender, data.recipient, data.text, data.reply_to || null] });
     data.id = result.lastInsertRowid.toString();
     
     // Send Push Notification via OneSignal

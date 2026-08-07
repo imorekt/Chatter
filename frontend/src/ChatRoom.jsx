@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply } from 'lucide-react';
 
 import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
@@ -33,6 +33,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [newMessage, setNewMessage] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [replyingTo, setReplyingTo] = useState(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
@@ -231,12 +232,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: replyingTo?.id || null })
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Gagal mengirim pesan");
       }
+      setReplyingTo(null);
       fetchMessages();
     } catch (err) {
       notify.error(err.message || "Gagal mengirim pesan");
@@ -309,11 +311,12 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: replyingTo?.id || null })
       });
       if (!res.ok) {
         throw new Error("Gagal kirim gambar");
       }
+      setReplyingTo(null);
       
       const resData = await res.json();
       // Simpan langsung ke Galeri (Cache internal) Pengirim agar tidak corrupt saat dihapus dari server
@@ -596,7 +599,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         lastDateLabel = currentLabel;
       }
 
-      const isEmojiOnly = msg.is_deleted_everyone !== 1 && (function(str) {
+      const isEmojiOnly = msg.is_deleted_everyone !== 1 && !msg.reply_to && (function(str) {
         if (!str || typeof str !== 'string' || str.includes('|||')) return false;
         const noSpace = str.replace(/\s+/g, '');
         if (noSpace.length === 0) return false;
@@ -663,6 +666,16 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               </span>
             ) : (
               <div style={{ display: 'inline' }}>
+                {msg.reply_to && msg.reply_text && (
+                  <div 
+                    onClick={(e) => { e.stopPropagation(); const el = document.getElementById(`msg-${msg.reply_to}`); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('blink-once'); setTimeout(() => el.classList.remove('blink-once'), 2000); } }}
+                    style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>{msg.reply_sender === currentUser ? 'Anda' : (msg.reply_sender === chat.username ? chat.name : msg.reply_sender)}</span>
+                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      {msg.reply_text.includes('|||CAPTION|||') ? '📷 Foto' : msg.reply_text.startsWith('data:image/') || msg.reply_text === 'MEDIA_LOCAL_SAVED' ? '📷 Foto' : msg.reply_text}
+                    </span>
+                  </div>
+                )}
                 {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
                 <span style={{ display: 'inline-block', width: msg.sender === 'me' ? '50px' : '40px', height: '10px' }} />
               </div>
@@ -805,7 +818,18 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {/* Composer */}
-      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
+      {replyingTo && (
+        <div style={{ background: 'var(--dark-surface)', padding: '10px 4cqw', borderTop: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden', borderLeft: '3px solid var(--primary)', paddingLeft: '8px' }}>
+            <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>Membalas {replyingTo.sender === 'me' ? 'Anda' : chat.name}</span>
+            <span style={{ fontSize: '14px', color: 'var(--dark-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {replyingTo.text.includes('|||CAPTION|||') ? '📷 Foto' : replyingTo.text.startsWith('data:image/') || replyingTo.text === 'MEDIA_LOCAL_SAVED' ? '📷 Foto' : replyingTo.text}
+            </span>
+          </div>
+          <X size={20} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer', flexShrink: 0, paddingLeft: '10px' }} onClick={() => setReplyingTo(null)} />
+        </div>
+      )}
+      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
         <input
           type="file"
           accept="image/*"
@@ -1051,6 +1075,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 <Edit2 size={18} /> Edit Pesan
               </div>
             )}
+            <div onClick={() => { setReplyingTo(longPressMessage); setLongPressMessage(null); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', cursor: 'pointer', color: 'white' }}>
+              <Reply size={18} /> Balas
+            </div>
             <div onClick={() => { setShowDeleteActionModal(longPressMessage); setLongPressMessage(null); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', cursor: 'pointer', color: '#EF4444' }}>
               <Trash2 size={18} /> Hapus Pesan
             </div>

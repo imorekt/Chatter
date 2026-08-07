@@ -411,8 +411,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
           </div>
           <button 
             onClick={handlePost} 
-            disabled={isPosting || !newPost.trim()}
-            style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '1.2cqh 4cqw', borderRadius: '4cqw', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2cqw', cursor: 'pointer', opacity: (!newPost.trim() || isPosting) ? 0.5 : 1 }}
+            disabled={isPosting || (!newPost.trim() && !newImageUrl)}
+            style={{ background: 'var(--primary)', color: 'white', border: 'none', padding: '1.2cqh 4cqw', borderRadius: '4cqw', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2cqw', cursor: 'pointer', opacity: ((!newPost.trim() && !newImageUrl) || isPosting) ? 0.5 : 1 }}
           >
             {isPosting ? <Loader2 size={16} className="animate-spin" /> : <Send size={16} />}
             Posting
@@ -482,8 +482,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
               )}
               
               {moment.image_url && (
-                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000', cursor: 'pointer' }} onClick={() => setPreviewModalImage(moment.image_url)}>
-                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', maxHeight: '25cqh', objectFit: 'cover' }} />
+                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000', cursor: 'pointer', width: '100%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPreviewModalImage(moment.image_url)}>
+                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
               
