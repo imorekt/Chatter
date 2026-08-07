@@ -15,21 +15,33 @@ jobs:
       - name: Extract Version from Tag
         id: extract_version
         run: |
-          # Remove non-numeric characters to get a clean version number (e.g., v2 -> 2)
+          # Remove non-numeric characters for comparison (v2.0.1 -> 201)
           VERSION_NUM=$(echo "${{ github.event.release.tag_name }}" | sed 's/[^0-9]*//g')
           if [ -z "$VERSION_NUM" ]; then
             VERSION_NUM="1"
           fi
+          # Get string version (remove leading 'v' if any)
+          VERSION_NAME=$(echo "${{ github.event.release.tag_name }}" | sed 's/^v//i')
+          if [ -z "$VERSION_NAME" ]; then
+            VERSION_NAME="1.0.0"
+          fi
           echo "VERSION_NUM=$VERSION_NUM" >> $GITHUB_ENV
-          echo "Extracted Version: $VERSION_NUM"
+          echo "VERSION_NAME=$VERSION_NAME" >> $GITHUB_ENV
+          echo "Extracted Version: $VERSION_NUM, Name: $VERSION_NAME"
 
       - name: Update VITE_APP_VERSION in .env.production
         run: |
           # Check if VITE_APP_VERSION exists, replace it, otherwise append
-          if grep -q "VITE_APP_VERSION" frontend/.env.production; then
+          if grep -q "VITE_APP_VERSION=" frontend/.env.production; then
             sed -i "s/VITE_APP_VERSION=.*/VITE_APP_VERSION=$VERSION_NUM/" frontend/.env.production
           else
             sed -i "1s/^/VITE_APP_VERSION=$VERSION_NUM\n/" frontend/.env.production
+          fi
+          
+          if grep -q "VITE_APP_VERSION_NAME=" frontend/.env.production; then
+            sed -i "s/VITE_APP_VERSION_NAME=.*/VITE_APP_VERSION_NAME=$VERSION_NAME/" frontend/.env.production
+          else
+            sed -i "1s/^/VITE_APP_VERSION_NAME=$VERSION_NAME\n/" frontend/.env.production
           fi
           cat frontend/.env.production
 

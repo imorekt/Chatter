@@ -271,7 +271,7 @@ const ChatList = ({ onLogout, currentUser }) => {
   const handleSettingClick = (action) => {
     setShowSettings(false);
     if (action === 'darkmode') notify.success('Tema gelap sudah aktif.');
-    if (action === 'version') notify.info('Nebula Chat v1.0.0');
+    if (action === 'version') notify.info(`Chatter v${import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}`);
     if (action === 'delete') {
       if (activeNav === 'chat' || activeNav === 'kontak') {
         setSelectionMode(activeNav);
