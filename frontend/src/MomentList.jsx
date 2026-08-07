@@ -121,7 +121,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
     fetchMoments();
     const intervalId = setInterval(() => {
       fetchMoments();
-    }, 1000);
+    }, 10000);
     return () => clearInterval(intervalId);
   }, [currentUser]);
 

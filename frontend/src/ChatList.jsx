@@ -57,14 +57,14 @@ const ChatList = ({ onLogout, currentUser }) => {
 
   useEffect(() => {
     fetchContacts();
-    const interval = setInterval(fetchContacts, 2000);
+    const interval = setInterval(fetchContacts, 10000);
     return () => clearInterval(interval);
   }, [currentUser]);
 
   useEffect(() => {
     if (activeNav === 'chat' || activeNav === 'kontak') {
       fetchChats();
-      const interval = setInterval(fetchChats, 1000);
+      const interval = setInterval(fetchChats, 5000);
       return () => clearInterval(interval);
     }
   }, [currentUser, activeNav, activeChat, activeFavoriteUser]);
@@ -141,7 +141,7 @@ const ChatList = ({ onLogout, currentUser }) => {
     };
     
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 2000);
+    const interval = setInterval(fetchNotifications, 8000);
     return () => clearInterval(interval);
   }, [currentUser]);
 
