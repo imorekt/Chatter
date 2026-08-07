@@ -124,7 +124,7 @@ async function initDb() {
     try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0"); } catch (e) {}
-    try { await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME DEFAULT CURRENT_TIMESTAMP"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME"); } catch (e) {}
   } catch (err) {
     console.error('Error opening database:', err.message);
   }
