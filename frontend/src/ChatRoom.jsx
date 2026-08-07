@@ -247,7 +247,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const handleSend = async (e) => {
     e.preventDefault();
-    if (!newMessage.trim()) return notify.error('Pesan tidak boleh kosong.');
+    if (!newMessage.trim()) return;
     
     const textToSend = newMessage;
     setNewMessage('');
@@ -255,7 +255,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     const tempId = `temp-${Date.now()}`;
     const newMsg = {
       id: tempId,
-      sender: currentUser,
+      sender: 'me',
       receiver: chat.username,
       text: textToSend,
       time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
@@ -352,7 +352,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const tempId = `temp-${Date.now()}`;
       const newMsg = {
         id: tempId,
-        sender: currentUser,
+        sender: 'me',
         receiver: chat.username,
         text: textToSend,
         time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
