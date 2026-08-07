@@ -3,6 +3,7 @@ import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check
 import EmojiPicker, { Categories } from 'emoji-picker-react';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
+import pusher from './pusher';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -157,8 +158,21 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   useEffect(() => {
     fetchMessages();
-    const interval = setInterval(fetchMessages, 3000);
-    return () => clearInterval(interval);
+    
+    const channelName = `user-${currentUser}`;
+    const channel = pusher.subscribe(channelName);
+    
+    channel.bind('new-message', (data) => {
+      // Refresh messages when a new one arrives (from or to the partner)
+      if (data.sender === chat.username || data.recipient === chat.username) {
+        fetchMessages();
+      }
+    });
+
+    return () => {
+      channel.unbind('new-message');
+      pusher.unsubscribe(channelName);
+    };
   }, [currentUser, chat.username]);
 
   const markMessagesRead = () => {

@@ -5,7 +5,15 @@ const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 require('dotenv').config();
+const Pusher = require('pusher');
 
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID || "2184213",
+  key: process.env.PUSHER_KEY || "bda8ea28bfadc8c022a7",
+  secret: process.env.PUSHER_SECRET || "5223d43dcdf579a2b8d3",
+  cluster: process.env.PUSHER_CLUSTER || "ap1",
+  useTLS: true
+});
 // --- DATABASE SETUP ---
 const db = createClient({
   url: process.env.TURSO_DATABASE_URL || 'file:database.sqlite',
@@ -364,6 +372,7 @@ app.post('/api/moments', async (req, res) => {
   
   try {
     const result = await db.execute({ sql: `INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, args: [username, content, image_url || null] });
+    pusher.trigger('global-events', 'new-moment', { id: result.lastInsertRowid.toString(), username });
     res.json({ success: true, id: result.lastInsertRowid.toString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -419,6 +428,7 @@ app.post('/api/moments/like', async (req, res) => {
       if (moment && moment.username !== username) {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, args: [moment.username, username, moment_id] });
         sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`);
+        pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'like' });
       }
       res.json({ success: true, action: 'liked' });
     }
@@ -438,6 +448,7 @@ app.post('/api/moments/comment', async (req, res) => {
     if (moment && moment.username !== username) {
       await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
       sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`);
+      pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'comment' });
     }
     res.json({ success: true, id: insertResult.lastInsertRowid.toString() });
   } catch (err) {
@@ -568,6 +579,7 @@ app.post('/api/contacts/request', async (req, res) => {
       args: [receiver, sender]
     });
     sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`);
+    pusher.trigger(`user-${receiver}`, 'new-notification', { type: 'friend_request' });
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Gagal mengirim permintaan" });
@@ -603,6 +615,7 @@ app.post('/api/contacts/respond', async (req, res) => {
         args: [sender, receiver]
       });
       sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`);
+      pusher.trigger(`user-${sender}`, 'new-notification', { type: 'friend_accept' });
       res.json({ success: true });
     } else {
       await db.execute({ sql: `DELETE FROM contacts WHERE sender_username = ? AND receiver_username = ?`, args: [sender, receiver] });
@@ -925,6 +938,7 @@ app.post('/api/messages/send', async (req, res) => {
       pushText = '📸 Mengirim Gambar';
     }
     sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText);
+    pusher.trigger(`user-${data.recipient}`, 'new-message', data);
 
     res.json(data);
   } catch (err) {

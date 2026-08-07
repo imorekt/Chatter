@@ -5,6 +5,7 @@ import ContactList from './ContactList';
 import MomentList from './MomentList';
 import Profile from './Profile';
 import localforage from 'localforage';
+import pusher from './pusher';
 import FavoriteRoom from './FavoriteRoom';
 import { notify } from './utils/toast';
 
@@ -38,6 +39,26 @@ const ChatList = ({ onLogout, currentUser }) => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
     localforage.getItem(`contacts_${currentUser}`).then(val => { if (val) setContactsData(val); });
     localforage.getItem(`notifications_${currentUser}`).then(val => { if (val) setNotifications(val); });
+    
+    const channelName = `user-${currentUser}`;
+    const channel = pusher.subscribe(channelName);
+    
+    channel.bind('new-message', (data) => {
+      fetchChats();
+    });
+    
+    channel.bind('new-notification', (data) => {
+      // Re-fetch notifications and contacts when a notification (like, comment, friend request/accept) arrives
+      // Note: fetchNotifications is defined later, so we just trigger state change or fetch them directly.
+      // But since fetchContacts is available here, let's call it. The notifications effect will handle its own.
+      fetchContacts();
+    });
+
+    return () => {
+      channel.unbind('new-message');
+      channel.unbind('new-notification');
+      pusher.unsubscribe(channelName);
+    };
   }, [currentUser]);
 
   const fetchChats = () => {
@@ -65,15 +86,11 @@ const ChatList = ({ onLogout, currentUser }) => {
 
   useEffect(() => {
     fetchContacts();
-    const interval = setInterval(fetchContacts, 10000);
-    return () => clearInterval(interval);
   }, [currentUser]);
 
   useEffect(() => {
     if (activeNav === 'chat' || activeNav === 'kontak') {
       fetchChats();
-      const interval = setInterval(fetchChats, 5000);
-      return () => clearInterval(interval);
     }
   }, [currentUser, activeNav, activeChat, activeFavoriteUser]);
 
@@ -150,12 +167,23 @@ const ChatList = ({ onLogout, currentUser }) => {
             setHasNewMoment(false);
           }
         }
-      } catch (e) {}
+      } catch (err) {
+        console.error(err);
+      }
     };
     
     fetchNotifications();
-    const interval = setInterval(fetchNotifications, 8000);
-    return () => clearInterval(interval);
+
+    const channelName = `user-${currentUser}`;
+    const channel = pusher.subscribe(channelName);
+    channel.bind('new-notification', () => {
+      fetchNotifications();
+    });
+
+    return () => {
+      channel.unbind('new-notification');
+      // We don't unsubscribe the channel completely here because the main useEffect also uses it.
+    };
   }, [currentUser]);
 
   const handleNavChange = (nav) => {

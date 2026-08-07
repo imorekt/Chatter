@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
+import pusher from './pusher';
 
 let cachedMoments = [];
 let hasFetchedMoments = false;
@@ -130,10 +131,16 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
 
   useEffect(() => {
     fetchMoments();
-    const intervalId = setInterval(() => {
+    
+    const channel = pusher.subscribe('global-events');
+    channel.bind('new-moment', () => {
       fetchMoments();
-    }, 10000);
-    return () => clearInterval(intervalId);
+    });
+
+    return () => {
+      channel.unbind('new-moment');
+      pusher.unsubscribe('global-events');
+    };
   }, [currentUser]);
 
   useEffect(() => {
