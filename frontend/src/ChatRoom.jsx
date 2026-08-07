@@ -1029,7 +1029,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           </div>
 
           {/* Caption Input & Send Controls */}
-          <div style={{ padding: '2.5cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center' }}>
+          <div style={{ padding: '2.5cqh 4cqw calc(2.5cqh + env(safe-area-inset-bottom, 24px)) 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center' }}>
             <input 
               type="text" 
               value={imageCaption}
