@@ -265,35 +265,60 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   };
 
   const handleLike = async (momentId) => {
+    // Optimistic Update
+    setMoments(prev => prev.map(m => {
+      if (m.id === momentId) {
+        const hasLiked = m.liked_by.includes(currentUser);
+        let newLikedBy = [...m.liked_by];
+        if (hasLiked) {
+          newLikedBy = newLikedBy.filter(u => u !== currentUser);
+        } else {
+          newLikedBy.push(currentUser);
+        }
+        return { ...m, liked_by: newLikedBy, like_count: newLikedBy.length };
+      }
+      return m;
+    }));
+
     try {
       const res = await fetch(`${API_URL}/api/moments/like`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ moment_id: momentId, username: currentUser })
       });
-      if (res.ok) {
-        fetchMoments();
-      }
+      if (!res.ok) throw new Error("Gagal menyukai");
+      fetchMoments();
     } catch (error) {
       notify.error("Gagal menyukai");
+      fetchMoments();
     }
   };
 
   const handleComment = async (momentId) => {
     const text = commentTexts[momentId] || '';
     if (!text.trim()) return;
+    
+    // Optimistic Update
+    const tempComment = { id: `temp-${Date.now()}`, username: currentUser, content: text, created_at: new Date().toISOString() };
+    setMoments(prev => prev.map(m => {
+      if (m.id === momentId) {
+        return { ...m, comments: [...m.comments, tempComment] };
+      }
+      return m;
+    }));
+    setCommentTexts(prev => ({ ...prev, [momentId]: '' }));
+
     try {
       const res = await fetch(`${API_URL}/api/moments/comment`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ moment_id: momentId, username: currentUser, content: text })
       });
-      if (res.ok) {
-        setCommentTexts(prev => ({ ...prev, [momentId]: '' }));
-        fetchMoments();
-      }
+      if (!res.ok) throw new Error("Gagal mengomentari");
+      fetchMoments();
     } catch (error) {
-      notify.error("Gagal mengirim komentar");
+      notify.error('Gagal mengirim komentar');
+      fetchMoments();
     }
   };
 

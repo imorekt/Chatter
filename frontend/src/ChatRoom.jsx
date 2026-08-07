@@ -36,6 +36,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
+  const isFirstLoad = useRef(true);
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
   const [partnerLastSeen, setPartnerLastSeen] = useState(null);
   
@@ -130,11 +131,20 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     };
   }, [showEmojiPicker]);
 
-  const scrollToBottom = () => {
+  const scrollToBottom = (behavior = 'smooth') => {
     if (!selectionMode) {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      messagesEndRef.current?.scrollIntoView({ behavior });
     }
   };
+
+  useEffect(() => {
+    if (isFirstLoad.current) {
+      scrollToBottom('auto');
+      if (messages.length > 0) isFirstLoad.current = false;
+    } else {
+      scrollToBottom('smooth');
+    }
+  }, [messages, showEmojiPicker]);
 
   const fetchMessages = () => {
     fetch(`${API_URL}/api/messages/${currentUser}/${chat.username}`)
@@ -176,7 +186,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     const channel = pusher.subscribe(channelName);
     
     const handleNewMessage = (data) => {
-      // Refresh messages when a new one arrives (from or to the partner)
       if (data.sender === chat.username || data.recipient === chat.username) {
         fetchMessages();
       }
@@ -194,7 +203,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     return () => {
       channel.unbind('new-message', handleNewMessage);
       channel.unbind('messages-read', handleMessagesRead);
-      // Removed pusher.unsubscribe to prevent breaking other active subscribers like ChatList
     };
   }, [currentUser, chat.username]);
 
@@ -206,41 +214,43 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }).catch(console.error);
   };
 
-  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [lastMessageId, isTyping]);
-
-  useEffect(() => {
-    if (inputRef.current && !chat.isDeleted && !selectionMode) {
-      inputRef.current.focus();
-    }
-  }, [chat, selectionMode]);
-
-  const handleTyping = () => {
-    // Polling mode: Fitur typing dimatikan agar hemat request
-  };
-
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return notify.error('Pesan tidak boleh kosong.');
     
     const textToSend = newMessage;
     setNewMessage('');
+    
+    const tempId = `temp-${Date.now()}`;
+    const newMsg = {
+      id: tempId,
+      sender: currentUser,
+      receiver: chat.username,
+      text: textToSend,
+      time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      status: 'sending',
+      reply_to: replyingTo?.id || null,
+      reply_text: replyingTo?.text || null,
+      reply_sender: replyingTo?.sender || null
+    };
+    
+    setMessages(prev => [...prev, newMsg]);
+    const currentReplyingTo = replyingTo;
+    setReplyingTo(null);
+    
     try {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: replyingTo?.id || null })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null })
       });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || "Gagal mengirim pesan");
       }
-      setReplyingTo(null);
       fetchMessages();
     } catch (err) {
+      setMessages(prev => prev.filter(m => m.id !== tempId));
       notify.error(err.message || "Gagal mengirim pesan");
     }
   };
@@ -287,14 +297,12 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const confirmSendImage = async () => {
     if (!selectedImage) return;
     
-    // convert base64 to blob
     const resBlob = await fetch(selectedImage);
     const blob = await resBlob.blob();
     const formData = new FormData();
     formData.append('image', blob, 'chat_image.jpg');
     
     try {
-      // 1. Upload to R2
       const uploadRes = await fetch(`${API_URL}/api/messages/upload`, {
         method: 'POST',
         body: formData
@@ -302,32 +310,47 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       if (!uploadRes.ok) {
         throw new Error("Gagal upload gambar ke server");
       }
-      const uploadData = await uploadRes.json();
+      const uploadResData = await uploadRes.json();
       
-      const r2Text = `R2_IMAGE|||${uploadData.key}|||${uploadData.imageUrl}`;
-      const textToSend = imageCaption.trim() ? `${r2Text}|||CAPTION|||${imageCaption.trim()}` : r2Text;
+      let textToSend = uploadResData.url;
+      if (imageCaption.trim()) {
+        textToSend = uploadResData.url + '|||CAPTION|||' + imageCaption.trim();
+      }
       
-      // 2. Send Message
+      const tempId = `temp-${Date.now()}`;
+      const newMsg = {
+        id: tempId,
+        sender: currentUser,
+        receiver: chat.username,
+        text: textToSend,
+        time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        status: 'sending',
+        reply_to: replyingTo?.id || null,
+        reply_text: replyingTo?.text || null,
+        reply_sender: replyingTo?.sender || null
+      };
+      
+      setMessages(prev => [...prev, newMsg]);
+      const currentReplyingTo = replyingTo;
+      setReplyingTo(null);
+      setSelectedImage(null);
+      setImageCaption('');
+
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: replyingTo?.id || null })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null })
       });
       if (!res.ok) {
         throw new Error("Gagal kirim gambar");
       }
-      setReplyingTo(null);
       
       const resData = await res.json();
-      // Simpan langsung ke Galeri (Cache internal) Pengirim agar tidak corrupt saat dihapus dari server
-      if (resData && resData.id) {
-        localforage.setItem(`r2_media_${resData.id}`, selectedImage);
-      }
+      await localforage.setItem(`r2_media_${resData.id}`, selectedImage);
       
-      notify.success('Gambar berhasil dikirim!');
       fetchMessages();
     } catch (err) {
-      notify.error(err.message || 'Gagal kirim gambar');
+      notify.error("Gagal mengirim gambar: " + err.message);
     }
     setSelectedImage(null);
     setImageCaption('');
