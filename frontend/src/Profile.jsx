@@ -273,6 +273,10 @@ const Profile = ({ onLogout, email }) => {
         </button>
       </div>
 
+      <div style={{ textAlign: 'center', marginTop: '3cqh', color: 'var(--dark-text-muted)', fontSize: '13px' }}>
+        Versi App: v{import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}
+      </div>
+
       {/* Logout Dialog */}
       {showLogoutConfirm && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '5cqw' }}>

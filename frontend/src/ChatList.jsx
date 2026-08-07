@@ -287,7 +287,6 @@ const ChatList = ({ onLogout, currentUser }) => {
   const handleSettingClick = (action) => {
     setShowSettings(false);
     if (action === 'darkmode') notify.success('Tema gelap sudah aktif.');
-    if (action === 'version') notify.info(`Chatter v${import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}`);
     if (action === 'delete') {
       if (activeNav === 'chat' || activeNav === 'kontak') {
         setSelectionMode(activeNav);
@@ -434,7 +433,6 @@ const ChatList = ({ onLogout, currentUser }) => {
                     <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', borderRadius: '12px', padding: '8px', zIndex: 100, width: '160px', boxShadow: '0 4px 12px rgba(0,0,0,0.5)' }}>
                       <div onClick={() => handleSettingClick('darkmode')} style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '14px', color: 'white', display: 'flex', alignItems: 'center', gap: '8px' }}><Moon size={16}/> Mode Gelap</div>
                       <div onClick={() => handleSettingClick('delete')} style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '14px', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '8px' }}><Trash2 size={16}/> Hapus</div>
-                      <div onClick={() => handleSettingClick('version')} style={{ padding: '10px 12px', cursor: 'pointer', fontSize: '14px', color: 'var(--dark-text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}><Info size={16}/> Versi App</div>
                     </div>
                   )}
                 </>
