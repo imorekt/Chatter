@@ -536,7 +536,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   };
 
   return (
-    <div className="chat-app" style={{ zIndex: 50, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)' }}>
+    <div className="chat-app" style={{ zIndex: 50, background: 'var(--dark-bg)' }}>
       {/* Header */}
       <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'var(--dark-surface)' }}>
         {selectionMode ? (
