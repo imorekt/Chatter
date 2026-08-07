@@ -181,8 +181,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       }
     });
 
+    channel.bind('messages-read', (data) => {
+      if (data.by === chat.username) {
+        fetchMessages();
+      }
+    });
+
     return () => {
       channel.unbind('new-message');
+      channel.unbind('messages-read');
       pusher.unsubscribe(channelName);
     };
   }, [currentUser, chat.username]);
@@ -304,6 +311,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       if (!res.ok) {
         throw new Error("Gagal kirim gambar");
       }
+      
+      const resData = await res.json();
+      // Simpan langsung ke Galeri (Cache internal) Pengirim agar tidak corrupt saat dihapus dari server
+      if (resData && resData.id) {
+        localforage.setItem(`r2_media_${resData.id}`, selectedImage);
+      }
+      
       notify.success('Gambar berhasil dikirim!');
       fetchMessages();
     } catch (err) {
@@ -440,15 +454,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             const key = parts[1];
             const imageUrl = parts[2];
             
-            // Cek apakah sudah di-download ke local storage sebelumnya
-            const localStored = localStorage.getItem(`r2_media_${msgId}`);
+            // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
+            const localStored = await localforage.getItem(`r2_media_${msgId}`);
             if (localStored) {
-              setImgSrc(localStored);
+              if (isMounted.current) setImgSrc(localStored);
               return;
             }
 
             // Jika belum di-download, tampilkan dulu dari R2 Url
-            setImgSrc(imageUrl);
+            if (isMounted.current) setImgSrc(imageUrl);
 
             // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
             if (!isMe) {
@@ -470,9 +484,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                       directory: Directory.Documents
                     });
                     
-                    // Save to local storage cache so it doesn't download again
-                    if (isMounted) {
-                      localStorage.setItem(`r2_media_${msgId}`, base64data);
+                    // Save to localforage cache so it doesn't download again
+                    await localforage.setItem(`r2_media_${msgId}`, base64data);
+                    
+                    if (isMounted.current) {
                       setImgSrc(base64data);
                     }
                     
@@ -578,6 +593,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         lastDateLabel = currentLabel;
       }
 
+      const isEmojiOnly = msg.is_deleted_everyone !== 1 && (function(str) {
+        if (!str || typeof str !== 'string' || str.includes('|||')) return false;
+        const noSpace = str.replace(/\s+/g, '');
+        if (noSpace.length === 0) return false;
+        const remaining = noSpace.replace(/[\p{Extended_Pictographic}\u{1F3FB}-\u{1F3FF}\u{200D}\u{FE0F}]/gu, '');
+        return remaining.length === 0;
+      })(msg.text);
+
       elements.push(
         <div key={msg.id + '-' + index} style={{
           alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start',
@@ -592,17 +615,17 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         onMouseLeave={handlePressEnd}
         >
           <div style={{
-            background: msg.sender === 'me' ? '#005c4b' : '#202c33',
+            background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : '#202c33'),
             color: '#e9edef',
-            padding: msg.image_url ? '4px' : '6px 7px 8px 9px',
+            padding: msg.image_url ? '4px' : (isEmojiOnly ? '0' : '6px 7px 8px 9px'),
             borderRadius: '7.5px',
             borderTopRightRadius: msg.sender === 'me' ? '0px' : '7.5px',
             borderTopLeftRadius: msg.sender === 'me' ? '7.5px' : '0px',
-            fontSize: '14.2px',
-            lineHeight: '19px',
+            fontSize: isEmojiOnly ? '42px' : '14.2px',
+            lineHeight: isEmojiOnly ? '1.2' : '19px',
             cursor: selectionMode ? 'pointer' : 'default',
             wordBreak: 'break-word',
-            boxShadow: '0 1px 0.5px rgba(11,20,26,.13)',
+            boxShadow: isEmojiOnly ? 'none' : '0 1px 0.5px rgba(11,20,26,.13)',
             display: 'inline-block',
             position: 'relative',
             border: selectedMessages.has(msg.id) ? '2px solid var(--primary)' : '2px solid transparent',
@@ -643,13 +666,17 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             )}
             <div style={{ 
               position: 'absolute',
-              bottom: '4px',
-              right: '8px',
-              display: 'flex', 
-              alignItems: 'center', 
+              right: isEmojiOnly ? '-4px' : '4px',
+              bottom: isEmojiOnly ? '-4px' : '4px',
+              display: 'flex',
+              alignItems: 'center',
               gap: '4px',
               fontSize: '11px',
-              color: 'rgba(255,255,255,0.6)'
+              color: isEmojiOnly ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.6)',
+              background: isEmojiOnly ? 'rgba(0,0,0,0.3)' : 'transparent',
+              padding: isEmojiOnly ? '2px 6px' : '0',
+              borderRadius: isEmojiOnly ? '10px' : '0',
+              zIndex: 1
             }}>
               {msg.is_edited === 1 && msg.is_deleted_everyone !== 1 && <span style={{ fontStyle: 'italic', fontSize: '10px', marginRight: '4px' }}>(diedit)</span>}
               {msg.time}

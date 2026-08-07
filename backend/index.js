@@ -767,7 +767,10 @@ app.post('/api/messages/read', async (req, res) => {
   const { sender, receiver } = req.body;
   if (!sender || !receiver) return res.status(400).json({ error: 'Missing data' });
   try {
-    await db.execute({ sql: `UPDATE messages SET is_read = 1 WHERE sender = ? AND receiver = ?`, args: [sender, receiver] });
+    const result = await db.execute({ sql: `UPDATE messages SET is_read = 1 WHERE sender = ? AND receiver = ? AND is_read = 0`, args: [sender, receiver] });
+    if (result.rowsAffected > 0) {
+      pusher.trigger(`user-${sender}`, 'messages-read', { by: receiver });
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: err.message });
