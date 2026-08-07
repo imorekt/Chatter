@@ -176,7 +176,7 @@ function App() {
             borderRadius: '16px', width: '85%', maxWidth: '400px',
             textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
           }}>
-            <h2 style={{ marginBottom: '1rem', color: 'var(--text)' }}>Update Tersedia!</h2>
+            <h2 style={{ marginBottom: '1rem', color: '#A48BFF' }}>Update Tersedia!</h2>
             <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
               Kiw versi baru tersedia,, tolong update ya!
             </p>
