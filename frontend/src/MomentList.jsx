@@ -161,23 +161,59 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   }, [highlightMomentId, moments.length, setHighlightMomentId]);
 
   const handlePost = async () => {
-    if (!newPost.trim()) return;
+    if (!newPost.trim() && !newImageUrl) return;
     setIsPosting(true);
     try {
+      let finalImageUrl = newImageUrl;
+      
+      // Jika ada gambar (berupa data base64/blob URL), upload dulu ke ImgBB
+      if (newImageUrl && newImageUrl.startsWith('data:image/')) {
+        const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+        if (!imgbbKey) {
+          throw new Error("VITE_IMGBB_API_KEY belum dikonfigurasi.");
+        }
+        
+        // Convert base64 to Blob
+        const resBlob = await fetch(newImageUrl);
+        const blob = await resBlob.blob();
+        
+        const formData = new FormData();
+        formData.append('image', blob);
+        
+        // Upload to ImgBB (without expiration parameter, so it lasts forever)
+        const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+          method: 'POST',
+          body: formData
+        });
+        
+        if (!imgbbRes.ok) {
+          throw new Error("Gagal mengupload gambar ke ImgBB");
+        }
+        
+        const imgbbData = await imgbbRes.json();
+        if (imgbbData.success) {
+          finalImageUrl = imgbbData.data.url; // Use the public direct URL
+        } else {
+          throw new Error("Gagal mendapatkan link dari ImgBB");
+        }
+      }
+
       const res = await fetch(`${API_URL}/api/moments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: currentUser, content: newPost, image_url: newImageUrl })
+        body: JSON.stringify({ username: currentUser, content: newPost, image_url: finalImageUrl })
       });
       if (res.ok) {
         setNewPost('');
         setNewImageUrl('');
         fetchMoments();
         notify.success('Moment diposting!');
+      } else {
+        throw new Error("Gagal menyimpan moment ke database");
       }
     } catch (error) {
       console.error(error);
-      notify.error('Gagal memposting moment.');
+      notify.error(error.message || 'Gagal memposting moment.');
     } finally {
       setIsPosting(false);
     }
