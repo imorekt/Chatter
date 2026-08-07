@@ -273,7 +273,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null, reply_text: currentReplyingTo?.text || null, reply_sender: currentReplyingTo?.sender || null })
       });
       if (!res.ok) {
         const data = await res.json();
@@ -371,7 +371,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null })
+        body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend, reply_to: currentReplyingTo?.id || null, reply_text: currentReplyingTo?.text || null, reply_sender: currentReplyingTo?.sender || null })
       });
       if (!res.ok) {
         throw new Error("Gagal kirim gambar");
