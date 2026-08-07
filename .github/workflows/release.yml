@@ -70,7 +70,7 @@ jobs:
 
       - name: Build APK
         working-directory: frontend/android
-        run: ./gradlew assembleRelease
+        run: chmod +x ./gradlew && ./gradlew assembleRelease
 
       - name: Upload APK to GitHub Release
         uses: softprops/action-gh-release@v1
