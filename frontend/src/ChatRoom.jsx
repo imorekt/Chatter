@@ -538,7 +538,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   return (
     <div className="chat-app" style={{ zIndex: 50, position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)' }}>
       {/* Header */}
-      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'transparent' }}>
+      <div className="chat-header-bar" style={{ position: 'relative', zIndex: 60, margin: 0, background: 'red' }}>
         {selectionMode ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '4cqw', width: '100%' }}>
             <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={() => { setSelectionMode(null); setSelectedMessages(new Set()); }} />
@@ -577,7 +577,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                       if (chat.isDeleted) return 'Akun telah dihapus';
                       if (chat.isSystem) return 'Sistem Chat';
                       if (!isFriend) return 'Tidak berteman';
-                      if (!partnerLastSeen) return 'Memuat status...';
+                      if (!partnerLastSeen) return 'Memuat status (V2)...';
                       
                       const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
                       const last = new Date(lastSeenStr).getTime();
