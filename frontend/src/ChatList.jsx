@@ -133,6 +133,8 @@ const ChatList = ({ onLogout, currentUser }) => {
           const lastSeenId = parseInt(localStorage.getItem('last_seen_moment_id') || '0');
           if (latest_id > lastSeenId) {
             setHasNewMoment(true);
+          } else {
+            setHasNewMoment(false);
           }
         }
       } catch (e) {}
@@ -608,7 +610,6 @@ const ChatList = ({ onLogout, currentUser }) => {
           <div 
             className="fab" 
             onClick={() => setShowNewChatPopup(true)} 
-            style={{ position: 'absolute', bottom: '13cqh', right: '4cqw', width: '10cqw', height: '10cqw', borderRadius: '50%', background: 'var(--primary)', color: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 12px rgba(101, 31, 255, 0.4)', cursor: 'pointer', zIndex: 90 }}
           >
             <Edit2 size={16} />
           </div>
@@ -732,7 +733,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           {activeNav === 'moment' && <div className="nav-indicator"></div>}
           <div style={{ width: '24px', height: '24px', borderRadius: '50%', border: '2px solid currentColor', position: 'relative', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
             <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'currentColor' }}></div>
-            {hasNewMoment && (
+            {hasNewMoment && activeNav !== 'moment' && (
               <div className="animate-pulse-green" style={{
                 position: 'absolute',
                 top: '-4px',
