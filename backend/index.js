@@ -1034,6 +1034,13 @@ app.delete('/api/messages/media/:id', async (req, res) => {
   }
 });
 
+app.get('/api/version', (req, res) => {
+  res.json({
+    latest_version: parseInt(process.env.LATEST_APK_VERSION || '1'),
+    update_url: process.env.APK_DOWNLOAD_URL || ''
+  });
+});
+
 app.use(express.static(path.join(__dirname, 'dist')));
 
 app.use((req, res) => {

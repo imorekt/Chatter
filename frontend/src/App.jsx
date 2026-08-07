@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { App as CapApp } from '@capacitor/app';
 import OneSignalCapacitor from '@onesignal/capacitor-plugin';
+import { Filesystem, Directory } from '@capacitor/filesystem';
+import { FileOpener } from '@capacitor-community/file-opener';
+import { Download } from 'lucide-react';
 import Login from './Login';
 import Register from './Register';
 import ChatList from './ChatList';
@@ -9,6 +12,9 @@ import { Toaster } from 'react-hot-toast';
 function App() {
   const [user, setUser] = useState(() => localStorage.getItem('chat_user') || null);
   const [isRegistering, setIsRegistering] = useState(false);
+  const [showUpdate, setShowUpdate] = useState(false);
+  const [updateUrl, setUpdateUrl] = useState('');
+  const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
 
   useEffect(() => {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -78,6 +84,55 @@ function App() {
     }
   }, [user]);
 
+  useEffect(() => {
+    const checkUpdate = async () => {
+      try {
+        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/version`);
+        const data = await res.json();
+        const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
+        if (data.latest_version > currentVersion) {
+          setUpdateUrl(data.update_url);
+          setShowUpdate(true);
+        }
+      } catch (err) {
+        console.error("Failed to check update", err);
+      }
+    };
+    checkUpdate();
+  }, []);
+
+  const handleUpdate = async () => {
+    if (!updateUrl) return;
+    
+    // Jika di web browser biasa
+    if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
+      window.location.href = updateUrl;
+      return;
+    }
+
+    setIsDownloadingUpdate(true);
+    try {
+      const fileName = `update-${Date.now()}.apk`;
+      
+      const downloadRes = await Filesystem.downloadFile({
+        url: updateUrl,
+        path: fileName,
+        directory: Directory.Cache
+      });
+      
+      setIsDownloadingUpdate(false);
+      
+      await FileOpener.open({
+        filePath: downloadRes.path,
+        contentType: 'application/vnd.android.package-archive'
+      });
+    } catch (err) {
+      console.error("Update download failed", err);
+      alert("Gagal mengunduh update. Silakan coba lagi.");
+      setIsDownloadingUpdate(false);
+    }
+  };
+
   const handleLogin = (username) => {
     localStorage.setItem('chat_user', username);
     setUser(username);
@@ -85,6 +140,42 @@ function App() {
 
   return (
     <div className="app-container">
+      {showUpdate && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          backdropFilter: 'blur(5px)'
+        }}>
+          <div style={{
+            backgroundColor: 'var(--surface)', padding: '2rem',
+            borderRadius: '16px', width: '85%', maxWidth: '400px',
+            textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+          }}>
+            <h2 style={{ marginBottom: '1rem', color: 'var(--text)' }}>Update Tersedia!</h2>
+            <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+              Versi terbaru aplikasi telah tersedia. Anda diwajibkan untuk memperbarui aplikasi untuk melanjutkan.
+            </p>
+            <button 
+              onClick={handleUpdate}
+              disabled={isDownloadingUpdate}
+              style={{
+                width: '100%', padding: '12px', borderRadius: '12px',
+                backgroundColor: 'var(--primary)', color: 'white',
+                border: 'none', fontWeight: 'bold', fontSize: '1rem',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                gap: '8px'
+              }}
+            >
+              {isDownloadingUpdate ? (
+                <>Mengunduh...</>
+              ) : (
+                <><Download size={20} /> Update Sekarang</>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
       <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
       {!user ? (
         isRegistering ? (
