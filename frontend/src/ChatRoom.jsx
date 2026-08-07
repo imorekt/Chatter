@@ -343,9 +343,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       }
       const uploadResData = await uploadRes.json();
       
-      let textToSend = uploadResData.url;
+      const baseText = `R2_IMAGE|||${uploadResData.key}|||${uploadResData.imageUrl}`;
+      let textToSend = baseText;
       if (imageCaption.trim()) {
-        textToSend = uploadResData.url + '|||CAPTION|||' + imageCaption.trim();
+        textToSend = baseText + '|||CAPTION|||' + imageCaption.trim();
       }
       
       const tempId = `temp-${Date.now()}`;
