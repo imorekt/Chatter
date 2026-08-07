@@ -103,7 +103,7 @@ function App() {
         const res = await fetch(`${import.meta.env.VITE_API_URL}/api/version`);
         const data = await res.json();
         const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
-        if (data.latest_version > currentVersion) {
+        if (data.latest_version > currentVersion && data.update_url) {
           setUpdateUrl(data.update_url);
           setShowUpdate(true);
         }
