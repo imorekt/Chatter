@@ -34,9 +34,20 @@ const db = createClient({
 });
 
 // --- HELPER FUNCTIONS ---
-async function sendPushNotification(recipient, title, text, data = null) {
+async function sendPushNotification(recipient, title, text, data = null, notificationType = 'general') {
   if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
     try {
+      const userRes = await db.execute({
+        sql: `SELECT notif_message, notif_like, notif_comment FROM users WHERE username = ?`,
+        args: [recipient]
+      });
+      if (userRes.rows.length > 0) {
+        const user = userRes.rows[0];
+        if (notificationType === 'message' && user.notif_message === 0) return;
+        if (notificationType === 'like' && user.notif_like === 0) return;
+        if (notificationType === 'comment' && user.notif_comment === 0) return;
+      }
+
       const body = {
         app_id: process.env.ONESIGNAL_APP_ID,
         include_aliases: {
@@ -151,6 +162,9 @@ async function initDb() {
     try { await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN notif_message INTEGER DEFAULT 1"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN notif_like INTEGER DEFAULT 1"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN notif_comment INTEGER DEFAULT 1"); } catch (e) {}
     try { await db.execute("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME"); } catch (e) {}
   } catch (err) {
@@ -455,7 +469,7 @@ app.post('/api/moments/like', async (req, res) => {
       const moment = momentResult.rows[0];
       if (moment && moment.username !== username) {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, args: [moment.username, username, moment_id] });
-        sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`);
+        sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`, null, 'like');
         pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'like' });
       }
       res.json({ success: true, action: 'liked' });
@@ -475,7 +489,7 @@ app.post('/api/moments/comment', async (req, res) => {
     const moment = momentResult.rows[0];
     if (moment && moment.username !== username) {
       await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
-      sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`);
+      sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`, null, 'comment');
       pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'comment' });
     }
     res.json({ success: true, id: insertResult.lastInsertRowid.toString() });
@@ -606,7 +620,7 @@ app.post('/api/contacts/request', async (req, res) => {
       sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
       args: [receiver, sender]
     });
-    sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`);
+    sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`, null, 'friend_request');
     pusher.trigger(`user-${receiver}`, 'new-notification', { type: 'friend_request' });
     res.json({ success: true });
   } catch (err) {
@@ -642,7 +656,7 @@ app.post('/api/contacts/respond', async (req, res) => {
         sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
         args: [sender, receiver]
       });
-      sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`);
+      sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`, null, 'friend_accept');
       pusher.trigger(`user-${sender}`, 'new-notification', { type: 'friend_accept' });
       res.json({ success: true });
     } else {
@@ -968,7 +982,7 @@ app.post('/api/messages/send', async (req, res) => {
     } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
       pushText = '📸 Mengirim Gambar';
     }
-    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender });
+    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender }, 'message');
     pusher.trigger(`user-${data.recipient}`, 'new-message', data);
 
     res.json(data);
@@ -1086,6 +1100,34 @@ app.use((req, res) => {
 if (process.env.VERCEL) {
   module.exports = app;
 } else {
+  // --- NOTIFICATION SETTINGS ROUTES ---
+
+app.get('/api/users/:username/settings', async (req, res) => {
+  try {
+    const result = await db.execute({
+      sql: `SELECT notif_message, notif_like, notif_comment FROM users WHERE username = ?`,
+      args: [req.params.username]
+    });
+    if (result.rows.length === 0) return res.status(404).json({ error: "User not found" });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/users/:username/settings', async (req, res) => {
+  const { notif_message, notif_like, notif_comment } = req.body;
+  try {
+    await db.execute({
+      sql: `UPDATE users SET notif_message = ?, notif_like = ?, notif_comment = ? WHERE username = ?`,
+      args: [notif_message ? 1 : 0, notif_like ? 1 : 0, notif_comment ? 1 : 0, req.params.username]
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
   const PORT = process.env.PORT || 3001;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on port ${PORT}`);

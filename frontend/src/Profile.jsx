@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, User, Loader2, Trash2 } from 'lucide-react';
+import { Camera, LogOut, Save, User, Loader2, Trash2, Bell } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
@@ -18,6 +18,9 @@ const Profile = ({ onLogout, email }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [avatar, setAvatar] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [showNotifSettings, setShowNotifSettings] = useState(false);
+  const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
+  const [isSavingNotif, setIsSavingNotif] = useState(false);
   const fileInputRef = useRef(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
@@ -173,6 +176,48 @@ const Profile = ({ onLogout, email }) => {
     }
   };
 
+  const fetchNotifSettings = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/users/${email}/settings`);
+      if (res.ok) {
+        const data = await res.json();
+        setNotifSettings({
+          notif_message: data.notif_message !== undefined ? data.notif_message : 1,
+          notif_like: data.notif_like !== undefined ? data.notif_like : 1,
+          notif_comment: data.notif_comment !== undefined ? data.notif_comment : 1,
+        });
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  useEffect(() => {
+    if (showNotifSettings) {
+      fetchNotifSettings();
+    }
+  }, [showNotifSettings, email]);
+
+  const handleSaveNotifSettings = async () => {
+    setIsSavingNotif(true);
+    try {
+      const res = await fetch(`${API_URL}/api/users/${email}/settings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(notifSettings)
+      });
+      if (res.ok) {
+        notify.success('Pengaturan notifikasi disimpan');
+        setShowNotifSettings(false);
+      } else {
+        notify.error('Gagal menyimpan pengaturan');
+      }
+    } catch (e) {
+      notify.error('Kesalahan jaringan');
+    }
+    setIsSavingNotif(false);
+  };
+
   return (
     <div className="hide-scrollbar" style={{ flex: 1, padding: '2cqh var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '2.5cqh', overflowY: 'auto' }}>
       <h2 style={{ fontSize: 'var(--font-title)', fontWeight: 'bold', margin: 0 }}>Profil</h2>
@@ -257,6 +302,14 @@ const Profile = ({ onLogout, email }) => {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2cqh', marginTop: '1cqh' }}>
         <button 
+          onClick={() => setShowNotifSettings(true)}
+          style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}
+        >
+          <Bell size={18} />
+          Notifikasi
+        </button>
+
+        <button 
           onClick={() => setShowLogoutConfirm(true)}
           style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}
         >
@@ -276,6 +329,39 @@ const Profile = ({ onLogout, email }) => {
       <div style={{ textAlign: 'center', marginTop: 'auto', marginBottom: '1cqh', color: 'var(--dark-text-muted)', fontSize: '10px' }}>
         Versi App: v{import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}
       </div>
+
+      {/* Notification Settings Modal */}
+      {showNotifSettings && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '5cqw' }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderRadius: '4cqw', width: '90%', border: '1px solid var(--dark-border)' }}>
+            <h3 style={{ margin: '0 0 3cqh 0', fontSize: 'var(--font-title)', color: 'white', textAlign: 'center' }}>Pengaturan Notifikasi</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2cqh', marginBottom: '3cqh' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'white', fontSize: 'var(--font-body)' }}>Pesan Pribadi</span>
+                <input type="checkbox" checked={notifSettings.notif_message === 1} onChange={(e) => setNotifSettings({...notifSettings, notif_message: e.target.checked ? 1 : 0})} style={{ width: '4cqw', height: '4cqw' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'white', fontSize: 'var(--font-body)' }}>Like momen</span>
+                <input type="checkbox" checked={notifSettings.notif_like === 1} onChange={(e) => setNotifSettings({...notifSettings, notif_like: e.target.checked ? 1 : 0})} style={{ width: '4cqw', height: '4cqw' }} />
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ color: 'white', fontSize: 'var(--font-body)' }}>Komentar momen</span>
+                <input type="checkbox" checked={notifSettings.notif_comment === 1} onChange={(e) => setNotifSettings({...notifSettings, notif_comment: e.target.checked ? 1 : 0})} style={{ width: '4cqw', height: '4cqw' }} />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '3cqw', width: '100%' }}>
+              <button onClick={() => setShowNotifSettings(false)} style={{ flex: 1, padding: '1.5cqh 3cqw', borderRadius: '2cqw', background: 'var(--dark-bg)', border: '1px solid var(--dark-border)', color: 'white', fontWeight: '600', cursor: 'pointer', fontSize: 'var(--font-body)' }}>
+                Batal
+              </button>
+              <button onClick={handleSaveNotifSettings} disabled={isSavingNotif} style={{ flex: 1, padding: '1.5cqh 3cqw', borderRadius: '2cqw', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer', fontSize: 'var(--font-body)', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                {isSavingNotif ? <Loader2 size={16} className="animate-spin" /> : 'Simpan'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Logout Dialog */}
       {showLogoutConfirm && (
