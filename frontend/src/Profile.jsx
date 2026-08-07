@@ -3,6 +3,7 @@ import { Camera, LogOut, Save, User, Loader2, Trash2 } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
+import localforage from 'localforage';
 
 const Profile = ({ onLogout, email }) => {
   const [bio, setBio] = useState('Hey there! I am using Chatter.');
@@ -22,6 +23,18 @@ const Profile = ({ onLogout, email }) => {
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
+    localforage.getItem(`profile_${email}`).then(val => {
+      if (val) {
+        if (val.avatar) setAvatar(val.avatar);
+        if (val.display_name) {
+          setDisplayName(val.display_name);
+          setOriginalDisplayName(val.display_name);
+        }
+        if (val.bio) setBio(val.bio);
+        setIsLoadingProfile(false);
+      }
+    });
+
     fetch(`${API_URL}/api/users/${email}`)
       .then(res => res.json())
       .then(data => {
@@ -36,6 +49,7 @@ const Profile = ({ onLogout, email }) => {
         if (data.bio) {
           setBio(data.bio);
         }
+        localforage.setItem(`profile_${email}`, data);
         setIsLoadingProfile(false);
       })
       .catch((e) => {

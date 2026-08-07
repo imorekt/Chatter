@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
 import { notify } from './utils/toast';
+import localforage from 'localforage';
 
 let cachedMoments = [];
 let hasFetchedMoments = false;
@@ -45,6 +46,15 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const fileInputRef = useRef(null);
   
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  useEffect(() => {
+    localforage.getItem('moments').then(val => {
+      if (val) {
+        setMoments(val);
+        setLoading(false);
+      }
+    });
+  }, []);
 
   useEffect(() => {
     fetch(`${API_URL}/api/users/${currentUser}`)
@@ -107,6 +117,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
       if (res.ok) {
         const data = await res.json();
         setMoments(data);
+        localforage.setItem('moments', data);
         cachedMoments = data;
         hasFetchedMoments = true;
       }

@@ -4,6 +4,7 @@ import ChatRoom from './ChatRoom';
 import ContactList from './ContactList';
 import MomentList from './MomentList';
 import Profile from './Profile';
+import localforage from 'localforage';
 import FavoriteRoom from './FavoriteRoom';
 import { notify } from './utils/toast';
 
@@ -33,6 +34,12 @@ const ChatList = ({ onLogout, currentUser }) => {
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
+  useEffect(() => {
+    localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
+    localforage.getItem(`contacts_${currentUser}`).then(val => { if (val) setContactsData(val); });
+    localforage.getItem(`notifications_${currentUser}`).then(val => { if (val) setNotifications(val); });
+  }, [currentUser]);
+
   const fetchChats = () => {
     fetch(`${API_URL}/api/chats/${currentUser}`)
       .then(res => res.json())
@@ -51,6 +58,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           isLastMessageRead: c.isLastMessageRead
         }));
         setChats(formatted);
+        localforage.setItem(`chats_${currentUser}`, formatted);
       })
       .catch(console.error);
   };
@@ -73,8 +81,10 @@ const ChatList = ({ onLogout, currentUser }) => {
     if (activeFilter === 'Favorit') {
       fetch(`${API_URL}/api/favorites/${currentUser}`)
         .then(res => res.json())
-        .then(data => setFavoriteUsers(data))
-        .catch(console.error);
+        .then(data => {
+        setFavoriteUsers(data);
+      })
+      .catch(console.error);
     }
   }, [activeFilter, currentUser, activeFavoriteUser]);
 
@@ -89,6 +99,7 @@ const ChatList = ({ onLogout, currentUser }) => {
       .then(res => res.json())
       .then(data => {
         setContactsData(data);
+        localforage.setItem(`contacts_${currentUser}`, data);
         setPendingRequests(data.pending_received ? data.pending_received.length : 0);
       })
       .catch(console.error);
@@ -115,6 +126,8 @@ const ChatList = ({ onLogout, currentUser }) => {
         const res = await fetch(`${API_URL}/api/notifications/${currentUser}`);
         if (res.ok) {
           const data = await res.json();
+          setNotifications(data);
+          localforage.setItem(`notifications_${currentUser}`, data);
           const unreadNotifs = data.filter(n => !n.is_read);
           if (unreadNotifs.length > prevNotifCountRef.current && 'Notification' in window && Notification.permission === 'granted') {
             const latestNotif = unreadNotifs[0];

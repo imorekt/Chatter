@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2 } from 'lucide-react';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
 import { notify } from './utils/toast';
+import localforage from 'localforage';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -53,6 +54,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const fileInputRef = useRef(null);
   const menuRef = useRef(null);
   const emojiPickerRef = useRef(null);
+
+  useEffect(() => {
+    localforage.getItem(`messages_${currentUser}_${chat.username}`).then(val => {
+      if (val) {
+        setMessages(val);
+        setLoading(false);
+      }
+    });
+  }, [currentUser, chat.username]);
 
   useEffect(() => {
     const handleHardwareBack = (e) => {
