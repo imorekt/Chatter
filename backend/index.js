@@ -4,8 +4,21 @@ const nodemailer = require('nodemailer');
 const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const multer = require('multer');
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
 require('dotenv').config();
 const Pusher = require('pusher');
+
+// --- R2 STORAGE SETUP ---
+const r2Client = new S3Client({
+  region: 'auto',
+  endpoint: `https://${process.env.R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+  credentials: {
+    accessKeyId: process.env.R2_ACCESS_KEY_ID || '',
+    secretAccessKey: process.env.R2_SECRET_ACCESS_KEY || '',
+  },
+});
+const upload = multer({ storage: multer.memoryStorage() });
 
 const pusher = new Pusher({
   appId: process.env.PUSHER_APP_ID || "2184213",
@@ -963,6 +976,61 @@ app.post('/api/messages/delete_everyone', async (req, res) => {
     res.json({ success: result.rowsAffected > 0 });
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages/upload', upload.single('image'), async (req, res) => {
+  if (!req.file) return res.status(400).json({ error: "No image file provided" });
+  try {
+    const fileExtension = req.file.mimetype.split('/')[1] || 'jpg';
+    const fileName = `chat-${Date.now()}-${Math.floor(Math.random() * 10000)}.${fileExtension}`;
+    
+    await r2Client.send(new PutObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: fileName,
+      Body: req.file.buffer,
+      ContentType: req.file.mimetype,
+    }));
+    
+    const imageUrl = `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev/${fileName}`; // Assuming a public URL structure or custom domain if configured. Alternatively we could generate signed URLs. For now returning the key and a dummy URL, but if they use custom domain it's better. We will just return the key and the client can construct it or we return R2 dev domain.
+    // NOTE: To view images, the bucket must allow public access or we need to generate presigned URLs on the fly. 
+    // Assuming the user has a public bucket or we return a presigned URL.
+    res.json({ success: true, key: fileName, imageUrl: imageUrl });
+  } catch (err) {
+    console.error("R2 Upload Error:", err);
+    res.status(500).json({ error: "Failed to upload image to R2" });
+  }
+});
+
+app.delete('/api/messages/media/:id', async (req, res) => {
+  const messageId = req.params.id;
+  try {
+    // 1. Get the message from DB to find the R2 key (assuming text contains the URL or we parse it)
+    const msgRes = await db.execute({ sql: `SELECT text FROM messages WHERE id = ?`, args: [messageId] });
+    if (msgRes.rows.length === 0) return res.status(404).json({ error: "Message not found" });
+    
+    const msgText = msgRes.rows[0].text;
+    
+    // Extract key from text (Assuming frontend sends text as "R2_IMAGE|||filename.jpg" or similar)
+    if (msgText.startsWith('R2_IMAGE|||')) {
+      const parts = msgText.split('|||');
+      const key = parts[1];
+      
+      // Delete from R2
+      await r2Client.send(new DeleteObjectCommand({
+        Bucket: process.env.R2_BUCKET_NAME,
+        Key: key
+      }));
+      
+      // Update DB to mark media as deleted
+      await db.execute({ sql: `UPDATE messages SET text = 'MEDIA_DELETED' WHERE id = ?`, args: [messageId] });
+      res.json({ success: true });
+    } else {
+      res.status(400).json({ error: "Not an R2 media message" });
+    }
+  } catch (err) {
+    console.error("R2 Delete Error:", err);
+    res.status(500).json({ error: "Failed to delete media" });
   }
 });
 

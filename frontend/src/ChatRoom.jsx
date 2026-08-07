@@ -1,7 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2 } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart } from 'lucide-react';
+import { io } from 'socket.io-client';
+import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
 import { notify } from './utils/toast';
+import { Filesystem, Directory } from '@capacitor/filesystem';
 import localforage from 'localforage';
 import pusher from './pusher';
 
@@ -262,16 +265,35 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const confirmSendImage = async () => {
     if (!selectedImage) return;
-    const textToSend = imageCaption.trim() ? `${selectedImage}|||CAPTION|||${imageCaption.trim()}` : selectedImage;
+    
+    // convert base64 to blob
+    const resBlob = await fetch(selectedImage);
+    const blob = await resBlob.blob();
+    const formData = new FormData();
+    formData.append('image', blob, 'chat_image.jpg');
+    
     try {
+      // 1. Upload to R2
+      const uploadRes = await fetch(`${API_URL}/api/messages/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!uploadRes.ok) {
+        throw new Error("Gagal upload gambar ke server");
+      }
+      const uploadData = await uploadRes.json();
+      
+      const r2Text = `R2_IMAGE|||${uploadData.key}|||${uploadData.imageUrl}`;
+      const textToSend = imageCaption.trim() ? `${r2Text}|||CAPTION|||${imageCaption.trim()}` : r2Text;
+      
+      // 2. Send Message
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sender: currentUser, recipient: chat.username, text: textToSend })
       });
       if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || "Gagal kirim gambar");
+        throw new Error("Gagal kirim gambar");
       }
       notify.success('Gambar berhasil dikirim!');
       fetchMessages();
@@ -385,54 +407,98 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
 
-  const renderMediaContent = (msgId, rawText, isMe) => {
-    if (typeof rawText !== 'string') return rawText;
+  const MediaMessage = ({ msgId, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage }) => {
+    const [imgSrc, setImgSrc] = useState(null);
+    const [isFailed, setIsFailed] = useState(false);
+    
+    useEffect(() => {
+      let isMounted = true;
+      const loadMedia = async () => {
+        try {
+          if (base64Part.startsWith('data:image/')) {
+            // Old system / backward compatibility
+            setImgSrc(base64Part);
+            return;
+          }
+          
+          if (base64Part === 'MEDIA_DELETED') {
+            setIsFailed(true);
+            return;
+          }
 
-    let base64Part = null;
-    let captionPart = null;
-    let isMediaSaved = false;
+          if (base64Part.startsWith('R2_IMAGE|||')) {
+            const parts = base64Part.split('|||');
+            const key = parts[1];
+            const imageUrl = parts[2];
+            
+            // Cek apakah sudah di-download ke local storage sebelumnya
+            const localStored = localStorage.getItem(`r2_media_${msgId}`);
+            if (localStored) {
+              setImgSrc(localStored);
+              return;
+            }
 
-    if (rawText.includes('|||CAPTION|||')) {
-      const parts = rawText.split('|||CAPTION|||');
-      base64Part = parts[0];
-      captionPart = parts[1];
-    } else {
-      base64Part = rawText;
-    }
+            // Jika belum di-download, tampilkan dulu dari R2 Url
+            setImgSrc(imageUrl);
 
-    if (base64Part.startsWith('data:image/')) {
-      try {
-        localStorage.setItem(`chat_media_${msgId}`, base64Part);
-        if (!isMe) {
-          fetch(`${API_URL}/api/messages/clear-image`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ messageId: msgId })
-          }).catch(() => {});
+            // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
+            if (!isMe) {
+              try {
+                // Download image as blob
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                
+                // Convert blob to base64 for Capacitor Filesystem
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                  const base64data = reader.result;
+                  try {
+                    // Save to local device (Documents folder)
+                    const fileName = `chat_image_${Date.now()}.jpg`;
+                    await Filesystem.writeFile({
+                      path: fileName,
+                      data: base64data,
+                      directory: Directory.Documents
+                    });
+                    
+                    // Save to local storage cache so it doesn't download again
+                    if (isMounted) {
+                      localStorage.setItem(`r2_media_${msgId}`, base64data);
+                      setImgSrc(base64data);
+                    }
+                    
+                    // Trigger Auto Delete from Server after 1 minute (60000 ms)
+                    setTimeout(() => {
+                      fetch(`${API_URL}/api/messages/media/${msgId}`, { method: 'DELETE' }).catch(console.error);
+                    }, 60000);
+                    
+                  } catch (e) {
+                    console.error("Gagal menyimpan ke galeri", e);
+                  }
+                };
+                reader.readAsDataURL(blob);
+              } catch (e) {
+                console.error("Gagal mengunduh gambar", e);
+              }
+            }
+          }
+        } catch (err) {
+          if (isMounted) setIsFailed(true);
         }
-      } catch (e) {}
-      isMediaSaved = true;
-    } else if (base64Part === 'MEDIA_LOCAL_SAVED') {
-      const localMedia = localStorage.getItem(`chat_media_${msgId}`);
-      if (localMedia) {
-        base64Part = localMedia;
-        isMediaSaved = true;
-      } else {
-        isMediaSaved = false;
-      }
-    } else {
-      return rawText;
-    }
+      };
+      loadMedia();
+      return () => { isMounted = false; };
+    }, [msgId, base64Part, isMe]);
 
     return (
       <div>
-        {isMediaSaved ? (
+        {imgSrc && !isFailed ? (
           <img 
-            src={base64Part} 
+            src={imgSrc} 
             alt="Gambar" 
             onClick={(e) => {
               e.stopPropagation();
-              if (!selectionMode) setPreviewModalImage(base64Part);
+              if (!selectionMode) setPreviewModalImage(imgSrc);
             }}
             style={{ 
               maxWidth: '55cqw', 
@@ -448,12 +514,42 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         ) : (
           <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
             <ImageOff size={18} color="#ef4444" />
-            <span>Gambar tidak ditemukan</span>
+            <span>Gambar {isFailed || base64Part === 'MEDIA_DELETED' ? 'telah dihapus (View Once)' : 'sedang dimuat...'}</span>
           </div>
         )}
         {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
       </div>
     );
+  };
+
+  const renderMediaContent = (msgId, rawText, isMe) => {
+    if (typeof rawText !== 'string') return rawText;
+
+    let base64Part = null;
+    let captionPart = null;
+
+    if (rawText.includes('|||CAPTION|||')) {
+      const parts = rawText.split('|||CAPTION|||');
+      base64Part = parts[0];
+      captionPart = parts[1];
+    } else {
+      base64Part = rawText;
+    }
+
+    if (base64Part.startsWith('data:image/') || base64Part.startsWith('R2_IMAGE|||') || base64Part === 'MEDIA_DELETED' || base64Part === 'MEDIA_LOCAL_SAVED') {
+      return (
+        <MediaMessage 
+          msgId={msgId} 
+          base64Part={base64Part} 
+          captionPart={captionPart} 
+          isMe={isMe} 
+          selectionMode={selectionMode}
+          setPreviewModalImage={setPreviewModalImage}
+        />
+      );
+    }
+    
+    return rawText;
   };
 
   const renderMessages = () => {
