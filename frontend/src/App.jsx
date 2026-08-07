@@ -15,6 +15,7 @@ function App() {
   const [showUpdate, setShowUpdate] = useState(false);
   const [updateUrl, setUpdateUrl] = useState('');
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
+  const [downloadProgress, setDownloadProgress] = useState(0);
 
   useEffect(() => {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -123,14 +124,25 @@ function App() {
     }
 
     setIsDownloadingUpdate(true);
+    setDownloadProgress(0);
     try {
       const fileName = `update-${Date.now()}.apk`;
+      
+      const progressListener = await Filesystem.addListener('progress', (status) => {
+        if (status.contentLength > 0) {
+          const percent = Math.round((status.bytes / status.contentLength) * 100);
+          setDownloadProgress(percent);
+        }
+      });
       
       const downloadRes = await Filesystem.downloadFile({
         url: updateUrl,
         path: fileName,
-        directory: Directory.Cache
+        directory: Directory.Cache,
+        progress: true
       });
+      
+      await progressListener.remove();
       
       setIsDownloadingUpdate(false);
       
@@ -180,7 +192,7 @@ function App() {
               }}
             >
               {isDownloadingUpdate ? (
-                <>Mengunduh...</>
+                <>Mengunduh... {downloadProgress}%</>
               ) : (
                 <><Download size={20} /> Update Sekarang</>
               )}
