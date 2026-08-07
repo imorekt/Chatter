@@ -38,6 +38,12 @@ function App() {
           OneSignalCapacitor.Notifications.requestPermission(true).then((success) => {
             console.log("Notification permission granted: " + success);
           });
+          OneSignalCapacitor.Notifications.addEventListener('click', (event) => {
+            const data = event.notification.additionalData;
+            if (data && data.type === 'chat' && data.sender) {
+              window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+            }
+          });
           if (user) {
             OneSignalCapacitor.login(user);
           }
@@ -53,6 +59,12 @@ function App() {
             notifyButton: { enable: true },
           });
           OneSignal.Slidedown.promptPush();
+          OneSignal.Notifications.addEventListener('click', (event) => {
+            const data = event.notification.additionalData;
+            if (data && data.type === 'chat' && data.sender) {
+              window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+            }
+          });
           if (user) {
             await OneSignal.login(user);
           }

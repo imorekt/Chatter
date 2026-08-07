@@ -224,6 +224,22 @@ const ChatList = ({ onLogout, currentUser }) => {
     return () => window.removeEventListener('popstate', handlePopState);
   }, [activeChat, activeFavoriteUser, showNewChatPopup, selectionMode, showBulkDeleteConfirm]);
 
+  useEffect(() => {
+    const handleOpenChat = (e) => {
+      const sender = e.detail;
+      if (!sender) return;
+      
+      const friend = contactsData?.friends?.find(f => f.username === sender);
+      if (friend) {
+        setActiveChat({ name: friend.displayName || friend.username, username: friend.username, avatar: friend.avatar });
+      } else {
+        setActiveChat({ name: sender, username: sender, avatar: null });
+      }
+    };
+    window.addEventListener('openChat', handleOpenChat);
+    return () => window.removeEventListener('openChat', handleOpenChat);
+  }, [contactsData]);
+
   const closeModal = () => {
     if (window.history.state && window.history.state.modalOpen) {
       window.history.back();

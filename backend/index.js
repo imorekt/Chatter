@@ -34,24 +34,30 @@ const db = createClient({
 });
 
 // --- HELPER FUNCTIONS ---
-async function sendPushNotification(recipient, title, text) {
+async function sendPushNotification(recipient, title, text, data = null) {
   if (process.env.ONESIGNAL_APP_ID && process.env.ONESIGNAL_REST_API_KEY) {
     try {
+      const body = {
+        app_id: process.env.ONESIGNAL_APP_ID,
+        include_aliases: {
+          external_id: [recipient]
+        },
+        target_channel: 'push',
+        headings: { "en": title },
+        contents: { "en": text }
+      };
+      
+      if (data) {
+        body.data = data;
+      }
+
       await fetch('https://api.onesignal.com/notifications', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Basic ${process.env.ONESIGNAL_REST_API_KEY}`
         },
-        body: JSON.stringify({
-          app_id: process.env.ONESIGNAL_APP_ID,
-          include_aliases: {
-            external_id: [recipient]
-          },
-          target_channel: 'push',
-          headings: { "en": title },
-          contents: { "en": text }
-        })
+        body: JSON.stringify(body)
       });
     } catch (e) {
       console.error("Gagal mengirim push notification:", e);
@@ -954,7 +960,7 @@ app.post('/api/messages/send', async (req, res) => {
     } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
       pushText = '📸 Mengirim Gambar';
     }
-    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText);
+    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender });
     pusher.trigger(`user-${data.recipient}`, 'new-message', data);
 
     res.json(data);
