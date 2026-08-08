@@ -199,6 +199,17 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
   const [viewProfileUser, setViewProfileUser] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const [currentUserDisplayName, setCurrentUserDisplayName] = useState(currentUser);
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/users/${currentUser}`)
+      .then(res => res.json())
+      .then(data => {
+        if (data.display_name) setCurrentUserDisplayName(data.display_name);
+      })
+      .catch(console.error);
+  }, [currentUser]);
+
 
   const isFirstLoad = useRef(true);
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
@@ -499,7 +510,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       setIsAiTyping(true);
       const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
       const history = messages.slice(-30);
-      callImoAI(chatContext, history, textToSend, currentUser, chat.name || chat.username).then(async (reply) => {
+      callImoAI(chatContext, history, textToSend, currentUserDisplayName, chat.name || chat.username).then(async (reply) => {
         setIsAiTyping(false);
         try {
           const aiRes = await fetch(`${API_URL}/api/messages/send`, {
@@ -795,7 +806,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       })(msg.text);
 
       elements.push(
-        <div key={msg.id + '-' + index} style={{
+        <div id={`msg-${msg.id}`} key={msg.id + '-' + index} style={{
           alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start',
           maxWidth: '80%',
           position: 'relative',
@@ -824,7 +835,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             cursor: selectionMode ? 'pointer' : 'default',
             wordBreak: 'break-word',
             boxShadow: isEmojiOnly ? 'none' : '0 1px 0.5px rgba(11,20,26,.13)',
-            display: 'inline-block',
+            display: 'flex',
+            flexDirection: 'column',
+            maxWidth: '100%',
             position: 'relative',
             border: selectedMessages.has(msg.id) ? '2px solid var(--primary)' : '2px solid transparent',
             boxSizing: 'border-box'
@@ -863,12 +876,12 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 <Ban size={14} /> Pesan ini telah dihapus
               </span>
             ) : (
-              <div style={{ display: 'inline' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%' }}>
                 {msg.reply_to && msg.reply_text && (
                   <div 
                     onClick={(e) => { e.stopPropagation(); const el = document.getElementById(`msg-${msg.reply_to}`); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('blink-once'); setTimeout(() => el.classList.remove('blink-once'), 2000); } }}
-                    style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                    style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px', maxWidth: '100%' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       <span style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>{msg.reply_sender === currentUser ? 'Anda' : (msg.reply_sender === chat.username ? chat.name : msg.reply_sender)}</span>
                       <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {getReplyText(msg.reply_text)}
@@ -1025,7 +1038,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       {/* Composer */}
       {replyingTo && (
         <div style={{ background: 'var(--dark-surface)', padding: '10px 4cqw', borderTop: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden', borderLeft: '3px solid var(--primary)', paddingLeft: '8px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', overflow: 'hidden', borderLeft: '3px solid var(--primary)', paddingLeft: '8px', flex: 1, minWidth: 0 }}>
             <span style={{ fontSize: '13px', color: 'var(--primary)', fontWeight: 600 }}>Membalas {replyingTo.sender === 'me' ? 'Anda' : chat.name}</span>
             <span style={{ fontSize: '14px', color: 'var(--dark-text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
               {replyingTo.text.includes('|||CAPTION|||') ? '📷 Foto' : replyingTo.text.startsWith('data:image/') || replyingTo.text === 'MEDIA_LOCAL_SAVED' ? '📷 Foto' : replyingTo.text}
@@ -1404,3 +1417,5 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 };
 
 export default ChatRoom;
+
+
