@@ -481,12 +481,12 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
                       <MoreVertical size={20} />
                     </div>
                     {showMenuId === moment.id && (
-                      <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', borderRadius: '2cqw', zIndex: 10, padding: '1cqw', minWidth: '30cqw' }}>
-                        <div onClick={() => { setEditingMomentId(moment.id); setEditContent(moment.content); setShowMenuId(null); }} style={{ padding: '1cqw 2cqw', color: 'white', cursor: 'pointer', display: 'flex', gap: '2cqw', alignItems: 'center', fontSize: 'var(--font-caption)' }}>
-                          <Edit3 size={14} /> Edit
+                      <div style={{ position: 'absolute', top: '100%', right: 0, background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', borderRadius: '2cqw', zIndex: 10, padding: '2cqw', minWidth: '30cqw', display: 'flex', flexDirection: 'column', gap: '2cqw' }}>
+                        <div onClick={() => { setEditingMomentId(moment.id); setEditContent(moment.content); setShowMenuId(null); }} style={{ padding: '2cqw', color: 'white', cursor: 'pointer', display: 'flex', gap: '3cqw', alignItems: 'center', fontSize: '14px' }}>
+                          <Edit3 size={18} /> Edit
                         </div>
-                        <div onClick={() => handleDeleteMoment(moment.id)} style={{ padding: '1cqw 2cqw', color: '#EF4444', cursor: 'pointer', display: 'flex', gap: '2cqw', alignItems: 'center', fontSize: 'var(--font-caption)' }}>
-                          <Trash2 size={14} /> Hapus
+                        <div onClick={() => handleDeleteMoment(moment.id)} style={{ padding: '2cqw', color: '#EF4444', cursor: 'pointer', display: 'flex', gap: '3cqw', alignItems: 'center', fontSize: '14px' }}>
+                          <Trash2 size={18} /> Hapus
                         </div>
                       </div>
                     )}

@@ -479,9 +479,26 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
 
-  const MediaMessage = ({ msgId, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage }) => {
+  const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
     const [imgSrc, setImgSrc] = useState(null);
     const [isFailed, setIsFailed] = useState(false);
+    const msgId = msg.id;
+    
+    const holdTimeout = useRef(null);
+    const [isHolding, setIsHolding] = useState(false);
+
+    const handleTouchStart = () => {
+      if (selectionMode) return;
+      setIsHolding(false);
+      holdTimeout.current = setTimeout(() => {
+        setIsHolding(true);
+        setLongPressMessage(msg);
+      }, 500);
+    };
+
+    const handleTouchEnd = () => {
+      if (holdTimeout.current) clearTimeout(holdTimeout.current);
+    };
     
     useEffect(() => {
       let isMounted = true;
@@ -569,9 +586,16 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <img 
             src={imgSrc} 
             alt="Gambar" 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleTouchStart}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={handleTouchEnd}
             onClick={(e) => {
+              if (selectionMode) return;
               e.stopPropagation();
-              if (!selectionMode) setPreviewModalImage(imgSrc);
+              if (isHolding) return;
+              setPreviewModalImage(imgSrc);
             }}
             style={{ 
               maxWidth: '55cqw', 
@@ -595,7 +619,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     );
   };
 
-  const renderMediaContent = (msgId, rawText, isMe) => {
+  const renderMediaContent = (msg, isMe) => {
+    const rawText = msg.text;
+    const msgId = msg.id;
     if (typeof rawText !== 'string') return rawText;
 
     let base64Part = null;
@@ -612,12 +638,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (base64Part.startsWith('data:image/') || base64Part.startsWith('R2_IMAGE|||') || base64Part === 'MEDIA_DELETED' || base64Part === 'MEDIA_LOCAL_SAVED') {
       return (
         <MediaMessage 
-          msgId={msgId} 
+          msg={msg}
           base64Part={base64Part} 
           captionPart={captionPart} 
           isMe={isMe} 
           selectionMode={selectionMode}
           setPreviewModalImage={setPreviewModalImage}
+          setLongPressMessage={setLongPressMessage}
         />
       );
     }
@@ -719,7 +746,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                     </span>
                   </div>
                 )}
-                {renderMediaContent(msg.id, msg.text, msg.sender === 'me')}
+                {renderMediaContent(msg, msg.sender === 'me')}
                 <span style={{ display: 'inline-block', width: msg.sender === 'me' ? '50px' : '40px', height: '10px' }} />
               </div>
             )}
@@ -1062,7 +1089,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       {/* Long Press Action Modal */}
       {longPressMessage && (
         <div onClick={() => setLongPressMessage(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--dark-surface)', padding: '20px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '200px' }}>
+          <div onClick={e => e.stopPropagation()} style={{ background: 'var(--dark-surface)', padding: '12px', borderRadius: '16px', display: 'flex', flexDirection: 'column', gap: '4px', minWidth: '200px' }}>
             {longPressMessage.sender === 'me' && longPressMessage.is_deleted_everyone !== 1 && (
               <div onClick={() => { setEditMessageText(longPressMessage.text.replace('|||CAPTION|||', '')); setShowEditModal(longPressMessage); setLongPressMessage(null); }} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', cursor: 'pointer', color: 'white' }}>
                 <Edit2 size={18} /> Edit Pesan
