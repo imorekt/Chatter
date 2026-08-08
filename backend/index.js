@@ -174,7 +174,7 @@ async function initDb() {
       const hash = await bcrypt.hash('123456', 10);
       await db.execute({
         sql: `INSERT INTO users (username, name, email, password, avatar, bio) VALUES (?, ?, ?, ?, ?, ?)`,
-        args: ['ImoAI', 'Imo AI', 'imoai@local.dev', hash, 'https://api.dicebear.com/7.x/bottts/svg?seed=ImoAI', 'Saya adalah asisten AI super pintar!']
+        args: ['imo_ai', 'Imo AI', 'imo_ai@local.dev', hash, 'https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai', 'Saya adalah asisten AI super pintar!']
       });
     } catch (e) {}
   } catch (err) {
@@ -792,9 +792,22 @@ app.get('/api/messages/:user1/:user2', async (req, res) => {
       res.setHeader('X-Partner-Last-Seen', partnerResult.rows[0].last_seen || '');
     }
 
-    const result = await db.execute({
-      sql: `SELECT m.*, r.text as reply_text, r.sender as reply_sender FROM messages m LEFT JOIN messages r ON CAST(m.reply_to AS INTEGER) = r.id WHERE ((m.sender = ? AND m.receiver = ? AND m.deleted_by_sender = 0) OR (m.sender = ? AND m.receiver = ? AND m.deleted_by_receiver = 0)) ORDER BY m.created_at ASC`,
+    const contactCheck = await db.execute({
+      sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
       args: [user1, user2, user2, user1]
+    });
+    
+    if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
+      return res.json([]);
+    }
+
+    const userA = user1 < user2 ? user1 : user2;
+    const userB = user1 < user2 ? user2 : user1;
+    const chatContextStr = `${userA}|${userB}`;
+
+    const result = await db.execute({
+      sql: `SELECT m.*, r.text as reply_text, r.sender as reply_sender FROM messages m LEFT JOIN messages r ON CAST(m.reply_to AS INTEGER) = r.id WHERE ((m.sender = ? AND m.receiver = ? AND m.deleted_by_sender = 0) OR (m.sender = ? AND m.receiver = ? AND m.deleted_by_receiver = 0) OR (m.sender = 'imo_ai' AND m.chat_context = ? AND m.deleted_by_receiver = 0)) ORDER BY m.created_at ASC`,
+      args: [user1, user2, user2, user1, chatContextStr]
     });
     res.json(result.rows);
   } catch (err) {
@@ -973,17 +986,26 @@ app.get('/api/favorites/messages/:username/:partner', async (req, res) => {
 app.post('/api/messages/send', async (req, res) => {
   const data = req.body;
   try {
-    const contactCheck = await db.execute({
-      sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
-      args: [data.sender, data.recipient, data.recipient, data.sender]
-    });
-    
-    if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
-      return res.status(403).json({ error: "Anda tidak berteman dengan pengguna ini" });
+    if (data.sender !== 'imo_ai') {
+      const contactCheck = await db.execute({
+        sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
+        args: [data.sender, data.recipient, data.recipient, data.sender]
+      });
+      
+      if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
+        return res.status(403).json({ error: "Anda tidak berteman dengan pengguna ini" });
+      }
     }
 
     const replyToId = data.reply_to ? parseInt(data.reply_to, 10) : null;
-    const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text, reply_to) VALUES (?, ?, ?, ?)`, args: [data.sender, data.recipient, data.text, replyToId] });
+    let chatContext = data.chat_context || null;
+    if (!chatContext) {
+      const u1 = data.sender < data.recipient ? data.sender : data.recipient;
+      const u2 = data.sender < data.recipient ? data.recipient : data.sender;
+      chatContext = `${u1}|${u2}`;
+    }
+
+    const result = await db.execute({ sql: `INSERT INTO messages (sender, receiver, text, reply_to, chat_context) VALUES (?, ?, ?, ?, ?)`, args: [data.sender, data.recipient, data.text, replyToId, chatContext] });
     data.id = result.lastInsertRowid.toString();
     
     // Send Push Notification via OneSignal

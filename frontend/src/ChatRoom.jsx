@@ -494,6 +494,34 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       notify.error(err.message || "Gagal mengirim pesan");
     }
+
+    if (textToSend.includes('@imo_ai')) {
+      setIsAiTyping(true);
+      const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
+      const history = messages.slice(-10);
+      callImoAI(chatContext, history, textToSend).then(async (reply) => {
+        setIsAiTyping(false);
+        try {
+          const aiRes = await fetch(`${API_URL}/api/messages/send`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sender: 'imo_ai', recipient: chat.username, text: reply, chat_context: chatContext })
+          });
+          const aiData = await aiRes.json();
+          if (!aiData.error) {
+            setMessages(prev => [...prev, { 
+              ...aiData, 
+              sender: 'imo_ai', 
+              rawDate: new Date().toISOString(),
+              time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+              status: 'sent'
+            }]);
+          }
+        } catch (e) {
+          console.error("Failed to send AI response", e);
+        }
+      });
+    }
   };
 
   const handleImageUpload = (e) => {
@@ -774,9 +802,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         }}
         >
           <div style={{
-            background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : (msg.sender === 'ImoAI' ? '#1e293b' : '#202c33')),
-            color: msg.sender === 'ImoAI' ? '#38bdf8' : '#e9edef',
-            fontFamily: msg.sender === 'ImoAI' ? '"Courier New", Courier, monospace' : 'inherit',
+            background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : (msg.sender === 'imo_ai' ? '#1e293b' : '#202c33')),
+            color: msg.sender === 'imo_ai' ? '#38bdf8' : '#e9edef',
+            fontFamily: msg.sender === 'imo_ai' ? '"Courier New", Courier, monospace' : 'inherit',
             padding: msg.image_url ? '4px' : (isEmojiOnly ? '0' : '6px 7px 8px 9px'),
             borderRadius: '7.5px',
             borderTopRightRadius: msg.sender === 'me' ? '0px' : '7.5px',
@@ -999,19 +1027,19 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       
         {isAiTyping && (
           <div style={{ padding: '4px 16px', fontSize: '12px', color: 'var(--primary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> ImoAI sedang mengetik...
+             <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> imo_ai sedang mengetik...
           </div>
         )}
         <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
           {showMentionPopup && (
             <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                  onClick={() => {
-                     setNewMessage(prev => prev.replace(/@imo$|@Imo$|@$/, '@ImoAI '));
+                     setNewMessage(prev => prev.replace(/@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai '));
                      setShowMentionPopup(false);
                      inputRef.current?.focus();
                  }}>
               <div style={{ fontSize: '20px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</div>
-              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>ImoAI <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
+              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>imo_ai <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
             </div>
           )}
         <input
@@ -1061,7 +1089,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           onChange={(e) => {
             const val = e.target.value;
             setNewMessage(val);
-            if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo')) {
+            if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
               setShowMentionPopup(true);
             } else {
               setShowMentionPopup(false);

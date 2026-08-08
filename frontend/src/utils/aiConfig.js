@@ -16,7 +16,7 @@ const getRealKeys = () => {
         if (OBFUSCATED_KEYS.length === 0) return [];
         return OBFUSCATED_KEYS.map(k => atob(k.split('').reverse().join('')));
     } catch(e) {
-        console.error("Gagal membaca API Key ImoAI");
+        console.error("Gagal membaca API Key imo_ai");
         return [];
     }
 };
@@ -40,7 +40,7 @@ const getApiKeyForChat = (chatContext) => {
 export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
     const apiKey = getApiKeyForChat(chatContext);
     if (!apiKey) {
-        return "🤖 Mohon maaf, API Key ImoAI belum dikonfigurasi di sistem.";
+        return "🤖 Mohon maaf, API Key imo_ai belum dikonfigurasi di sistem.";
     }
 
     try {
@@ -50,7 +50,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
         
         // Konversi riwayat pesan ke format Gemini
         const history = messageHistory.map(msg => ({
-            role: msg.sender === 'ImoAI' ? 'model' : 'user',
+            role: msg.sender === 'imo_ai' ? 'model' : 'user',
             parts: [{ text: msg.text }]
         }));
 
@@ -65,7 +65,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
         const response = await result.response;
         return response.text();
     } catch (error) {
-        console.error("ImoAI Error:", error);
-        return "🤖 Maaf, ImoAI sedang mengalami gangguan jaringan atau API Limit.";
+        console.error("imo_ai Error:", error);
+        return "🤖 Maaf, imo_ai sedang mengalami gangguan jaringan atau API Limit.";
     }
 };
