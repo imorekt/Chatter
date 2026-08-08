@@ -3,6 +3,7 @@ import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal
 import { notify } from './utils/toast';
 import localforage from 'localforage';
 import pusher from './pusher';
+import { callImoAI } from './utils/aiConfig';
 
 let cachedMoments = [];
 let hasFetchedMoments = false;
@@ -324,6 +325,27 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       });
       if (!res.ok) throw new Error("Gagal mengomentari");
       fetchMoments();
+
+      if (text.includes('@imo_ai')) {
+        const moment = moments.find(m => m.id === momentId);
+        if (moment) {
+          const chatContext = `moment-${momentId}`;
+          const history = [
+            { sender: moment.username, sender_display: moment.user_display_name, text: moment.content },
+            ...(moment.comments || []).map(c => ({ sender: c.username, sender_display: c.user_display_name, text: c.content }))
+          ];
+          callImoAI(chatContext, history, text, currentUserDisplayName, moment.user_display_name || moment.username)
+            .then(async (reply) => {
+              await fetch(`${API_URL}/api/moments/comment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ moment_id: momentId, username: 'imo_ai', content: reply })
+              });
+              fetchMoments();
+            })
+            .catch(console.error);
+        }
+      }
     } catch (error) {
       notify.error('Gagal mengirim komentar');
       fetchMoments();

@@ -64,7 +64,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     // Konversi riwayat pesan ke format Gemini
     const history = messageHistory.map(msg => {
-        let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Imo' : partnerUser);
+        let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Imo' : (msg.sender_display || msg.sender || partnerUser));
         let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari ${senderName}]: ${msg.text}`;
         
         return {
