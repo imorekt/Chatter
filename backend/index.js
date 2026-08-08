@@ -139,6 +139,7 @@ async function initDb() {
     try { await db.execute(`ALTER TABLE messages ADD COLUMN is_edited INTEGER DEFAULT 0`); } catch (e) {}
     try { await db.execute(`ALTER TABLE messages ADD COLUMN is_deleted_everyone INTEGER DEFAULT 0`); } catch (e) {}
     try { await db.execute(`ALTER TABLE messages ADD COLUMN reply_to INTEGER DEFAULT NULL`); } catch (e) {}
+      try { await db.execute(`ALTER TABLE messages ADD COLUMN chat_context TEXT DEFAULT NULL`); } catch (e) {}
     await db.execute(`
       CREATE TABLE IF NOT EXISTS notifications (
         id INTEGER PRIMARY KEY AUTOINCREMENT,

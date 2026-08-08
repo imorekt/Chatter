@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { callImoAI } from './utils/aiConfig';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock } from 'lucide-react';
 
 import Pusher from 'pusher-js';
@@ -205,6 +206,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   
   // Long Press State
   const [longPressMessage, setLongPressMessage] = useState(null);
+  const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [isAiTyping, setIsAiTyping] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [editMessageText, setEditMessageText] = useState('');
   const [showDeleteActionModal, setShowDeleteActionModal] = useState(null);
@@ -992,7 +995,24 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <X size={20} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer', flexShrink: 0, paddingLeft: '10px' }} onClick={() => setReplyingTo(null)} />
         </div>
       )}
-      <form onSubmit={handleSend} style={{ padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
+      
+        {isAiTyping && (
+          <div style={{ padding: '4px 16px', fontSize: '12px', color: 'var(--primary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
+             <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> ImoAI sedang mengetik...
+          </div>
+        )}
+        <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
+          {showMentionPopup && (
+            <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                 onClick={() => {
+                     setNewMessage(prev => prev.replace(/@imo$|@Imo$|@$/, '@ImoAI '));
+                     setShowMentionPopup(false);
+                     inputRef.current?.focus();
+                 }}>
+              <div style={{ fontSize: '20px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</div>
+              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>ImoAI <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
+            </div>
+          )}
         <input
           type="file"
           accept="image/*"
