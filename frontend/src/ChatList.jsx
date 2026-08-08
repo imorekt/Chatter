@@ -67,6 +67,28 @@ const ChatList = ({ onLogout, currentUser }) => {
   };
 
   useEffect(() => {
+    if ('mediaSession' in navigator && currentTrack) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: currentTrack.title,
+        artist: currentTrack.user?.name || 'Unknown Artist',
+        artwork: [
+          { src: currentTrack.artwork?.['150x150'] || 'https://via.placeholder.com/150', sizes: '150x150', type: 'image/jpeg' },
+          { src: currentTrack.artwork?.['480x480'] || 'https://via.placeholder.com/480', sizes: '480x480', type: 'image/jpeg' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => { 
+        if (audioRef.current) audioRef.current.play(); 
+        setIsPlaying(true); 
+      });
+      navigator.mediaSession.setActionHandler('pause', () => { 
+        if (audioRef.current) audioRef.current.pause(); 
+        setIsPlaying(false); 
+      });
+    }
+  }, [currentTrack]);
+
+  useEffect(() => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
     localforage.getItem(`contacts_${currentUser}`).then(val => { if (val) setContactsData(val); });
     localforage.getItem(`notifications_${currentUser}`).then(val => { if (val) setNotifications(val); });

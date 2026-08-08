@@ -29,7 +29,7 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
       setError('');
       try {
         const response = await fetch(
-          `https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(debouncedQuery)}&app_name=chatapp`
+          `https://api.audius.co/v1/tracks/search?query=${encodeURIComponent(debouncedQuery)}&app_name=chatapp&limit=50`
         );
         const json = await response.json();
 
@@ -50,10 +50,10 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
   }, [debouncedQuery]);
 
   return (
-    <div style={{ padding: '20px', paddingBottom: '180px', color: 'white', background: 'var(--dark-bg)', minHeight: '100vh', boxSizing: 'border-box' }}>
+    <div style={{ padding: '20px', paddingBottom: '180px', color: 'white', background: 'var(--dark-bg)', flex: 1, overflowY: 'auto', boxSizing: 'border-box' }}>
       <div style={{ display: 'flex', alignItems: 'center', marginBottom: '20px', gap: '10px' }}>
         <MusicIcon size={24} color="var(--primary)" />
-        <h2 style={{ margin: 0, fontSize: '24px' }}>Audius Music</h2>
+        <h2 style={{ margin: 0, fontSize: '24px' }}>ImoCloud Music</h2>
       </div>
 
       <div style={{ position: 'relative', marginBottom: '20px' }}>

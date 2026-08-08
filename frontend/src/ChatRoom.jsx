@@ -182,20 +182,37 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       .then(res => {
         const lastSeen = res.headers.get('x-partner-last-seen');
         if (lastSeen) setPartnerLastSeen(lastSeen);
-        return res.json();
+        return res.json().then(data => ({ data, lastSeen }));
       })
-      .then(data => {
+      .then(({ data, lastSeen }) => {
         const history = data.map(m => {
           const rawDate = typeof m.created_at === 'string' && !m.created_at.includes('T') ? m.created_at.replace(' ', 'T') + 'Z' : m.created_at;
+          
+          let msgStatus = 'sent';
+          if (!isFriend) {
+            msgStatus = 'sent';
+          } else if (m.is_read) {
+            msgStatus = 'read';
+          } else if (lastSeen) {
+            const msgTime = new Date(rawDate).getTime();
+            const lsTime = new Date(lastSeen.includes('T') ? lastSeen : lastSeen.replace(' ', 'T') + 'Z').getTime();
+            if (lsTime >= msgTime) {
+              msgStatus = 'delivered';
+            }
+          }
+
           return {
             id: m.id,
             text: m.text,
             sender: m.sender === currentUser ? 'me' : 'them',
             time: new Date(rawDate).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).replace(/\./g, ':'),
             rawDate: rawDate,
-            status: (!isFriend) ? 'sent' : (m.is_read ? 'read' : 'delivered'),
+            status: msgStatus,
             is_edited: m.is_edited,
-            is_deleted_everyone: m.is_deleted_everyone
+            is_deleted_everyone: m.is_deleted_everyone,
+            reply_to: m.reply_to,
+            reply_text: m.reply_text,
+            reply_sender: m.reply_sender
           };
         });
         
@@ -263,6 +280,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       receiver: chat.username,
       text: textToSend,
       time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+      rawDate: new Date().toISOString(),
       status: 'sending',
       reply_to: replyingTo?.id || null,
       reply_text: replyingTo?.text || null,
@@ -332,26 +350,30 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const confirmSendImage = async () => {
     if (!selectedImage) return;
     
-    const resBlob = await fetch(selectedImage);
-    const blob = await resBlob.blob();
-    const formData = new FormData();
-    formData.append('image', blob, 'chat_image.jpg');
-    
     try {
-      const uploadRes = await fetch(`${API_URL}/api/messages/upload`, {
-        method: 'POST',
-        body: formData
-      });
-      if (!uploadRes.ok) {
-        throw new Error("Gagal upload gambar ke server");
-      }
-      const uploadResData = await uploadRes.json();
-      
-      const baseText = `R2_IMAGE|||${uploadResData.key}|||${uploadResData.imageUrl}`;
-      let textToSend = baseText;
-      if (imageCaption.trim()) {
-        textToSend = baseText + '|||CAPTION|||' + imageCaption.trim();
-      }
+        const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+        const resBlob = await fetch(selectedImage);
+        const blob = await resBlob.blob();
+        const formData = new FormData();
+        formData.append('image', blob);
+        
+        const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+          method: 'POST',
+          body: formData
+        });
+        if (!uploadRes.ok) {
+          throw new Error("Gagal upload gambar ke ImgBB");
+        }
+        const uploadResData = await uploadRes.json();
+        if (!uploadResData.success) {
+          throw new Error("ImgBB tidak merespon sukses");
+        }
+        
+        const baseText = `IMGBB_IMAGE|||${uploadResData.data.url}`;
+        let textToSend = baseText;
+        if (imageCaption.trim()) {
+            textToSend = baseText + '|||CAPTION|||' + imageCaption.trim();
+        }
       
       const tempId = `temp-${Date.now()}`;
       const newMsg = {
@@ -360,6 +382,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         receiver: chat.username,
         text: textToSend,
         time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+        rawDate: new Date().toISOString(),
         status: 'sending',
         reply_to: replyingTo?.id || null,
         reply_text: replyingTo?.text || null,
@@ -485,9 +508,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
     const getInitialImgSrc = () => {
-      if (base64Part.startsWith('data:image/')) return base64Part;
-      if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
-      return null;
+        if (base64Part.startsWith('data:image/')) return base64Part;
+        if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
+        if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
+        return null;
     };
     
     const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
@@ -525,10 +549,23 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             return;
           }
 
+            if (base64Part.startsWith('IMGBB_IMAGE|||')) {
+              const url = base64Part.split('|||')[1];
+              
+              const localStored = await localforage.getItem(`r2_media_${msgId}`);
+              if (localStored) {
+                if (isMounted) setImgSrc(localStored);
+                return;
+              }
+              
+              if (isMounted) setImgSrc(url);
+              return;
+            }
+
           if (base64Part.startsWith('R2_IMAGE|||')) {
             const parts = base64Part.split('|||');
             const key = parts[1];
-            const imageUrl = parts[2];
+            let imageUrl = parts[2];
             
             // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
             const localStored = await localforage.getItem(`r2_media_${msgId}`);
@@ -645,7 +682,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       base64Part = rawText;
     }
 
-    if (base64Part.startsWith('data:image/') || base64Part.startsWith('R2_IMAGE|||') || base64Part === 'MEDIA_DELETED' || base64Part === 'MEDIA_LOCAL_SAVED') {
+    if (base64Part.startsWith('data:image/') || base64Part.startsWith('R2_IMAGE|||') || base64Part.startsWith('IMGBB_IMAGE|||') || base64Part === 'MEDIA_DELETED' || base64Part === 'MEDIA_LOCAL_SAVED') {
       return (
         <MediaMessage 
           msg={msg}
