@@ -173,7 +173,7 @@ async function initDb() {
       const bcrypt = require('bcryptjs');
       const hash = await bcrypt.hash('123456', 10);
       await db.execute({
-        sql: `INSERT INTO users (username, name, email, password, avatar, bio) VALUES (?, ?, ?, ?, ?, ?)`,
+        sql: `INSERT INTO users (username, display_name, email, password, avatar, bio) VALUES (?, ?, ?, ?, ?, ?)`,
         args: ['imo_ai', 'Imo AI', 'imo_ai@local.dev', hash, 'https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai', 'Saya adalah asisten AI super pintar!']
       });
     } catch (e) {}
