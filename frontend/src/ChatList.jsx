@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, MessageSquare, Phone, Users, Settings, LogOut, Check, CheckCheck, Moon, Trash2, Info, Bell, Plus, MoreVertical, Edit2, Image as ImageIcon, MessageCircle, User, Loader2, Play, Pause } from 'lucide-react';
+import { Search, X, MessageSquare, Phone, Users, Settings, LogOut, Check, CheckCheck, Moon, Trash2, Info, Bell, Plus, MoreVertical, Edit2, Image as ImageIcon, MessageCircle, User, Loader2, Play, Pause, SkipBack, SkipForward } from 'lucide-react';
 import ChatRoom from './ChatRoom';
 import ContactList from './ContactList';
 import MomentList from './MomentList';
@@ -40,6 +40,7 @@ const ChatList = ({ onLogout, currentUser }) => {
   // Music Player State
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [musicResults, setMusicResults] = useState([]);
   const audioRef = useRef(null);
 
   const handlePlayPause = (track) => {
@@ -66,6 +67,22 @@ const ChatList = ({ onLogout, currentUser }) => {
     }
   };
 
+  const playNext = () => {
+    if (!currentTrack || musicResults.length === 0) return;
+    const currentIndex = musicResults.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex >= 0 && currentIndex < musicResults.length - 1) {
+      handlePlayPause(musicResults[currentIndex + 1]);
+    }
+  };
+
+  const playPrev = () => {
+    if (!currentTrack || musicResults.length === 0) return;
+    const currentIndex = musicResults.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex > 0) {
+      handlePlayPause(musicResults[currentIndex - 1]);
+    }
+  };
+
   useEffect(() => {
     if ('mediaSession' in navigator && currentTrack) {
       navigator.mediaSession.metadata = new MediaMetadata({
@@ -85,8 +102,10 @@ const ChatList = ({ onLogout, currentUser }) => {
         if (audioRef.current) audioRef.current.pause(); 
         setIsPlaying(false); 
       });
+      navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
+      navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
     }
-  }, [currentTrack]);
+  }, [currentTrack, musicResults]);
 
   useEffect(() => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
@@ -306,15 +325,6 @@ const ChatList = ({ onLogout, currentUser }) => {
     }
   };
 
-  if (activeChat) {
-    const isFriend = contactsData.friends?.some(f => f.username === activeChat.username) || false;
-    return <ChatRoom chat={activeChat} onBack={closeModal} currentUser={currentUser} isFriend={isFriend} />;
-  }
-
-  if (activeFavoriteUser) {
-    return <FavoriteRoom partner={activeFavoriteUser} onBack={closeModal} currentUser={currentUser} />;
-  }
-
   const filteredChats = chats.filter(chat => {
     if (searchQuery && (!chat.name || !chat.name.toLowerCase().includes(searchQuery.toLowerCase())) && (!chat.username || !chat.username.toLowerCase().includes(searchQuery.toLowerCase()))) return false;
     if (activeFilter === 'Online' && !chat.online) return false;
@@ -407,8 +417,25 @@ const ChatList = ({ onLogout, currentUser }) => {
   };
 
   return (
-    <div className="chat-app">
-      <div className="chat-header-bar">
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {currentTrack && (
+        <audio
+          ref={audioRef}
+          src={`https://api.audius.co/v1/tracks/${currentTrack.id}/stream?app_name=chatapp`}
+          onEnded={() => setIsPlaying(false)}
+          onPause={() => setIsPlaying(false)}
+          onPlay={() => setIsPlaying(true)}
+          autoPlay
+        />
+      )}
+
+      {activeChat ? (
+        <ChatRoom chat={activeChat} onBack={closeModal} currentUser={currentUser} isFriend={contactsData.friends?.some(f => f.username === activeChat.username) || false} />
+      ) : activeFavoriteUser ? (
+        <FavoriteRoom partner={activeFavoriteUser} onBack={closeModal} currentUser={currentUser} />
+      ) : (
+        <div className="chat-app" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <div className="chat-header-bar">
         {selectionMode ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw', width: '100%' }}>
             <X size={24} style={{ cursor: 'pointer', color: 'white' }} onClick={closeModal} />
@@ -426,7 +453,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           </div>
         ) : (
           <>
-            <div className="header-left">
+            <div className="header-left" style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
               <div className="logo-icon small">
                 <div className="logo-dots small">
                   <div className="logo-dot"></div>
@@ -444,7 +471,26 @@ const ChatList = ({ onLogout, currentUser }) => {
                   style={{ background: 'transparent', border: 'none', color: 'white', outline: 'none', fontSize: '16px', width: '150px' }}
                 />
               ) : (
-                <div className="header-title">Chatter</div>
+                <div className="header-title" style={{ marginRight: '15px' }}>Chatter</div>
+              )}
+              
+              {/* Mini Audio Player in Header */}
+              {currentTrack && !isSearching && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '20px', marginLeft: 'auto' }}>
+                  <SkipBack size={16} color="white" onClick={playPrev} style={{ cursor: 'pointer' }} />
+                  {isPlaying ? (
+                    <Pause size={18} color="var(--primary)" onClick={() => handlePlayPause(currentTrack)} style={{ cursor: 'pointer' }} />
+                  ) : (
+                    <Play size={18} color="white" onClick={() => handlePlayPause(currentTrack)} style={{ cursor: 'pointer' }} />
+                  )}
+                  <SkipForward size={16} color="white" onClick={playNext} style={{ cursor: 'pointer' }} />
+                  <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }}></div>
+                  <X size={16} color="#EF4444" onClick={() => {
+                    setCurrentTrack(null);
+                    setIsPlaying(false);
+                    if (audioRef.current) audioRef.current.pause();
+                  }} style={{ cursor: 'pointer' }} />
+                </div>
               )}
             </div>
             <div className="header-actions" style={{ position: 'relative' }} ref={settingsRef}>
@@ -779,7 +825,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           onRefreshContacts={fetchContacts}
         />
       )}
-      {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} />}
+      {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />}
       {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} />}
       {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser} />}
 
@@ -820,78 +866,6 @@ const ChatList = ({ onLogout, currentUser }) => {
         </div>
       )}
 
-      {/* Floating Audio Player */}
-      {currentTrack && (
-        <div style={{
-          position: 'fixed',
-          bottom: '80px',
-          left: '10px',
-          right: '10px',
-          background: 'var(--dark-surface)',
-          padding: '10px 15px',
-          borderRadius: '12px',
-          border: '1px solid var(--primary)',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '12px',
-          boxShadow: '0 -4px 10px rgba(0,0,0,0.5)',
-          zIndex: 100
-        }}>
-          <img
-            src={currentTrack.artwork && currentTrack.artwork['150x150'] ? currentTrack.artwork['150x150'] : 'https://via.placeholder.com/150'}
-            alt="Playing"
-            style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
-          />
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'white' }}>
-              {currentTrack.title}
-            </div>
-            <div style={{ color: 'var(--dark-text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-              {currentTrack.user?.name || 'Unknown Artist'}
-            </div>
-          </div>
-          <button
-            onClick={() => handlePlayPause(currentTrack)}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--primary)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '5px'
-            }}
-          >
-            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-          </button>
-          <button
-            onClick={() => {
-              setCurrentTrack(null);
-              setIsPlaying(false);
-              if (audioRef.current) audioRef.current.pause();
-            }}
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--dark-text-muted)',
-              cursor: 'pointer',
-              display: 'flex',
-              alignItems: 'center',
-              padding: '5px'
-            }}
-          >
-            <X size={20} />
-          </button>
-          <audio
-            ref={audioRef}
-            src={`https://api.audius.co/v1/tracks/${currentTrack.id}/stream?app_name=chatapp`}
-            onEnded={() => setIsPlaying(false)}
-            onPause={() => setIsPlaying(false)}
-            onPlay={() => setIsPlaying(true)}
-            autoPlay
-          />
-        </div>
-      )}
 
       <div className="bottom-nav">
         <div className={`nav-item ${activeNav === 'chat' ? 'active' : ''}`} onClick={() => handleNavChange('chat')}>
@@ -940,6 +914,8 @@ const ChatList = ({ onLogout, currentUser }) => {
           <span>Profil</span>
         </div>
       </div>
+      </div>
+    )}
     </div>
   );
 };

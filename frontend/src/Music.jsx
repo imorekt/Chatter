@@ -1,13 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Play, X, Music as MusicIcon, Loader2, Pause } from 'lucide-react';
+import { Search, Play, X, Music as MusicIcon, Loader2, Pause, Clock } from 'lucide-react';
 import { notify } from './utils/toast';
+import localforage from 'localforage';
 
-const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
+const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusicResults }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
-  const [results, setResults] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [recentPlays, setRecentPlays] = useState([]);
+
+  // Load recent plays
+  useEffect(() => {
+    localforage.getItem('music_recent_plays').then((data) => {
+      if (data) setRecentPlays(data);
+    });
+  }, []);
+
+  const onPlayClick = (item) => {
+    handlePlayPause(item);
+    
+    // Save to recent plays
+    setRecentPlays(prev => {
+      const filtered = prev.filter(t => t.id !== item.id);
+      const updated = [item, ...filtered].slice(0, 20); // Keep last 20
+      localforage.setItem('music_recent_plays', updated);
+      return updated;
+    });
+  };
 
   // Debounce logic
   useEffect(() => {
@@ -19,7 +39,7 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
 
   useEffect(() => {
     if (!debouncedQuery.trim()) {
-      setResults([]);
+      setMusicResults([]);
       setError('');
       return;
     }
@@ -34,9 +54,9 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
         const json = await response.json();
 
         if (json.data && json.data.length > 0) {
-          setResults(json.data);
+          setMusicResults(json.data);
         } else {
-          setResults([]);
+          setMusicResults([]);
           setError('Musik tidak ditemukan di Audius');
         }
       } catch (err) {
@@ -90,15 +110,77 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
         </div>
       )}
 
-      {error && !isLoading && (
+      {error && !isLoading && debouncedQuery && (
         <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '40px' }}>
           {error}
         </div>
       )}
 
-      {!isLoading && !error && results.length > 0 && (
+      {!debouncedQuery && !isLoading && recentPlays.length > 0 && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--dark-text-muted)' }}>
+            <Clock size={16} />
+            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Terakhir Diputar</h3>
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {recentPlays.map((item) => (
+              <div
+                key={item.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '12px',
+                  background: currentTrack && currentTrack.id === item.id ? 'rgba(101, 31, 255, 0.15)' : 'var(--dark-surface)',
+                  padding: '12px',
+                  borderRadius: '12px',
+                  border: currentTrack && currentTrack.id === item.id ? '1px solid var(--primary)' : '1px solid var(--dark-border)',
+                  transition: 'all 0.2s ease'
+                }}
+              >
+                <img
+                  src={item.artwork && item.artwork['150x150'] ? item.artwork['150x150'] : 'https://via.placeholder.com/150'}
+                  alt={item.title}
+                  style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.title}
+                  </div>
+                  <div style={{ color: 'var(--dark-text-muted)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    {item.user?.name || 'Unknown Artist'}
+                  </div>
+                </div>
+                <button
+                  onClick={() => onPlayClick(item)}
+                  style={{
+                    background: 'var(--primary)',
+                    border: 'none',
+                    color: 'white',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  {currentTrack && currentTrack.id === item.id && isPlaying ? (
+                    <Pause size={20} />
+                  ) : (
+                    <Play size={20} style={{ marginLeft: '2px' }} />
+                  )}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {!isLoading && !error && debouncedQuery && musicResults.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-          {results.map((item) => (
+          {musicResults.map((item) => (
             <div
               key={item.id}
               style={{
@@ -126,7 +208,7 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause }) => {
                 </div>
               </div>
               <button
-                onClick={() => handlePlayPause(item)}
+                onClick={() => onPlayClick(item)}
                 style={{
                   background: 'var(--primary)',
                   border: 'none',

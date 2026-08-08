@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download } from 'lucide-react';
 
 import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
@@ -59,6 +59,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageCaption, setImageCaption] = useState('');
   const [previewModalImage, setPreviewModalImage] = useState(null);
+  
+
   
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
@@ -164,7 +166,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const scrollToBottom = (behavior = 'smooth') => {
     if (!selectionMode) {
-      messagesEndRef.current?.scrollIntoView({ behavior });
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior });
+      }, 150);
     }
   };
 
@@ -316,8 +320,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       const img = new Image();
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 1920;
+        const MAX_HEIGHT = 1920;
         let width = img.width;
         let height = img.height;
 
@@ -331,7 +335,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         
-        setSelectedImage(canvas.toDataURL('image/jpeg', 0.6));
+        setSelectedImage(canvas.toDataURL('image/jpeg', 0.7));
         setImageCaption('');
       };
       img.onerror = () => {
@@ -1239,11 +1243,50 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.95)', backdropFilter: 'blur(8px)',
-          display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10002,
-          padding: '2cqh'
+          zIndex: 10002, display: 'flex', flexDirection: 'column',
+          justifyContent: 'center', alignItems: 'center', padding: '2cqh'
         }} onClick={() => setPreviewModalImage(null)}>
-          <X size={24} color="white" style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', zIndex: 10003 }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
-          <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '90%', objectFit: 'contain' }} onClick={(e) => e.stopPropagation()} />
+          <div style={{ position: 'absolute', top: '4cqh', right: '4cqw', display: 'flex', gap: '4cqw', zIndex: 10003 }}>
+            <X size={24} color="white" style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.2)', padding: '2cqw', borderRadius: '50%' }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
+          </div>
+          <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '80%', objectFit: 'contain', marginBottom: '4cqh' }} onClick={(e) => e.stopPropagation()} />
+          <div 
+            onClick={async (e) => {
+              e.stopPropagation();
+              try {
+                const res = await fetch(previewModalImage);
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = `chatapp-image-${Date.now()}.jpg`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(blobUrl);
+                notify.success('Gambar disimpan!');
+              } catch (err) {
+                console.error('Download failed', err);
+                window.open(previewModalImage, '_blank');
+              }
+            }}
+            style={{
+              background: 'rgba(255,255,255,0.15)',
+              padding: '2cqw 4cqw',
+              borderRadius: '20px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '2cqw',
+              cursor: 'pointer',
+              color: 'white',
+              fontSize: '3.5cqw',
+              fontWeight: '500',
+              border: '1px solid rgba(255,255,255,0.3)',
+              backdropFilter: 'blur(4px)'
+            }}
+          >
+            <Download size={16} /> Simpan Gambar
+          </div>
         </div>
       )}
 
