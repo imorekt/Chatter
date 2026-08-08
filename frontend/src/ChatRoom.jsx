@@ -27,6 +27,166 @@ const formatDateDivider = (dateString) => {
   }
 };
 
+const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
+    const getInitialImgSrc = () => {
+        if (base64Part.startsWith('data:image/')) return base64Part;
+        if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
+        if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
+        return null;
+    };
+    
+    const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
+    const [isFailed, setIsFailed] = useState(false);
+    const msgId = msg.id;
+    
+    const holdTimeout = useRef(null);
+    const [isHolding, setIsHolding] = useState(false);
+
+    const handleTouchStart = () => {
+      if (selectionMode) return;
+      setIsHolding(false);
+      holdTimeout.current = setTimeout(() => {
+        setIsHolding(true);
+        setLongPressMessage(msg);
+      }, 500);
+    };
+
+    const handleTouchEnd = () => {
+      if (holdTimeout.current) clearTimeout(holdTimeout.current);
+    };
+    
+    useEffect(() => {
+      let isMounted = true;
+      const loadMedia = async () => {
+        try {
+          if (base64Part.startsWith('data:image/')) {
+            // Old system / backward compatibility
+            setImgSrc(base64Part);
+            return;
+          }
+          
+          if (base64Part === 'MEDIA_DELETED') {
+            setIsFailed(true);
+            return;
+          }
+
+            if (base64Part.startsWith('IMGBB_IMAGE|||')) {
+              const url = base64Part.split('|||')[1];
+              
+              const localStored = await localforage.getItem(`r2_media_${msgId}`);
+              if (localStored) {
+                if (isMounted) setImgSrc(localStored);
+                return;
+              }
+              
+              if (isMounted) setImgSrc(url);
+              return;
+            }
+
+          if (base64Part.startsWith('R2_IMAGE|||')) {
+            const parts = base64Part.split('|||');
+            const key = parts[1];
+            let imageUrl = parts[2];
+            
+            // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
+            const localStored = await localforage.getItem(`r2_media_${msgId}`);
+            if (localStored) {
+              if (isMounted) setImgSrc(localStored);
+              return;
+            }
+
+            // Jika belum di-download, tampilkan dulu dari R2 Url
+            if (isMounted) setImgSrc(imageUrl);
+
+            // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
+            if (!isMe) {
+              try {
+                // Download image as blob
+                const response = await fetch(imageUrl);
+                const blob = await response.blob();
+                
+                // Convert blob to base64 for Capacitor Filesystem
+                const reader = new FileReader();
+                reader.onloadend = async () => {
+                  const base64data = reader.result;
+                  try {
+                    // Save to local device (Documents folder)
+                    const fileName = `chat_image_${Date.now()}.jpg`;
+                    await Filesystem.writeFile({
+                      path: fileName,
+                      data: base64data,
+                      directory: Directory.Documents
+                    });
+                    
+                    // Save to localforage cache so it doesn't download again
+                    await localforage.setItem(`r2_media_${msgId}`, base64data);
+                    
+                    if (isMounted) {
+                      setImgSrc(base64data);
+                    }
+                    
+                    // Trigger Auto Delete from Server after 1 minute (60000 ms)
+                    setTimeout(() => {
+                      fetch(`${API_URL}/api/messages/media/${msgId}`, { method: 'DELETE' }).catch(console.error);
+                    }, 60000);
+                    
+                  } catch (e) {
+                    console.error("Gagal menyimpan ke galeri", e);
+                  }
+                };
+                reader.readAsDataURL(blob);
+              } catch (e) {
+                console.error("Gagal mengunduh gambar", e);
+              }
+            }
+          }
+        } catch (err) {
+          if (isMounted) setIsFailed(true);
+        }
+      };
+      loadMedia();
+      return () => { isMounted = false; };
+    }, [msgId, base64Part, isMe]);
+
+    return (
+      <div>
+        {imgSrc && !isFailed ? (
+          <img 
+            src={imgSrc} 
+            alt="Gambar" 
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onMouseDown={handleTouchStart}
+            onMouseUp={handleTouchEnd}
+            onMouseLeave={handleTouchEnd}
+            onClick={(e) => {
+              if (selectionMode) return;
+              e.stopPropagation();
+              if (isHolding) return;
+              setPreviewModalImage(imgSrc);
+            }}
+            style={{ 
+              maxWidth: '55cqw', 
+              maxHeight: '350px', 
+              borderRadius: '2cqw', 
+              display: 'block', 
+              margin: '0.5cqh 0', 
+              objectFit: 'cover',
+              cursor: selectionMode ? 'pointer' : 'zoom-in',
+              transition: 'transform 0.15s ease'
+            }} 
+          />
+        ) : (
+          <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
+            <ImageOff size={18} color="#ef4444" />
+            <span>Gambar {isFailed || base64Part === 'MEDIA_DELETED' ? 'telah dihapus (View Once)' : 'sedang dimuat...'}</span>
+          </div>
+        )}
+        {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
+      </div>
+    );
+  };
+
 const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const cacheKey = `${currentUser}_${chat.username}`;
   const [messages, setMessages] = useState(cachedMessages[cacheKey] || []);
@@ -163,6 +323,27 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       document.removeEventListener('touchstart', handleClickOutside);
     };
   }, [showEmojiPicker]);
+
+
+  useEffect(() => {
+    const handleResize = () => {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      }, 150);
+    };
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    } else {
+      window.addEventListener('resize', handleResize);
+    }
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      } else {
+        window.removeEventListener('resize', handleResize);
+      }
+    };
+  }, []);
 
   const scrollToBottom = (behavior = 'smooth') => {
     if (!selectionMode) {
@@ -510,166 +691,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
 
-  const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
-    const getInitialImgSrc = () => {
-        if (base64Part.startsWith('data:image/')) return base64Part;
-        if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
-        if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
-        return null;
-    };
-    
-    const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
-    const [isFailed, setIsFailed] = useState(false);
-    const msgId = msg.id;
-    
-    const holdTimeout = useRef(null);
-    const [isHolding, setIsHolding] = useState(false);
-
-    const handleTouchStart = () => {
-      if (selectionMode) return;
-      setIsHolding(false);
-      holdTimeout.current = setTimeout(() => {
-        setIsHolding(true);
-        setLongPressMessage(msg);
-      }, 500);
-    };
-
-    const handleTouchEnd = () => {
-      if (holdTimeout.current) clearTimeout(holdTimeout.current);
-    };
-    
-    useEffect(() => {
-      let isMounted = true;
-      const loadMedia = async () => {
-        try {
-          if (base64Part.startsWith('data:image/')) {
-            // Old system / backward compatibility
-            setImgSrc(base64Part);
-            return;
-          }
-          
-          if (base64Part === 'MEDIA_DELETED') {
-            setIsFailed(true);
-            return;
-          }
-
-            if (base64Part.startsWith('IMGBB_IMAGE|||')) {
-              const url = base64Part.split('|||')[1];
-              
-              const localStored = await localforage.getItem(`r2_media_${msgId}`);
-              if (localStored) {
-                if (isMounted) setImgSrc(localStored);
-                return;
-              }
-              
-              if (isMounted) setImgSrc(url);
-              return;
-            }
-
-          if (base64Part.startsWith('R2_IMAGE|||')) {
-            const parts = base64Part.split('|||');
-            const key = parts[1];
-            let imageUrl = parts[2];
-            
-            // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
-            const localStored = await localforage.getItem(`r2_media_${msgId}`);
-            if (localStored) {
-              if (isMounted) setImgSrc(localStored);
-              return;
-            }
-
-            // Jika belum di-download, tampilkan dulu dari R2 Url
-            if (isMounted) setImgSrc(imageUrl);
-
-            // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
-            if (!isMe) {
-              try {
-                // Download image as blob
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                
-                // Convert blob to base64 for Capacitor Filesystem
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                  const base64data = reader.result;
-                  try {
-                    // Save to local device (Documents folder)
-                    const fileName = `chat_image_${Date.now()}.jpg`;
-                    await Filesystem.writeFile({
-                      path: fileName,
-                      data: base64data,
-                      directory: Directory.Documents
-                    });
-                    
-                    // Save to localforage cache so it doesn't download again
-                    await localforage.setItem(`r2_media_${msgId}`, base64data);
-                    
-                    if (isMounted) {
-                      setImgSrc(base64data);
-                    }
-                    
-                    // Trigger Auto Delete from Server after 1 minute (60000 ms)
-                    setTimeout(() => {
-                      fetch(`${API_URL}/api/messages/media/${msgId}`, { method: 'DELETE' }).catch(console.error);
-                    }, 60000);
-                    
-                  } catch (e) {
-                    console.error("Gagal menyimpan ke galeri", e);
-                  }
-                };
-                reader.readAsDataURL(blob);
-              } catch (e) {
-                console.error("Gagal mengunduh gambar", e);
-              }
-            }
-          }
-        } catch (err) {
-          if (isMounted) setIsFailed(true);
-        }
-      };
-      loadMedia();
-      return () => { isMounted = false; };
-    }, [msgId, base64Part, isMe]);
-
-    return (
-      <div>
-        {imgSrc && !isFailed ? (
-          <img 
-            src={imgSrc} 
-            alt="Gambar" 
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleTouchStart}
-            onMouseUp={handleTouchEnd}
-            onMouseLeave={handleTouchEnd}
-            onClick={(e) => {
-              if (selectionMode) return;
-              e.stopPropagation();
-              if (isHolding) return;
-              setPreviewModalImage(imgSrc);
-            }}
-            style={{ 
-              maxWidth: '55cqw', 
-              maxHeight: '40cqh', 
-              borderRadius: '2cqw', 
-              display: 'block', 
-              margin: '0.5cqh 0', 
-              objectFit: 'cover',
-              cursor: selectionMode ? 'pointer' : 'zoom-in',
-              transition: 'transform 0.15s ease'
-            }} 
-          />
-        ) : (
-          <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
-            <ImageOff size={18} color="#ef4444" />
-            <span>Gambar {isFailed || base64Part === 'MEDIA_DELETED' ? 'telah dihapus (View Once)' : 'sedang dimuat...'}</span>
-          </div>
-        )}
-        {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
-      </div>
-    );
-  };
-
   const renderMediaContent = (msg, isMe) => {
     const rawText = msg.text;
     const msgId = msg.id;
@@ -704,6 +725,20 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   };
 
   const renderMessages = () => {
+    const getReplyThumbnail = (text) => {
+      if (!text) return null;
+      if (text.startsWith('IMGBB_IMAGE|||')) return text.split('|||')[1];
+      if (text.startsWith('R2_IMAGE|||')) return text.split('|||')[2];
+      if (text.startsWith('data:image/')) return text.includes('|||CAPTION|||') ? text.split('|||CAPTION|||')[0] : text;
+      return null;
+    };
+    const getReplyText = (text) => {
+      if (!text) return '';
+      if (text.includes('|||CAPTION|||')) return '📷 ' + text.split('|||CAPTION|||')[1];
+      if (text.startsWith('IMGBB_IMAGE|||') || text.startsWith('R2_IMAGE|||') || text.startsWith('data:image/') || text === 'MEDIA_LOCAL_SAVED' || text === 'MEDIA_DELETED') return '📷 Foto';
+      return text;
+    };
+
     const elements = [];
     let lastDateLabel = null;
 
@@ -790,11 +825,16 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 {msg.reply_to && msg.reply_text && (
                   <div 
                     onClick={(e) => { e.stopPropagation(); const el = document.getElementById(`msg-${msg.reply_to}`); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('blink-once'); setTimeout(() => el.classList.remove('blink-once'), 2000); } }}
-                    style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'column' }}>
-                    <span style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>{msg.reply_sender === currentUser ? 'Anda' : (msg.reply_sender === chat.username ? chat.name : msg.reply_sender)}</span>
-                    <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                      {msg.reply_text.includes('|||CAPTION|||') ? '📷 Foto' : msg.reply_text.startsWith('data:image/') || msg.reply_text === 'MEDIA_LOCAL_SAVED' ? '📷 Foto' : msg.reply_text}
-                    </span>
+                    style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0 }}>
+                      <span style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>{msg.reply_sender === currentUser ? 'Anda' : (msg.reply_sender === chat.username ? chat.name : msg.reply_sender)}</span>
+                      <span style={{ color: 'rgba(255,255,255,0.8)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {getReplyText(msg.reply_text)}
+                      </span>
+                    </div>
+                    {getReplyThumbnail(msg.reply_text) && (
+                      <img src={getReplyThumbnail(msg.reply_text)} alt="thumbnail" style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', flexShrink: 0 }} />
+                    )}
                   </div>
                 )}
                 {renderMediaContent(msg, msg.sender === 'me')}
