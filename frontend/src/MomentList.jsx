@@ -45,6 +45,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   const [commentActionModal, setCommentActionModal] = useState(null);
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentContent, setEditCommentContent] = useState('');
+  const [mentionPopupMomentId, setMentionPopupMomentId] = useState(null);
   const commentPressTimer = useRef(null);
   const fileInputRef = useRef(null);
   
@@ -607,7 +608,21 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end' }}>
+                  <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
+                    {mentionPopupMomentId === moment.id && (
+                      <div style={{ position: 'absolute', bottom: '100%', left: '0', marginBottom: '8px', background: 'var(--dark-surface)', padding: '8px 12px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', width: 'max-content' }}
+                           onClick={() => {
+                               setCommentTexts(prev => ({
+                                   ...prev, 
+                                   [moment.id]: (prev[moment.id] || '').replace(/@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai ')
+                               }));
+                               setMentionPopupMomentId(null);
+                               document.getElementById(`comment-input-${moment.id}`)?.focus();
+                           }}>
+                        <div style={{ fontSize: '18px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</div>
+                        <div style={{ color: 'white', fontWeight: 'bold', fontSize: '13px' }}>imo_ai <span style={{ color: 'var(--dark-text-muted)', fontSize: '11px', fontWeight: 'normal' }}>- Asisten AI</span></div>
+                      </div>
+                    )}
                     <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
                       <textarea 
                         id={`comment-input-${moment.id}`}
@@ -615,7 +630,15 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                         rows={1}
                         placeholder="Tulis komentar..."
                         value={commentTexts[moment.id] || ''}
-                        onChange={(e) => setCommentTexts(prev => ({...prev, [moment.id]: e.target.value}))}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setCommentTexts(prev => ({...prev, [moment.id]: val}));
+                          if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
+                            setMentionPopupMomentId(moment.id);
+                          } else {
+                            if (mentionPopupMomentId === moment.id) setMentionPopupMomentId(null);
+                          }
+                        }}
                         style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '3cqw', padding: '1cqh 3cqw', color: 'white', outline: 'none', resize: 'none', fontSize: 'var(--font-caption)', fontFamily: 'inherit', minHeight: '4.5cqh', overflowY: 'auto' }}
                         onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 36) + 'px'; }}
                       />
