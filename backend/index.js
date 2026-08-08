@@ -1025,7 +1025,8 @@ app.post('/api/messages/upload', upload.single('image'), async (req, res) => {
       ContentType: req.file.mimetype,
     }));
     
-    const imageUrl = `${req.protocol}://${req.get('host')}/api/messages/media/download/${fileName}`;
+    const r2PublicUrl = process.env.R2_PUBLIC_URL;
+    const imageUrl = r2PublicUrl ? `${r2PublicUrl}/${fileName}` : `${req.protocol}://${req.get('host')}/api/messages/media/download/${fileName}`;
     res.json({ success: true, key: fileName, imageUrl: imageUrl });
   } catch (err) {
     console.error("R2 Upload Error:", err);

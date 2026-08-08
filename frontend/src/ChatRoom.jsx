@@ -518,11 +518,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           if (base64Part.startsWith('R2_IMAGE|||')) {
             const parts = base64Part.split('|||');
             const key = parts[1];
-            let imageUrl = parts[2];
-            
-            if (imageUrl && imageUrl.includes('.r2.dev/')) {
-              imageUrl = `${API_URL}/api/messages/media/download/${key}`;
-            }
+            const imageUrl = parts[2];
             
             // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
             const localStored = await localforage.getItem(`r2_media_${msgId}`);
