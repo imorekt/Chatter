@@ -430,7 +430,7 @@ const Profile = ({ onLogout, email }) => {
               onCropComplete={onCropComplete}
             />
           </div>
-          <div style={{ padding: '4cqw', display: 'flex', justifyContent: 'space-between', background: 'var(--dark-surface)', alignItems: 'center' }}>
+          <div style={{ padding: '4cqw 4cqw calc(4cqw + 40px) 4cqw', display: 'flex', justifyContent: 'space-between', background: 'var(--dark-surface)', alignItems: 'center' }}>
             <button onClick={() => setImageSrc(null)} style={{ background: 'transparent', border: '1px solid var(--dark-border)', color: 'white', padding: '1.5cqh 4cqw', borderRadius: '2cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}>Batal</button>
             <button onClick={applyCrop} disabled={isCropping} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '1.5cqh 4cqw', borderRadius: '2cqw', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-body)' }}>
               {isCropping ? <Loader2 size={16} className="animate-spin" /> : 'Simpan Foto'}
