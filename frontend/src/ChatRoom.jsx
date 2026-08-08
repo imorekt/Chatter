@@ -774,8 +774,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         }}
         >
           <div style={{
-            background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : '#202c33'),
-            color: '#e9edef',
+            background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : (msg.sender === 'ImoAI' ? '#1e293b' : '#202c33')),
+            color: msg.sender === 'ImoAI' ? '#38bdf8' : '#e9edef',
+            fontFamily: msg.sender === 'ImoAI' ? '"Courier New", Courier, monospace' : 'inherit',
             padding: msg.image_url ? '4px' : (isEmojiOnly ? '0' : '6px 7px 8px 9px'),
             borderRadius: '7.5px',
             borderTopRightRadius: msg.sender === 'me' ? '0px' : '7.5px',
