@@ -1058,7 +1058,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           type="text" 
           value={newMessage}
           onChange={(e) => {
-            setNewMessage(e.target.value);
+            const val = e.target.value;
+            setNewMessage(val);
+            if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo')) {
+              setShowMentionPopup(true);
+            } else {
+              setShowMentionPopup(false);
+            }
           }}
           placeholder={chat.isDeleted ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
           disabled={chat.isDeleted || !!selectionMode}

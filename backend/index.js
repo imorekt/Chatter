@@ -168,6 +168,15 @@ async function initDb() {
     try { await db.execute("ALTER TABLE users ADD COLUMN notif_comment INTEGER DEFAULT 1"); } catch (e) {}
     try { await db.execute("ALTER TABLE notifications ADD COLUMN is_clicked INTEGER DEFAULT 0"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME"); } catch (e) {}
+
+    try {
+      const bcrypt = require('bcryptjs');
+      const hash = await bcrypt.hash('123456', 10);
+      await db.execute({
+        sql: `INSERT INTO users (username, name, email, password, avatar, bio) VALUES (?, ?, ?, ?, ?, ?)`,
+        args: ['ImoAI', 'Imo AI', 'imoai@local.dev', hash, 'https://api.dicebear.com/7.x/bottts/svg?seed=ImoAI', 'Saya adalah asisten AI super pintar!']
+      });
+    } catch (e) {}
   } catch (err) {
     console.error('Error opening database:', err.message);
   }
