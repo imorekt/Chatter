@@ -210,6 +210,19 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       .catch(console.error);
   }, [currentUser]);
 
+  const [imoAiAvatar, setImoAiAvatar] = useState("https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai");
+  
+  useEffect(() => {
+    fetch(`${API_URL}/api/users/imo_ai`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.avatar) {
+          setImoAiAvatar(data.avatar);
+        }
+      })
+      .catch(console.error);
+  }, []);
+
 
   const isFirstLoad = useRef(true);
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
@@ -827,7 +840,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         >
           {msg.sender === 'imo_ai' && (
             <img 
-              src={chat.username === 'imo_ai' && chat.avatar ? chat.avatar : "https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai"} 
+              src={imoAiAvatar} 
               alt="AI" 
               style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }}
             />
