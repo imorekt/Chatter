@@ -16,7 +16,7 @@ const Profile = ({ onLogout, email }) => {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [deleteEmailInput, setDeleteEmailInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
-  const [avatar, setAvatar] = useState(null);
+  const [avatar, setAvatar] = useState(() => localStorage.getItem(`avatar_${email}`) || null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
@@ -41,7 +41,10 @@ const Profile = ({ onLogout, email }) => {
     fetch(`${API_URL}/api/users/${email}`)
       .then(res => res.json())
       .then(data => {
-        if (data.avatar) setAvatar(data.avatar);
+        if (data.avatar) {
+          setAvatar(data.avatar);
+          localStorage.setItem(`avatar_${email}`, data.avatar);
+        }
         if (data.display_name) {
           setDisplayName(data.display_name);
           setOriginalDisplayName(data.display_name);
@@ -128,6 +131,7 @@ const Profile = ({ onLogout, email }) => {
 
       if (res.ok) {
         setAvatar(croppedImage);
+        localStorage.setItem(`avatar_${email}`, croppedImage);
         notify.success('Foto profil berhasil diperbarui!');
       } else {
         notify.error('Gagal menyimpan foto profil ke server.');
