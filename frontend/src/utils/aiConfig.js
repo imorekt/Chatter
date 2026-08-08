@@ -3,7 +3,11 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Kumpulan API Key yang sudah diobfuscate (disamarkan)
 // Untuk menambahkan kunci baru, gunakan script encode_keys.js di folder ChatApp
 const OBFUSCATED_KEYS = [
-  "=EkexI0ROhjTqF3YtA3Tw9VZzEXLQZVN3kVWTpUVUlGRq5kcKNjRrpnRyEET24kU4IWQuEVQ"
+  "=EkexI0ROhjTqF3YtA3Tw9VZzEXLQZVN3kVWTpUVUlGRq5kcKNjRrpnRyEET24kU4IWQuEVQ",
+  "=c3cxI2TPN1U5FnaqNzd6tES1JFRJFEU5MDdqJnUw5mMiZ2TsplM1JVTIZWS24kU4IWQuEVQ",
+  "=EkVzYXZHNmbfN2USZVY4h0b4JWW1UFNa9lay40cxM2c3hmd61kQBh0NqtET24kU4IWQuEVQ",
+  "=EUbkJUcwZzbxNDS2FTbyt0XU9kW0NET5ckeSpXTZhzQHh0Q29kaOJ1N5dWS24kU4IWQuEVQ",
+  "=ElbDZUOHVVajJ2d1UXcvVmNJx0aIN1M4MlNo52c4h3cSdUcCBFexYWL61SS24kU4IWQuEVQ"
 ];
 
 // Helper untuk membuka samaran (deobfuscate) API Key
