@@ -490,6 +490,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     const currentReplyingTo = replyingTo;
     setReplyingTo(null);
     
+    let sentData = null;
     try {
       const res = await fetch(`${API_URL}/api/messages/send`, {
         method: 'POST',
@@ -500,13 +501,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         const data = await res.json();
         throw new Error(data.error || "Gagal mengirim pesan");
       }
+      sentData = await res.json();
       fetchMessages();
     } catch (err) {
       setMessages(prev => prev.filter(m => m.id !== tempId));
       notify.error(err.message || "Gagal mengirim pesan");
     }
 
-    if (textToSend.includes('@imo_ai') || currentReplyingTo?.sender === 'imo_ai') {
+    if ((textToSend.includes('@imo_ai') || currentReplyingTo?.sender === 'imo_ai') && sentData) {
       setIsAiTyping(true);
       const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
       const history = messages.slice(-30);
@@ -516,7 +518,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           const aiRes = await fetch(`${API_URL}/api/messages/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sender: 'imo_ai', recipient: chat.username, text: reply, chat_context: chatContext })
+            body: JSON.stringify({ 
+              sender: 'imo_ai', 
+              recipient: chat.username, 
+              text: reply, 
+              chat_context: chatContext,
+              reply_to: sentData.id,
+              reply_text: sentData.text,
+              reply_sender: sentData.sender 
+            })
           });
           const aiData = await aiRes.json();
           if (!aiData.error) {
@@ -817,9 +827,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         >
           {msg.sender === 'imo_ai' && (
             <img 
-              src="https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai" 
+              src={chat.username === 'imo_ai' && chat.avatar ? chat.avatar : "https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai"} 
               alt="AI" 
-              style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b' }}
+              style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }}
             />
           )}
           <div style={{

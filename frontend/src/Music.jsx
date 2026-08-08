@@ -129,9 +129,9 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '10px',
+                  gap: '8px',
                   background: currentTrack && currentTrack.id === item.id ? 'rgba(101, 31, 255, 0.15)' : 'var(--dark-surface)',
-                  padding: '8px',
+                  padding: '6px',
                   borderRadius: '10px',
                   border: currentTrack && currentTrack.id === item.id ? '1px solid var(--primary)' : '1px solid var(--dark-border)',
                   transition: 'all 0.2s ease'
@@ -140,13 +140,13 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                 <img
                   src={item.artwork && item.artwork['150x150'] ? item.artwork['150x150'] : 'https://via.placeholder.com/150'}
                   alt={item.title}
-                  style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '6px' }}
+                  style={{ width: '36px', height: '36px', objectFit: 'cover', borderRadius: '6px' }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.title}
                   </div>
-                  <div style={{ color: 'var(--dark-text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ color: 'var(--dark-text-muted)', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.user?.name || 'Unknown Artist'}
                   </div>
                 </div>
@@ -156,8 +156,8 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                     background: 'var(--primary)',
                     border: 'none',
                     color: 'white',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     borderRadius: '50%',
                     display: 'flex',
                     alignItems: 'center',
@@ -219,9 +219,9 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                 }}
               >
                 {currentTrack && currentTrack.id === item.id && isPlaying ? (
-                  <Pause size={20} />
+                  <Pause size={14} fill="white" />
                 ) : (
-                  <Play size={20} style={{ marginLeft: '2px' }} />
+                  <Play size={14} fill="white" style={{ marginLeft: '2px' }} />
                 )}
               </button>
             </div>

@@ -11,7 +11,15 @@ const OBFUSCATED_KEYS = [
   "=cWd1czax0Cc2MGa3RET0QlZ2xGcaF2N6p3VkFHazF3RqRTNzQmT2RnVQpkS24kU4IWQuEVQ",
   "=EkVWtUTxRUW61CNuJEVmRUbOlWM3pmZ6dTZz4GaE5Ga0c3R550T3EVTfpVS24kU4IWQuEVQ",
   "=cWWZNnY4IHaLNjMGJTbCVFW5tmeYtGdtwGdWhmZMlHTJhnT5oGUwsmRS9ET24kU4IWQuEVQ",
-  "=EkNyIUdJJmcUZ1cJRkdUpEWwsULxJ1bHx0TQZ0cFNWMDpFSGhGbMdXeQdVS24kU4IWQuEVQ"
+  "=EkNyIUdJJmcUZ1cJRkdUpEWwsULxJ1bHx0TQZ0cFNWMDpFSGhGbMdXeQdVS24kU4IWQuEVQ",
+  "=cnVZpkQhJDdj1yZWlUS30keGNVT61EdRRjYXJmaNl1cXNjaFRGTf1CRJpET24kU4IWQuEVQ",
+  "=E1T2ElRJFDeaJjSulXL0ZXexkmeXh0aJRnWxZ1R0M2b2o1a3g1bq5kQyNVS24kU4IWQuEVQ",
+  "=cnMHZzcJ1CNrlkehpVUuhmRItEeGNULoV3TpxUOvFTMz0mNVtUbsd2dy5WS24kU4IWQuEVQ",
+  "=cWZXRHMjFUVRZjQMp0U49VUxlDa0JUbi5EdFZFe4gTd00UNXlTezcja2YWS24kU4IWQuEVQ",
+  "=cWd1czax0Cc2MGa3RET0QlZ2xGcaF2N6p3VkFHazF3RqRTNzQmT2RnVQpkS24kU4IWQuEVQ",
+  "=ElbDZUOHVVajJ2d1UXcvVmNJx0aIN1M4MlNo52c4h3cSdUcCBFexYWL61SS24kU4IWQuEVQ",
+  "=EkTIN3QNZldNpGNOJjQfp2S5s0Z30WcVFnNHlWQ6NTOMN1TKpURlhDcINWS24kU4IWQuEVQ",
+  "=cHMhRWYYNHUzhFaxwETNBjQVJGc5F0VXVnRZdGTxZ0V0gVNOZ1QX50N2hDT24kU4IWQuEVQ"
 ];
 
 // Helper untuk membuka samaran (deobfuscate) API Key
@@ -30,7 +38,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     const genAI = new GoogleGenerativeAI(apiKey);
     // Sesuai permintaan: menggunakan Gemini 3.5 Flash (yg tersedia tanpa limit 0)
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-3.5-flash",
+        model: "gemini-1.5-flash",
         systemInstruction: systemInstruction 
     });
 
