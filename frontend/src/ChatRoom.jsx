@@ -224,7 +224,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
     const handleMessagesRead = (data) => {
       if (data.by === chat.username) {
-        fetchMessages();
+        setMessages(prev => {
+          const newMessages = prev.map(m => (m.sender === 'me' && m.status !== 'read') ? { ...m, status: 'read' } : m);
+          cachedMessages[cacheKey] = newMessages;
+          return newMessages;
+        });
       }
     };
 
