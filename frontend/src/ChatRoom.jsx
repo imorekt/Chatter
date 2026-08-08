@@ -484,7 +484,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   };
 
   const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
-    const [imgSrc, setImgSrc] = useState(null);
+    const getInitialImgSrc = () => {
+      if (base64Part.startsWith('data:image/')) return base64Part;
+      if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
+      return null;
+    };
+    
+    const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
     const [isFailed, setIsFailed] = useState(false);
     const msgId = msg.id;
     
