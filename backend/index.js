@@ -5,7 +5,7 @@ const { createClient } = require('@libsql/client');
 const bcrypt = require('bcryptjs');
 const path = require('path');
 const multer = require('multer');
-const { S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3');
+const { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } = require('@aws-sdk/client-s3');
 require('dotenv').config();
 const Pusher = require('pusher');
 
@@ -1025,13 +1025,27 @@ app.post('/api/messages/upload', upload.single('image'), async (req, res) => {
       ContentType: req.file.mimetype,
     }));
     
-    const imageUrl = `https://pub-${process.env.R2_ACCOUNT_ID}.r2.dev/${fileName}`; // Assuming a public URL structure or custom domain if configured. Alternatively we could generate signed URLs. For now returning the key and a dummy URL, but if they use custom domain it's better. We will just return the key and the client can construct it or we return R2 dev domain.
-    // NOTE: To view images, the bucket must allow public access or we need to generate presigned URLs on the fly. 
-    // Assuming the user has a public bucket or we return a presigned URL.
+    const imageUrl = `${req.protocol}://${req.get('host')}/api/messages/media/download/${fileName}`;
     res.json({ success: true, key: fileName, imageUrl: imageUrl });
   } catch (err) {
     console.error("R2 Upload Error:", err);
     res.status(500).json({ error: "Failed to upload image to R2" });
+  }
+});
+
+app.get('/api/messages/media/download/:key', async (req, res) => {
+  try {
+    const command = new GetObjectCommand({
+      Bucket: process.env.R2_BUCKET_NAME,
+      Key: req.params.key
+    });
+    const response = await r2Client.send(command);
+    res.set('Content-Type', response.ContentType);
+    res.set('Cache-Control', 'public, max-age=31536000');
+    response.Body.pipe(res);
+  } catch (err) {
+    console.error("R2 Download Error:", err);
+    res.status(404).send("Image not found");
   }
 });
 
