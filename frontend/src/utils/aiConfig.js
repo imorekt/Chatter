@@ -38,7 +38,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     const genAI = new GoogleGenerativeAI(apiKey);
     // Sesuai permintaan: menggunakan Gemini 3.5 Flash (yg tersedia tanpa limit 0)
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         systemInstruction: systemInstruction 
     });
 
@@ -103,6 +103,6 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     // Jika semua API Key di-loop tapi gagal
-    return "Maaf, semua API Key imo_ai saat ini sedang mengalami limit atau gangguan. Silakan coba lagi nanti.";
+    return "Maaf Kak, imo_ai saat ini sedang mengalami gangguan. Silakan coba lagi nanti ya :)";
 };
 
