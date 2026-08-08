@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock } from 'lucide-react';
 
 import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
@@ -818,7 +818,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               {msg.is_edited === 1 && msg.is_deleted_everyone !== 1 && <span style={{ fontStyle: 'italic', fontSize: '10px', marginRight: '4px' }}>(diedit)</span>}
               {msg.time}
               {msg.sender === 'me' && msg.is_deleted_everyone !== 1 && (
-                msg.status === 'sent' ? <Check size={15} /> : <CheckCheck size={15} color={msg.status === 'read' ? '#53bdeb' : 'rgba(255,255,255,0.6)'} />
+                msg.status === 'sending' ? <Clock size={14} color="rgba(255,255,255,0.6)" /> :
+                msg.status === 'sent' ? <Check size={15} /> : 
+                <CheckCheck size={15} color={msg.status === 'read' ? '#53bdeb' : 'rgba(255,255,255,0.6)'} />
               )}
             </div>
           </div>

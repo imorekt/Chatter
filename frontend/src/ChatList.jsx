@@ -474,24 +474,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                 <div className="header-title" style={{ marginRight: '15px' }}>Chatter</div>
               )}
               
-              {/* Mini Audio Player in Header */}
-              {currentTrack && !isSearching && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.1)', padding: '4px 12px', borderRadius: '20px', marginLeft: 'auto' }}>
-                  <SkipBack size={16} color="white" onClick={playPrev} style={{ cursor: 'pointer' }} />
-                  {isPlaying ? (
-                    <Pause size={18} color="var(--primary)" onClick={() => handlePlayPause(currentTrack)} style={{ cursor: 'pointer' }} />
-                  ) : (
-                    <Play size={18} color="white" onClick={() => handlePlayPause(currentTrack)} style={{ cursor: 'pointer' }} />
-                  )}
-                  <SkipForward size={16} color="white" onClick={playNext} style={{ cursor: 'pointer' }} />
-                  <div style={{ width: '1px', height: '16px', background: 'rgba(255,255,255,0.2)', margin: '0 4px' }}></div>
-                  <X size={16} color="#EF4444" onClick={() => {
-                    setCurrentTrack(null);
-                    setIsPlaying(false);
-                    if (audioRef.current) audioRef.current.pause();
-                  }} style={{ cursor: 'pointer' }} />
-                </div>
-              )}
+
             </div>
             <div className="header-actions" style={{ position: 'relative' }} ref={settingsRef}>
               {(showNotifications || showSettings) && (
@@ -863,6 +846,62 @@ const ChatList = ({ onLogout, currentUser }) => {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+
+      {/* Audio Player in Music Tab */}
+      {currentTrack && activeNav === 'music' && (
+        <div style={{
+          background: 'var(--dark-surface)',
+          padding: '10px 15px',
+          borderTop: '1px solid var(--dark-border)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          zIndex: 10
+        }}>
+          <img
+            src={currentTrack.artwork && currentTrack.artwork['150x150'] ? currentTrack.artwork['150x150'] : 'https://via.placeholder.com/150'}
+            alt="Playing"
+            style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'white' }}>
+              {currentTrack.title}
+            </div>
+            <div style={{ color: 'var(--dark-text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentTrack.user?.name || 'Unknown Artist'}
+            </div>
+          </div>
+          <button
+            onClick={playPrev}
+            style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px' }}
+          >
+            <SkipBack size={20} />
+          </button>
+          <button
+            onClick={() => handlePlayPause(currentTrack)}
+            style={{ background: 'var(--primary)', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', width: '36px', height: '36px', borderRadius: '50%' }}
+          >
+            {isPlaying ? <Pause size={18} /> : <Play size={18} style={{ marginLeft: '2px' }} />}
+          </button>
+          <button
+            onClick={playNext}
+            style={{ background: 'transparent', border: 'none', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px' }}
+          >
+            <SkipForward size={20} />
+          </button>
+          <button
+            onClick={() => {
+              setCurrentTrack(null);
+              setIsPlaying(false);
+              if (audioRef.current) audioRef.current.pause();
+            }}
+            style={{ background: 'transparent', border: 'none', color: '#EF4444', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px', marginLeft: '4px' }}
+          >
+            <X size={20} />
+          </button>
         </div>
       )}
 
