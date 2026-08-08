@@ -24,7 +24,7 @@ const getUserColor = (username) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) => {
+const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, selectionMode, selectedItems, toggleSelectItem }) => {
   const [moments, setMoments] = useState(cachedMoments);
   const [loading, setLoading] = useState(cachedMoments.length === 0 && !hasFetchedMoments);
   const [newPost, setNewPost] = useState('');
@@ -47,7 +47,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
   const commentPressTimer = useRef(null);
   const fileInputRef = useRef(null);
   
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     if (cachedMoments.length === 0) {
@@ -462,7 +462,18 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
         moments.map(moment => {
           const hasLiked = moment.liked_by.includes(currentUser);
           return (
-            <div id={`moment-${moment.id}`} key={moment.id} style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '2cqh', transition: 'background-color 0.5s ease' }}>
+            <div id={`moment-${moment.id}`} key={moment.id} onClick={() => { if (selectionMode) toggleSelectItem(moment.id); }} style={{ position: 'relative', background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '2cqh', transition: 'background-color 0.5s ease', cursor: selectionMode ? 'pointer' : 'default', border: selectionMode && selectedItems?.has(moment.id) ? '1px solid var(--primary)' : '1px solid transparent' }}>
+                {selectionMode && (
+                  <div style={{ position: 'absolute', top: '3cqw', right: '3cqw', zIndex: 10 }}>
+                    <input 
+                      type="checkbox" 
+                      checked={selectedItems?.has(moment.id) || false} 
+                      onChange={() => toggleSelectItem(moment.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '20px', height: '20px', cursor: 'pointer' }}
+                    />
+                  </div>
+                )}
               <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
                 {moment.user_avatar ? (
                   <img src={moment.user_avatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
@@ -475,7 +486,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
                   <div style={{ fontWeight: '600', color: getUserColor(moment.username), fontSize: 'var(--font-body)' }}>{moment.user_display_name || moment.username}</div>
                   <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{formatDate(moment.created_at)}</div>
                 </div>
-                {(moment.username === currentUser || currentUser === 'admin1' || currentUser === 'admin2') && (
+                {(moment.username === currentUser || currentUser === 'admin1@local.dev' || currentUser === 'admin2@local.dev') && !selectionMode && (
                   <div style={{ position: 'relative' }}>
                     <div style={{ cursor: 'pointer', padding: '1cqw', color: 'var(--dark-text-muted)' }} onClick={() => setShowMenuId(showMenuId === moment.id ? null : moment.id)}>
                       <MoreVertical size={20} />
@@ -727,3 +738,4 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId }) =>
 };
 
 export default MomentList;
+

@@ -35,7 +35,7 @@ const ChatList = ({ onLogout, currentUser }) => {
   const [isDeletingBulk, setIsDeletingBulk] = useState(false);
   const settingsRef = useRef(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   // Music Player State
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -351,11 +351,11 @@ const ChatList = ({ onLogout, currentUser }) => {
     setShowSettings(false);
     if (action === 'darkmode') notify.success('Tema gelap sudah aktif.');
     if (action === 'delete') {
-      if (activeNav === 'chat' || activeNav === 'kontak') {
+      if (activeNav === 'chat' || activeNav === 'kontak' || activeNav === 'moment') {
         setSelectionMode(activeNav);
         setSelectedItems(new Set());
       } else {
-        notify.info('Fitur hapus dapat digunakan di halaman Chat atau Kontak.');
+        notify.info('Fitur hapus tidak tersedia di halaman ini.');
       }
     }
   };
@@ -387,33 +387,46 @@ const ChatList = ({ onLogout, currentUser }) => {
         } else {
           notify.error('Gagal menghapus obrolan');
         }
-      } else if (selectionMode === 'kontak') {
-        const res = await fetch(`${API_URL}/api/contacts/delete-bulk`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: currentUser, targets: Array.from(selectedItems) })
-        });
-        if (res.ok) {
-          notify.success('Kontak berhasil dihapus');
-          fetch(`${API_URL}/api/contacts/${currentUser}`)
-            .then(res => res.json())
-            .then(data => {
-              setContactsData(data);
-              setPendingRequests(data.pending_received ? data.pending_received.length : 0);
-            });
-          setSelectionMode(null);
-          setSelectedItems(new Set());
-        } else {
-          notify.error('Gagal menghapus kontak');
+        } else if (selectionMode === 'kontak') {
+          const res = await fetch(`${API_URL}/api/contacts/delete-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser, targets: Array.from(selectedItems) })
+          });
+          if (res.ok) {
+            notify.success('Kontak berhasil dihapus');
+            fetch(`${API_URL}/api/contacts/${currentUser}`)
+              .then(res => res.json())
+              .then(data => {
+                setContactsData(data);
+                setPendingRequests(data.pending_received ? data.pending_received.length : 0);
+              });
+            setSelectionMode(null);
+            setSelectedItems(new Set());
+          } else {
+            notify.error('Gagal menghapus kontak');
+          }
+        } else if (selectionMode === 'moment') {
+          const res = await fetch(`${API_URL}/api/moments/delete-bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: currentUser, momentIds: Array.from(selectedItems) })
+          });
+          if (res.ok) {
+            notify.success(`${selectedItems.size} moment berhasil dihapus`);
+            setSelectionMode(null);
+            setSelectedItems(new Set());
+          } else {
+            notify.error('Gagal menghapus moment massal');
+          }
         }
+      } catch (e) {
+        console.error(e);
+        notify.error('Terjadi kesalahan koneksi');
+      } finally {
+        setIsDeletingBulk(false);
+        setShowBulkDeleteConfirm(false);
       }
-    } catch (e) {
-      console.error(e);
-      notify.error('Terjadi kesalahan koneksi');
-    } finally {
-      setIsDeletingBulk(false);
-      setShowBulkDeleteConfirm(false);
-    }
   };
 
   return (
@@ -504,7 +517,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                   </div>
                 )}
               </div>
-              {(activeNav === 'chat' || activeNav === 'kontak') && (
+              {(activeNav === 'chat' || activeNav === 'kontak' || (activeNav === 'moment' && (currentUser === 'admin1@local.dev' || currentUser === 'admin2@local.dev'))) && (
                 <>
                   <div style={{ zIndex: 100 }}>
                     {isSearching ? <X size={20} onClick={handleSearchClick} style={{ cursor: 'pointer' }} /> : <Search size={20} onClick={handleSearchClick} style={{ cursor: 'pointer' }} />}
@@ -809,7 +822,7 @@ const ChatList = ({ onLogout, currentUser }) => {
         />
       )}
       {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />}
-      {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} />}
+      {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} selectionMode={selectionMode === 'moment'} selectedItems={selectedItems} toggleSelectItem={toggleSelectItem} />}
       {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser} />}
 
       {/* Bulk Delete Confirm Modal */}
@@ -960,3 +973,4 @@ const ChatList = ({ onLogout, currentUser }) => {
 };
 
 export default ChatList;
+

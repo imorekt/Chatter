@@ -22,7 +22,7 @@ const Login = ({ onLogin, onGoToRegister }) => {
     return () => clearInterval(timer);
   }, [cooldown]);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const handleLoginSubmit = async (e) => {
     e.preventDefault();
@@ -328,3 +328,4 @@ const Login = ({ onLogin, onGoToRegister }) => {
 };
 
 export default Login;
+

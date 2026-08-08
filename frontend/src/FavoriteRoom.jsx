@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ArrowLeft, Loader2, Check, CheckCheck, MoreVertical, Trash2, X } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const cachedFavorites = {};
 
@@ -270,3 +270,4 @@ const FavoriteRoom = ({ partner, onBack, currentUser }) => {
 };
 
 export default FavoriteRoom;
+

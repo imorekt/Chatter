@@ -23,7 +23,7 @@ const Profile = ({ onLogout, email }) => {
   const [isSavingNotif, setIsSavingNotif] = useState(false);
   const fileInputRef = useRef(null);
 
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     localforage.getItem(`profile_${email}`).then(val => {
@@ -443,3 +443,4 @@ const Profile = ({ onLogout, email }) => {
 };
 
 export default Profile;
+

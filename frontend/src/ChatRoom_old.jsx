@@ -4,7 +4,7 @@ import EmojiPicker from 'emoji-picker-react';
 
 import { notify } from './utils/toast';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const formatDateDivider = (dateString) => {
   const d = new Date(dateString);
@@ -791,3 +791,4 @@ const ChatRoom = ({ chat, onBack, currentUser }) => {
 };
 
 export default ChatRoom;
+

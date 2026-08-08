@@ -9,7 +9,7 @@ import { Filesystem, Directory } from '@capacitor/filesystem';
 import localforage from 'localforage';
 import pusher from './pusher';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
 const cachedMessages = {};
 
@@ -1417,5 +1417,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 };
 
 export default ChatRoom;
+
 
 

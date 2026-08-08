@@ -100,7 +100,8 @@ function App() {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        const res = await fetch(`${import.meta.env.VITE_API_URL}/api/version`);
+        const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API_URL}/api/version`);
         const data = await res.json();
         const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
         if (data.latest_version > currentVersion && data.update_url) {

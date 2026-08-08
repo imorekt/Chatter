@@ -25,7 +25,7 @@ const Register = ({ onBackToLogin }) => {
   }, [cooldown]);
 
   // Fallback to localhost:3001 if API_URL not set
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   const handleRegisterForm = async (e) => {
     e.preventDefault();
@@ -293,3 +293,4 @@ const Register = ({ onBackToLogin }) => {
 };
 
 export default Register;
+

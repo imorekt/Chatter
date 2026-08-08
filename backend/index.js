@@ -456,6 +456,32 @@ app.delete('/api/moments/:id', async (req, res) => {
   }
 });
 
+app.post('/api/moments/delete-bulk', async (req, res) => {
+  const { username, momentIds } = req.body;
+  if (!username || !momentIds || !Array.isArray(momentIds) || momentIds.length === 0) {
+    return res.status(400).json({ error: "Invalid data" });
+  }
+  
+  if (username !== 'admin1@local.dev' && username !== 'admin2@local.dev') {
+    return res.status(403).json({ error: "Forbidden: Not an admin" });
+  }
+
+  try {
+    const placeholders = momentIds.map(() => '?').join(',');
+    
+    await db.execute({ sql: `DELETE FROM moments WHERE id IN (${placeholders})`, args: momentIds });
+    await db.execute({ sql: `DELETE FROM likes WHERE moment_id IN (${placeholders})`, args: momentIds });
+    await db.execute({ sql: `DELETE FROM comments WHERE moment_id IN (${placeholders})`, args: momentIds });
+    await db.execute({ sql: `DELETE FROM notifications WHERE moment_id IN (${placeholders})`, args: momentIds });
+    
+    pusher.trigger('global-events', 'new-moment', {});
+    
+    res.json({ success: true, deleted_count: momentIds.length });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 app.post('/api/moments/like', async (req, res) => {
   const { moment_id, username } = req.body;
   

@@ -18,7 +18,7 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
   const [viewProfileUser, setViewProfileUser] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [previewModalImage, setPreviewModalImage] = useState(null);
-  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+  const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
     if (searchQuery.trim().length > 0) {
@@ -309,3 +309,4 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
 };
 
 export default ContactList;
+
