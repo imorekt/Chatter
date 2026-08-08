@@ -54,7 +54,7 @@ function App() {
       } else {
         // WEB BROWSER INIT
         window.OneSignalDeferred = window.OneSignalDeferred || [];
-        window.OneSignalDeferred.push(async function(OneSignal) {
+        window.OneSignalDeferred.push(async function (OneSignal) {
           await OneSignal.init({
             appId: appId,
             notifyButton: { enable: true },
@@ -87,7 +87,7 @@ function App() {
       }
     } else {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push(async function(OneSignal) {
+      window.OneSignalDeferred.push(async function (OneSignal) {
         if (user) {
           await OneSignal.login(user);
         } else {
@@ -116,7 +116,7 @@ function App() {
 
   const handleUpdate = async () => {
     if (!updateUrl) return;
-    
+
     // Jika di web browser biasa
     if (!window.Capacitor || !window.Capacitor.isNativePlatform()) {
       window.location.href = updateUrl;
@@ -127,25 +127,25 @@ function App() {
     setDownloadProgress(0);
     try {
       const fileName = `update-${Date.now()}.apk`;
-      
+
       const progressListener = await Filesystem.addListener('progress', (status) => {
         if (status.contentLength > 0) {
           const percent = Math.round((status.bytes / status.contentLength) * 100);
           setDownloadProgress(percent);
         }
       });
-      
+
       const downloadRes = await Filesystem.downloadFile({
         url: updateUrl,
         path: fileName,
         directory: Directory.Cache,
         progress: true
       });
-      
+
       await progressListener.remove();
-      
+
       setIsDownloadingUpdate(false);
-      
+
       await FileOpener.open({
         filePath: downloadRes.path,
         contentType: 'application/vnd.android.package-archive'
@@ -176,11 +176,11 @@ function App() {
             borderRadius: '16px', width: '85%', maxWidth: '400px',
             textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
           }}>
-            <h2 style={{ marginBottom: '1rem', color: '#A48BFF' }}>Update Tersedia!</h2>
+            <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
             <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
               Kiw versi baru tersedia,, tolong update ya!
             </p>
-            <button 
+            <button
               onClick={handleUpdate}
               disabled={isDownloadingUpdate}
               style={{

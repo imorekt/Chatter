@@ -122,17 +122,17 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
             <Clock size={16} />
             <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Terakhir Diputar</h3>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
             {recentPlays.map((item) => (
               <div
                 key={item.id}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '12px',
+                  gap: '10px',
                   background: currentTrack && currentTrack.id === item.id ? 'rgba(101, 31, 255, 0.15)' : 'var(--dark-surface)',
-                  padding: '12px',
-                  borderRadius: '12px',
+                  padding: '8px',
+                  borderRadius: '10px',
                   border: currentTrack && currentTrack.id === item.id ? '1px solid var(--primary)' : '1px solid var(--dark-border)',
                   transition: 'all 0.2s ease'
                 }}
@@ -140,13 +140,13 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                 <img
                   src={item.artwork && item.artwork['150x150'] ? item.artwork['150x150'] : 'https://via.placeholder.com/150'}
                   alt={item.title}
-                  style={{ width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px' }}
+                  style={{ width: '45px', height: '45px', objectFit: 'cover', borderRadius: '6px' }}
                 />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 'bold', fontSize: '15px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.title}
                   </div>
-                  <div style={{ color: 'var(--dark-text-muted)', fontSize: '13px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  <div style={{ color: 'var(--dark-text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                     {item.user?.name || 'Unknown Artist'}
                   </div>
                 </div>
@@ -156,21 +156,16 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                     background: 'var(--primary)',
                     border: 'none',
                     color: 'white',
-                    width: '40px',
-                    height: '40px',
+                    width: '32px',
+                    height: '32px',
                     borderRadius: '50%',
                     display: 'flex',
-                    justifyContent: 'center',
                     alignItems: 'center',
-                    cursor: 'pointer',
-                    flexShrink: 0
+                    justifyContent: 'center',
+                    cursor: 'pointer'
                   }}
                 >
-                  {currentTrack && currentTrack.id === item.id && isPlaying ? (
-                    <Pause size={20} />
-                  ) : (
-                    <Play size={20} style={{ marginLeft: '2px' }} />
-                  )}
+                  {currentTrack && currentTrack.id === item.id && isPlaying ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: '2px' }} />}
                 </button>
               </div>
             ))}
