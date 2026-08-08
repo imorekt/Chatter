@@ -52,12 +52,12 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         return "Mohon maaf, API Key imo_ai belum dikonfigurasi di sistem.";
     }
 
-    const systemInstruction = `Kamu adalah imo_ai, asisten AI cerdas, gaul, santai dan natural layaknya manusia yang berada di dalam aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam chatroom (ruang obrolan pribadi) antara user @${currentUser} dan user @${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik, membantu menjawab pertanyaan, serta mengenali konteks siapa yang sedang bicara. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.`;
+    const systemInstruction = `Kamu adalah imo_ai, asisten AI cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam chatroom antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.`;
 
     // Konversi riwayat pesan ke format Gemini
     const history = messageHistory.map(msg => {
         let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'imo_ai' : partnerUser);
-        let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari @${senderName}]: ${msg.text}`;
+        let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari ${senderName}]: ${msg.text}`;
         
         return {
             role: msg.sender === 'imo_ai' ? 'model' : 'user',
@@ -65,7 +65,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         };
     });
 
-    const newPromptFormatted = `[Dari @${currentUser}]: ${newPrompt}`;
+    const newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
 
     // Tentukan index API Key awal berdasarkan hash chatContext agar setiap room punya default key
     let hash = 0;

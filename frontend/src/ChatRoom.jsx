@@ -495,11 +495,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       notify.error(err.message || "Gagal mengirim pesan");
     }
 
-    if (textToSend.includes('@imo_ai')) {
+    if (textToSend.includes('@imo_ai') || currentReplyingTo?.sender === 'imo_ai') {
       setIsAiTyping(true);
       const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
       const history = messages.slice(-30);
-      callImoAI(chatContext, history, textToSend, currentUser, chat.username).then(async (reply) => {
+      callImoAI(chatContext, history, textToSend, currentUser, chat.name || chat.username).then(async (reply) => {
         setIsAiTyping(false);
         try {
           const aiRes = await fetch(`${API_URL}/api/messages/send`, {
