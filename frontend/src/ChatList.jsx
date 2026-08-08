@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, X, MessageSquare, Phone, Users, Settings, LogOut, Check, CheckCheck, Moon, Trash2, Info, Bell, Plus, MoreVertical, Edit2, Image as ImageIcon, MessageCircle, User, Loader2 } from 'lucide-react';
+import { Search, X, MessageSquare, Phone, Users, Settings, LogOut, Check, CheckCheck, Moon, Trash2, Info, Bell, Plus, MoreVertical, Edit2, Image as ImageIcon, MessageCircle, User, Loader2, Play, Pause } from 'lucide-react';
 import ChatRoom from './ChatRoom';
 import ContactList from './ContactList';
 import MomentList from './MomentList';
 import Profile from './Profile';
+import MusicPage from './Music';
+import { Music as MusicIcon } from 'lucide-react';
 import localforage from 'localforage';
 import pusher from './pusher';
 import FavoriteRoom from './FavoriteRoom';
@@ -34,6 +36,35 @@ const ChatList = ({ onLogout, currentUser }) => {
   const settingsRef = useRef(null);
 
   const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
+  // Music Player State
+  const [currentTrack, setCurrentTrack] = useState(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const audioRef = useRef(null);
+
+  const handlePlayPause = (track) => {
+    if (currentTrack && currentTrack.id === track.id) {
+      if (isPlaying) {
+        if (audioRef.current) audioRef.current.pause();
+        setIsPlaying(false);
+      } else {
+        if (audioRef.current) audioRef.current.play();
+        setIsPlaying(true);
+      }
+    } else {
+      setCurrentTrack(track);
+      setIsPlaying(true);
+      setTimeout(() => {
+        if (audioRef.current) {
+          audioRef.current.play().catch(e => {
+            console.error("Audio play failed:", e);
+            notify.error("Tidak dapat memutar lagu ini.");
+            setIsPlaying(false);
+          });
+        }
+      }, 100);
+    }
+  };
 
   useEffect(() => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
@@ -726,6 +757,7 @@ const ChatList = ({ onLogout, currentUser }) => {
           onRefreshContacts={fetchContacts}
         />
       )}
+      {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} />}
       {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} />}
       {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser} />}
 
@@ -766,6 +798,79 @@ const ChatList = ({ onLogout, currentUser }) => {
         </div>
       )}
 
+      {/* Floating Audio Player */}
+      {currentTrack && (
+        <div style={{
+          position: 'fixed',
+          bottom: '80px',
+          left: '10px',
+          right: '10px',
+          background: 'var(--dark-surface)',
+          padding: '10px 15px',
+          borderRadius: '12px',
+          border: '1px solid var(--primary)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          boxShadow: '0 -4px 10px rgba(0,0,0,0.5)',
+          zIndex: 100
+        }}>
+          <img
+            src={currentTrack.artwork && currentTrack.artwork['150x150'] ? currentTrack.artwork['150x150'] : 'https://via.placeholder.com/150'}
+            alt="Playing"
+            style={{ width: '40px', height: '40px', borderRadius: '6px', objectFit: 'cover' }}
+          />
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontWeight: 'bold', fontSize: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', color: 'white' }}>
+              {currentTrack.title}
+            </div>
+            <div style={{ color: 'var(--dark-text-muted)', fontSize: '12px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {currentTrack.user?.name || 'Unknown Artist'}
+            </div>
+          </div>
+          <button
+            onClick={() => handlePlayPause(currentTrack)}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--primary)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '5px'
+            }}
+          >
+            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
+          </button>
+          <button
+            onClick={() => {
+              setCurrentTrack(null);
+              setIsPlaying(false);
+              if (audioRef.current) audioRef.current.pause();
+            }}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: 'var(--dark-text-muted)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              padding: '5px'
+            }}
+          >
+            <X size={20} />
+          </button>
+          <audio
+            ref={audioRef}
+            src={`https://api.audius.co/v1/tracks/${currentTrack.id}/stream?app_name=chatapp`}
+            onEnded={() => setIsPlaying(false)}
+            onPause={() => setIsPlaying(false)}
+            onPlay={() => setIsPlaying(true)}
+            autoPlay
+          />
+        </div>
+      )}
+
       <div className="bottom-nav">
         <div className={`nav-item ${activeNav === 'chat' ? 'active' : ''}`} onClick={() => handleNavChange('chat')}>
           {activeNav === 'chat' && <div className="nav-indicator"></div>}
@@ -783,6 +888,11 @@ const ChatList = ({ onLogout, currentUser }) => {
             )}
           </div>
           <span>Kontak</span>
+        </div>
+        <div className={`nav-item ${activeNav === 'music' ? 'active' : ''}`} onClick={() => handleNavChange('music')}>
+          {activeNav === 'music' && <div className="nav-indicator"></div>}
+          <MusicIcon size={24} />
+          <span>Musik</span>
         </div>
         <div className={`nav-item ${activeNav === 'moment' ? 'active' : ''}`} onClick={() => handleNavChange('moment')}>
           {activeNav === 'moment' && <div className="nav-indicator"></div>}
