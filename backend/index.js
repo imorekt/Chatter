@@ -1041,8 +1041,16 @@ app.post('/api/messages/send', async (req, res) => {
     } else if (pushText.startsWith('data:image/') || pushText === 'MEDIA_LOCAL_SAVED') {
       pushText = '📸 Mengirim Gambar';
     }
-    sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender }, 'message');
-    pusher.trigger(`user-${data.recipient}`, 'new-message', data);
+    if (data.recipient !== 'SYSTEM_AI_REPLY') {
+      sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender }, 'message');
+      pusher.trigger(`user-${data.recipient}`, 'new-message', data);
+    } else if (data.sender === 'imo_ai' && data.chat_context) {
+      // If AI replies in a group/1-on-1 chat, send pusher to both participants in context
+      const participants = data.chat_context.split('|');
+      participants.forEach(p => {
+        pusher.trigger(`user-${p}`, 'new-message', data);
+      });
+    }
 
     res.json(data);
   } catch (err) {

@@ -533,7 +533,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ 
               sender: 'imo_ai', 
-              recipient: chat.username, 
+              recipient: chat.username === 'imo_ai' ? currentUser : 'SYSTEM_AI_REPLY', 
               text: reply, 
               chat_context: chatContext,
               reply_to: sentData.id,
