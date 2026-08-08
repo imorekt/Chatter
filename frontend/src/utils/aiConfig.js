@@ -45,8 +45,8 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
 
     try {
         const genAI = new GoogleGenerativeAI(apiKey);
-        // Menggunakan model Gemini 1.5 Pro
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-pro" });
+        // Menggunakan model Gemini 2.5 Flash
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         
         // Konversi riwayat pesan ke format Gemini
         const history = messageHistory.map(msg => ({
