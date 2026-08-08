@@ -498,8 +498,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (textToSend.includes('@imo_ai')) {
       setIsAiTyping(true);
       const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
-      const history = messages.slice(-10);
-      callImoAI(chatContext, history, textToSend).then(async (reply) => {
+      const history = messages.slice(-30);
+      callImoAI(chatContext, history, textToSend, currentUser, chat.username).then(async (reply) => {
         setIsAiTyping(false);
         try {
           const aiRes = await fetch(`${API_URL}/api/messages/send`, {

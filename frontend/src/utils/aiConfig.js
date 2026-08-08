@@ -26,10 +26,13 @@ const getRealKeys = () => {
 };
 
 // Fungsi untuk mencoba memanggil AI dengan API Key tertentu
-const attemptCallWithKey = async (apiKey, history, newPrompt) => {
+const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemInstruction) => {
     const genAI = new GoogleGenerativeAI(apiKey);
-    // Sesuai permintaan: menggunakan Gemini 3.1 Pro (diambil dari preview yg tersedia)
-    const model = genAI.getGenerativeModel({ model: "gemini-3.5-flash" });
+    // Sesuai permintaan: menggunakan Gemini 3.5 Flash (yg tersedia tanpa limit 0)
+    const model = genAI.getGenerativeModel({ 
+        model: "gemini-3.5-flash",
+        systemInstruction: systemInstruction 
+    });
 
     const chat = model.startChat({
         history: history,
@@ -38,22 +41,31 @@ const attemptCallWithKey = async (apiKey, history, newPrompt) => {
         },
     });
 
-    const result = await chat.sendMessage([{text: newPrompt}]);
+    const result = await chat.sendMessage([{text: newPromptFormatted}]);
     const response = await result.response;
     return response.text();
 };
 
-export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
+export const callImoAI = async (chatContext, messageHistory, newPrompt, currentUser, partnerUser) => {
     const keys = getRealKeys();
     if (keys.length === 0) {
         return "Mohon maaf, API Key imo_ai belum dikonfigurasi di sistem.";
     }
 
+    const systemInstruction = `Kamu adalah imo_ai, asisten AI cerdas, gaul, santai dan natural layaknya manusia yang berada di dalam aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam chatroom (ruang obrolan pribadi) antara user @${currentUser} dan user @${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik, membantu menjawab pertanyaan, serta mengenali konteks siapa yang sedang bicara. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.`;
+
     // Konversi riwayat pesan ke format Gemini
-    const history = messageHistory.map(msg => ({
-        role: msg.sender === 'imo_ai' ? 'model' : 'user',
-        parts: [{ text: msg.text }]
-    }));
+    const history = messageHistory.map(msg => {
+        let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'imo_ai' : partnerUser);
+        let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari @${senderName}]: ${msg.text}`;
+        
+        return {
+            role: msg.sender === 'imo_ai' ? 'model' : 'user',
+            parts: [{ text: textContent }]
+        };
+    });
+
+    const newPromptFormatted = `[Dari @${currentUser}]: ${newPrompt}`;
 
     // Tentukan index API Key awal berdasarkan hash chatContext agar setiap room punya default key
     let hash = 0;
@@ -73,7 +85,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
 
         try {
             console.log(`Mencoba API Key index ke-${currentKeyIndex}...`);
-            const responseText = await attemptCallWithKey(currentKey, history, newPrompt);
+            const responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction);
             return responseText; // Jika sukses, langsung kembalikan hasil
         } catch (error) {
             console.error(`Gagal dengan API Key index ke-${currentKeyIndex}:`, error.message);
@@ -85,5 +97,3 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt) => {
     // Jika semua API Key di-loop tapi gagal
     return "Maaf, semua API Key imo_ai saat ini sedang mengalami limit atau gangguan. Silakan coba lagi nanti.";
 };
-
-
