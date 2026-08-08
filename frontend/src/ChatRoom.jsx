@@ -975,7 +975,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             onClick={() => !chat.isDeleted && !selectionMode && setShowEmojiPicker(!showEmojiPicker)}
           />
           {showEmojiPicker && !chat.isDeleted && !selectionMode && (
-            <div style={{ position: 'absolute', bottom: '10cqh', left: '0', zIndex: 50 }}>
+            <div style={{ position: 'absolute', bottom: '50px', left: '-40px', zIndex: 50 }}>
               <EmojiPicker 
                 onEmojiClick={(emojiObject) => {
                   setNewMessage(prev => prev + emojiObject.emoji);
@@ -983,7 +983,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 theme="dark"
                 searchDisabled={true}
                 skinTonesDisabled={true}
+                style={{ width: '90vw', maxWidth: '320px' }}
                 categories={[
+                  { name: 'Baru Dipakai', category: Categories.SUGGESTED },
                   { name: 'Emot Wajah', category: Categories.SMILEYS_PEOPLE },
                   { name: 'Lope Lope', category: Categories.SYMBOLS }
                 ]}
