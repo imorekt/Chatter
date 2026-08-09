@@ -626,7 +626,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                           onMouseDown={() => handleCommentPressStart(c, moment.id)}
                           onMouseUp={handleCommentPressEnd}
                           onMouseLeave={handleCommentPressEnd}
-                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '2px 4px', background: commentActionModal?.commentId === c.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '4px' }}
+                          style={{ fontSize: 'var(--font-body)', lineHeight: '1.4', cursor: 'pointer', padding: '2px 4px', background: commentActionModal?.commentId === c.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '4px', marginBottom: '2px' }}
                         >
                           <span style={{ color: getUserColor(c.username), fontWeight: '600', marginRight: '1.5cqw' }}>{c.user_display_name || c.username}:</span>
                           <span style={{ color: 'var(--dark-text)', whiteSpace: 'pre-wrap' }}>{c.content.split(' ').map((word, i) => word.startsWith('@') ? <span key={i} style={{ color: 'var(--primary)' }}>{word} </span> : word + ' ')}</span>
