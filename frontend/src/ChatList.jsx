@@ -517,7 +517,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                   </div>
                 )}
               </div>
-              {(activeNav === 'chat' || activeNav === 'kontak' || (activeNav === 'moment' && (currentUser === 'admin1@local.dev' || currentUser === 'admin2@local.dev'))) && (
+              {(activeNav === 'chat' || activeNav === 'kontak' || (activeNav === 'moment' && ((currentUser || '').toLowerCase() === 'admin1' || (currentUser || '').toLowerCase() === 'admin 1' || (currentUser || '').toLowerCase() === 'admin2' || (currentUser || '').toLowerCase() === 'admin 2'))) && (
                 <>
                   <div style={{ zIndex: 100 }}>
                     {isSearching ? <X size={20} onClick={handleSearchClick} style={{ cursor: 'pointer' }} /> : <Search size={20} onClick={handleSearchClick} style={{ cursor: 'pointer' }} />}
