@@ -239,13 +239,6 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         }
     }
 
-    // Jika semua API Key gagal, berikan pesan default beserta error terakhir
-    const errorMsg = lastError ? (lastError.message || lastError.toString()) : 'Unknown Error';
-    
-    // Tangani error limit 429
-    if (errorMsg.includes('429') || errorMsg.includes('Quota exceeded')) {
-        return `Maaf Kak, aku lagi kecapekan balesin banyak pesan (Limit API tercapai). Mohon tunggu sekitar 10-15 detik lalu coba lagi ya! 🥺🙏`;
-    }
-
-    return `Maaf Kak, imo_ai saat ini sedang mengalami gangguan. [Debug: ${errorMsg}]`;
+    // Tangani error limit 429 dan error lainnya dengan pesan seragam
+    return "Maaf kak, Imo sedang AFK, Coba lagi nanti ya :)";
 };
