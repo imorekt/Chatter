@@ -33,13 +33,61 @@ const getRealKeys = () => {
     }
 };
 
-// Fungsi untuk mencoba memanggil AI dengan API Key tertentu
-const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemInstruction) => {
+const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext) => {
     const genAI = new GoogleGenerativeAI(apiKey);
+    const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
+
+    let toolsConfig = undefined;
+    
+    if (chatContext === 'admin_command' || isAdminUser) {
+        toolsConfig = [{
+            functionDeclarations: [
+                {
+                    name: "set_restriction",
+                    description: "Set or toggle a restriction for a specific user. Available restriction types: 'disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'.",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            targetUser: {
+                                type: "STRING",
+                                description: "The username of the user to restrict (e.g., 'popie1') without the '@' symbol, or 'GLOBAL' to apply to everyone."
+                            },
+                            restrictionType: {
+                                type: "STRING",
+                                description: "The type of restriction to apply.",
+                                enum: ['disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute']
+                            },
+                            isEnabled: {
+                                type: "BOOLEAN",
+                                description: "True to enable the restriction (lock), False to disable (unlock)."
+                            }
+                        },
+                        required: ["targetUser", "restrictionType", "isEnabled"]
+                    }
+                },
+                {
+                    name: "clear_all_restrictions",
+                    description: "Clear all restrictions and unlock all features for a specific user (or 'GLOBAL'). Used when the admin says 'aktifkan @user'.",
+                    parameters: {
+                        type: "OBJECT",
+                        properties: {
+                            targetUser: {
+                                type: "STRING",
+                                description: "The username to unlock."
+                            }
+                        },
+                        required: ["targetUser"]
+                    }
+                }
+            ]
+        }];
+    }
+
     // Sesuai permintaan: menggunakan Gemini 3.5 Flash (yg tersedia tanpa limit 0)
     const model = genAI.getGenerativeModel({ 
         model: "gemini-3.5-flash",
-        systemInstruction: systemInstruction 
+        systemInstruction: systemInstruction,
+        ...(toolsConfig && { tools: toolsConfig })
     });
 
     const chat = model.startChat({
@@ -49,9 +97,64 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         },
     });
 
-    const result = await chat.sendMessage([{text: newPromptFormatted}]);
-    const response = await result.response;
-    return response.text();
+    let result = await chat.sendMessage([{text: newPromptFormatted}]);
+    
+    if (result.response.functionCalls && result.response.functionCalls().length > 0) {
+        const call = result.response.functionCalls()[0];
+        if (call.name === "set_restriction") {
+            const { targetUser, restrictionType, isEnabled } = call.args;
+            try {
+                const API_URL = window.APP_CONFIG?.API_URL || import.meta.env?.VITE_API_URL || 'http://localhost:3001';
+                await fetch(`${API_URL}/api/restrictions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: targetUser, type: restrictionType, value: isEnabled })
+                });
+                
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "set_restriction",
+                        response: { success: true, message: `Restriction ${restrictionType} set to ${isEnabled} for ${targetUser}` }
+                    }
+                }]);
+            } catch (e) {
+                console.error("Function call error:", e);
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "set_restriction",
+                        response: { success: false, error: e.message }
+                    }
+                }]);
+            }
+        } else if (call.name === "clear_all_restrictions") {
+            const { targetUser } = call.args;
+            try {
+                const API_URL = window.APP_CONFIG?.API_URL || import.meta.env?.VITE_API_URL || 'http://localhost:3001';
+                await fetch(`${API_URL}/api/restrictions/clear`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: targetUser })
+                });
+                
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "clear_all_restrictions",
+                        response: { success: true, message: `All restrictions cleared for ${targetUser}` }
+                    }
+                }]);
+            } catch (e) {
+                console.error("Function call error:", e);
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "clear_all_restrictions",
+                        response: { success: false, error: e.message }
+                    }
+                }]);
+            }
+        }
+    }
+
+    return result.response.text();
 };
 
 export const callImoAI = async (chatContext, messageHistory, newPrompt, currentUser, partnerUser) => {
@@ -65,6 +168,14 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     if (isMoment) {
         systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT. MAKSIMAL 1-2 KALIMAT PENDEK SAJA.`;
+    }
+
+    const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
+
+    if (chatContext === 'admin_command') {
+        systemInstruction = `Kamu adalah Imo, sistem administrator otomatis (God Mode). Tugas utamamu adalah mengeksekusi perintah admin untuk mematikan/menghidupkan fitur user menggunakan Function Calling. Balaslah dengan bahasa robot yang super singkat (contoh: "Perintah dieksekusi. Fitur X dimatikan untuk user Y."). Jangan berbasa-basi. Jika disuruh "aktifkan", panggil fungsi clear_all_restrictions.`;
+    } else if (isAdminUser) {
+        systemInstruction += `\n7. PENTING: USER YANG BERBICARA DENGANMU SEKARANG ADALAH ADMIN. JIKA DIA MENYURUHMU MEMATIKAN ATAU MENGAKTIFKAN FITUR UNTUK USER TERTENTU (MISAL: "matikan fitur gambar buat @user"), KAMU HARUS MENGABULKANNYA DENGAN MEMANGGIL FUNCTION CALLING YANG TERSEDIA.`;
     }
 
     // Konversi riwayat pesan ke format Gemini
@@ -124,7 +235,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
         try {
             console.log(`Mencoba API Key index ke-${currentKeyIndex}...`);
-            const responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction);
+            const responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext);
             return responseText; // Jika sukses, langsung kembalikan hasil
         } catch (error) {
             console.error(`Gagal dengan API Key index ke-${currentKeyIndex}:`, error.message || error);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { callImoAI } from './utils/aiConfig';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock, ChevronDown } from 'lucide-react';
 
@@ -8,6 +8,7 @@ import { notify } from './utils/toast';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import localforage from 'localforage';
 import pusher from './pusher';
+import { RestrictionsContext } from './App';
 
 const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -189,6 +190,7 @@ const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPr
   };
 
 const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
+  const restrictions = useContext(RestrictionsContext);
   const cacheKey = `${currentUser}_${chat.username}`;
   const [messages, setMessages] = useState(cachedMessages[cacheKey] || []);
   const [newMessage, setNewMessage] = useState('');
@@ -1147,22 +1149,22 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           ref={fileInputRef}
           style={{ display: 'none' }}
           onChange={handleImageUpload}
-          disabled={chat.isDeleted || !!selectionMode}
+          disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image}
         />
         <div style={{ display: 'flex', alignItems: 'center' }}>
           <ImageIcon 
             size={24} 
-            style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }} 
-            onClick={() => !chat.isDeleted && !selectionMode && fileInputRef.current?.click()} 
+            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }} 
+            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && !restrictions?.disable_chat_image && fileInputRef.current?.click()} 
           />
         </div>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={emojiPickerRef}>
           <Smile
             size={24}
-            style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)', display: 'block' }}
-            onClick={() => !chat.isDeleted && !selectionMode && setShowEmojiPicker(!showEmojiPicker)}
+            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)', display: 'block' }}
+            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && setShowEmojiPicker(!showEmojiPicker)}
           />
-          {showEmojiPicker && !chat.isDeleted && !selectionMode && (
+          {showEmojiPicker && !chat.isDeleted && !selectionMode && !restrictions?.full_mute && (
             <div style={{ position: 'absolute', bottom: '50px', left: '-40px', zIndex: 50 }}>
               <EmojiPicker 
                 onEmojiClick={(emojiObject) => {
@@ -1194,22 +1196,22 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               setShowMentionPopup(false);
             }
           }}
-          placeholder={chat.isDeleted ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
-          disabled={chat.isDeleted || !!selectionMode}
+          placeholder={chat.isDeleted || restrictions?.full_mute || restrictions?.disable_chat ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
+          disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat}
           style={{
             flex: 1,
             background: 'rgba(255,255,255,0.05)',
             border: 'none',
             borderRadius: '5cqw',
             padding: '2cqh 4cqw',
-            color: (chat.isDeleted || selectionMode) ? '#a1a1aa' : 'white',
+            color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#a1a1aa' : 'white',
             outline: 'none',
             fontSize: 'var(--font-body)',
-            cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'text'
+            cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'text'
           }}
         />
-        <button type="submit" disabled={chat.isDeleted || !!selectionMode} style={{ 
-          background: (chat.isDeleted || selectionMode) ? '#3f3f46' : 'var(--primary)', 
+        <button type="submit" disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat} style={{ 
+          background: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#3f3f46' : 'var(--primary)', 
           border: 'none', 
           width: '9.5cqw', 
           height: '9.5cqw', 
@@ -1217,8 +1219,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center',
-          cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer',
-          color: (chat.isDeleted || selectionMode) ? '#52525b' : 'white',
+          cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'pointer',
+          color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#52525b' : 'white',
           flexShrink: 0
         }}>
           <Send size={18} style={{ marginLeft: '0.5cqw' }} />

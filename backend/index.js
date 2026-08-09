@@ -160,6 +160,16 @@ async function initDb() {
         UNIQUE(username, message_id)
       )
     `);
+    await db.execute(`
+      CREATE TABLE IF NOT EXISTS user_restrictions (
+        username TEXT PRIMARY KEY,
+        disable_chat_image INTEGER DEFAULT 0,
+        disable_moment_image INTEGER DEFAULT 0,
+        disable_chat INTEGER DEFAULT 0,
+        disable_moment INTEGER DEFAULT 0,
+        full_mute INTEGER DEFAULT 0
+      )
+    `);
     try { await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
@@ -1228,7 +1238,72 @@ app.use((req, res) => {
 if (process.env.VERCEL) {
   module.exports = app;
 } else {
-  // --- NOTIFICATION SETTINGS ROUTES ---
+  // --- RESTRICTIONS API ---
+app.get('/api/restrictions/:username', async (req, res) => {
+  const { username } = req.params;
+  try {
+    const result = await db.execute({ sql: `SELECT * FROM user_restrictions WHERE username = ? OR username = 'GLOBAL'`, args: [username] });
+    const restrictions = {
+      disable_chat_image: false,
+      disable_moment_image: false,
+      disable_chat: false,
+      disable_moment: false,
+      full_mute: false
+    };
+    result.rows.forEach(row => {
+      if (row.disable_chat_image) restrictions.disable_chat_image = true;
+      if (row.disable_moment_image) restrictions.disable_moment_image = true;
+      if (row.disable_chat) restrictions.disable_chat = true;
+      if (row.disable_moment) restrictions.disable_moment = true;
+      if (row.full_mute) restrictions.full_mute = true;
+    });
+    res.json(restrictions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/restrictions', async (req, res) => {
+  const { username, type, value } = req.body;
+  if (!username || !type) return res.status(400).json({ error: "Missing parameters" });
+  
+  const allowedTypes = ['disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'];
+  if (!allowedTypes.includes(type)) return res.status(400).json({ error: "Invalid restriction type" });
+
+  try {
+    // Check if record exists
+    const check = await db.execute({ sql: 'SELECT username FROM user_restrictions WHERE username = ?', args: [username] });
+    if (check.rows.length === 0) {
+      await db.execute({ sql: 'INSERT INTO user_restrictions (username) VALUES (?)', args: [username] });
+    }
+    
+    await db.execute({ sql: `UPDATE user_restrictions SET ${type} = ? WHERE username = ?`, args: [value ? 1 : 0, username] });
+    
+    // Emit global pusher event so all clients update immediately
+    pusher.trigger('global-events', 'restriction-updated', { username });
+    
+    res.json({ success: true, message: `Restriction updated for ${username}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/restrictions/clear', async (req, res) => {
+  const { username } = req.body;
+  if (!username) return res.status(400).json({ error: "Missing username" });
+  try {
+    const check = await db.execute({ sql: 'SELECT username FROM user_restrictions WHERE username = ?', args: [username] });
+    if (check.rows.length > 0) {
+      await db.execute({ sql: `UPDATE user_restrictions SET disable_chat_image = 0, disable_moment_image = 0, disable_chat = 0, disable_moment = 0, full_mute = 0 WHERE username = ?`, args: [username] });
+      pusher.trigger('global-events', 'restriction-updated', { username });
+    }
+    res.json({ success: true, message: `All restrictions cleared for ${username}` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// --- NOTIFICATION SETTINGS ROUTES ---
 
 app.get('/api/users/:username/settings', async (req, res) => {
   try {

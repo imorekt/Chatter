@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, User, Loader2, Trash2, Bell } from 'lucide-react';
+import { Camera, LogOut, Save, User, Loader2, Trash2, Bell, Terminal, X, Send } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
@@ -22,6 +22,13 @@ const Profile = ({ onLogout, email }) => {
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
   const [isSavingNotif, setIsSavingNotif] = useState(false);
   const fileInputRef = useRef(null);
+
+  // Admin Command AI State
+  const [showAdminCommand, setShowAdminCommand] = useState(false);
+  const [adminCommandMessages, setAdminCommandMessages] = useState([{ sender: 'imo_ai', text: 'Halo Admin! Ada perintah untuk dieksekusi hari ini?' }]);
+  const [adminCommandInput, setAdminCommandInput] = useState('');
+  const [isSendingCommand, setIsSendingCommand] = useState(false);
+  const commandEndRef = useRef(null);
 
   const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -221,6 +228,34 @@ const Profile = ({ onLogout, email }) => {
     }
     setIsSavingNotif(false);
   };
+
+  const handleSendAdminCommand = async () => {
+    if (!adminCommandInput.trim() || isSendingCommand) return;
+    
+    const userMsg = adminCommandInput.trim();
+    setAdminCommandMessages(prev => [...prev, { sender: 'me', text: userMsg }]);
+    setAdminCommandInput('');
+    setIsSendingCommand(true);
+    
+    try {
+      // Import callImoAI dynamically or statically
+      const { callImoAI } = await import('./utils/aiConfig');
+      const response = await callImoAI('admin_command', adminCommandMessages, userMsg, email, 'imo_ai');
+      setAdminCommandMessages(prev => [...prev, { sender: 'imo_ai', text: response }]);
+    } catch (e) {
+      setAdminCommandMessages(prev => [...prev, { sender: 'imo_ai', text: 'Gagal mengeksekusi perintah: ' + e.message }]);
+    } finally {
+      setIsSendingCommand(false);
+    }
+  };
+
+  useEffect(() => {
+    if (showAdminCommand && commandEndRef.current) {
+      commandEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [adminCommandMessages, showAdminCommand]);
+
+  const isAdmin = email && (email.toLowerCase() === 'admin1' || email.toLowerCase() === 'admin 1' || email.toLowerCase() === 'admin2' || email.toLowerCase() === 'admin 2');
 
   return (
     <div className="hide-scrollbar" style={{ flex: 1, padding: '2cqh var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '2.5cqh', overflowY: 'auto' }}>
@@ -434,6 +469,51 @@ const Profile = ({ onLogout, email }) => {
             <button onClick={() => setImageSrc(null)} style={{ background: 'transparent', border: '1px solid var(--dark-border)', color: 'white', padding: '1.5cqh 4cqw', borderRadius: '2cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}>Batal</button>
             <button onClick={applyCrop} disabled={isCropping} style={{ background: 'var(--primary)', border: 'none', color: 'white', padding: '1.5cqh 4cqw', borderRadius: '2cqw', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-body)' }}>
               {isCropping ? <Loader2 size={16} className="animate-spin" /> : 'Simpan Foto'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Admin Command Modal */}
+      {showAdminCommand && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 1100, display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2cqh 4cqw', background: 'var(--dark-surface)', borderBottom: '1px solid var(--dark-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw', color: '#3B82F6' }}>
+              <Terminal size={20} />
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)' }}>Admin Console</h3>
+            </div>
+            <X size={24} style={{ color: 'white', cursor: 'pointer' }} onClick={() => setShowAdminCommand(false)} />
+          </div>
+          
+          <div className="hide-scrollbar" style={{ flex: 1, padding: '4cqw', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2cqh', background: '#0F172A' }}>
+            {adminCommandMessages.map((msg, idx) => (
+              <div key={idx} style={{ alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start', background: msg.sender === 'me' ? 'var(--primary)' : '#1E293B', color: 'white', padding: '2cqh 3cqw', borderRadius: '3cqw', borderBottomRightRadius: msg.sender === 'me' ? '0' : '3cqw', borderBottomLeftRadius: msg.sender === 'imo_ai' ? '0' : '3cqw', maxWidth: '80%', wordBreak: 'break-word', fontSize: 'var(--font-body)', fontFamily: msg.sender === 'imo_ai' ? 'monospace' : 'inherit' }}>
+                {msg.text}
+              </div>
+            ))}
+            {isSendingCommand && (
+              <div style={{ alignSelf: 'flex-start', background: '#1E293B', padding: '2cqh 3cqw', borderRadius: '3cqw', color: '#94A3B8', fontFamily: 'monospace' }}>
+                <Loader2 size={16} className="animate-spin" /> Executing...
+              </div>
+            )}
+            <div ref={commandEndRef} />
+          </div>
+          
+          <div style={{ padding: '2cqh 4cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', display: 'flex', gap: '2cqw' }}>
+            <input 
+              type="text" 
+              value={adminCommandInput}
+              onChange={e => setAdminCommandInput(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleSendAdminCommand()}
+              placeholder="e.g., matikan fitur kirim gambar untuk @poppiee2"
+              style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', color: 'white', padding: '1.5cqh 3cqw', borderRadius: '5cqw', outline: 'none', fontSize: 'var(--font-body)', fontFamily: 'monospace' }}
+            />
+            <button 
+              onClick={handleSendAdminCommand}
+              disabled={isSendingCommand || !adminCommandInput.trim()}
+              style={{ background: '#3B82F6', border: 'none', color: 'white', width: '12cqw', borderRadius: '5cqw', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: (isSendingCommand || !adminCommandInput.trim()) ? 'not-allowed' : 'pointer', opacity: (isSendingCommand || !adminCommandInput.trim()) ? 0.5 : 1 }}
+            >
+              <Send size={18} />
             </button>
           </div>
         </div>

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useContext } from 'react';
 import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
 import pusher from './pusher';
 import { callImoAI } from './utils/aiConfig';
+import { RestrictionsContext } from './App';
 
 let cachedMoments = [];
 let hasFetchedMoments = false;
@@ -26,6 +27,7 @@ const getUserColor = (username) => {
 };
 
 const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, selectionMode, selectedItems, toggleSelectItem, contactsData }) => {
+  const restrictions = useContext(RestrictionsContext);
   const [moments, setMoments] = useState(cachedMoments);
   const [loading, setLoading] = useState(cachedMoments.length === 0 && !hasFetchedMoments);
   const [newPost, setNewPost] = useState('');
@@ -442,8 +444,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   return (
     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '4cqw', background: 'transparent', minHeight: 0 }}>
       {/* Post Creator */}
-      <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh' }}>
-        <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
+      {(!restrictions?.full_mute && !restrictions?.disable_moment) && (
+        <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh' }}>
+          <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
           {currentUserAvatar ? (
             <img src={currentUserAvatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
           ) : (
@@ -479,13 +482,15 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
               style={{ display: 'none' }} 
               onChange={handleImageUpload} 
             />
-            <div 
-              onClick={() => fileInputRef.current?.click()} 
-              style={{ display: 'flex', alignItems: 'center', gap: '2cqw', background: 'rgba(255,255,255,0.05)', padding: '1.2cqh 3cqw', borderRadius: '2cqw', cursor: 'pointer', color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)' }}
-            >
-              <ImageIcon size={18} />
-              <span>Gambar</span>
-            </div>
+            {!restrictions?.disable_moment_image && (
+              <div 
+                onClick={() => fileInputRef.current?.click()} 
+                style={{ display: 'flex', alignItems: 'center', gap: '2cqw', background: 'rgba(255,255,255,0.05)', padding: '1.2cqh 3cqw', borderRadius: '2cqw', cursor: 'pointer', color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)' }}
+              >
+                <ImageIcon size={18} />
+                <span>Gambar</span>
+              </div>
+            )}
           </div>
           <button 
             onClick={handlePost} 
@@ -497,6 +502,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
           </button>
         </div>
       </div>
+      )}
 
       {/* Moments Feed */}
       {loading ? (

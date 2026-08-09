@@ -8,6 +8,15 @@ import Login from './Login';
 import Register from './Register';
 import ChatList from './ChatList';
 import { Toaster } from 'react-hot-toast';
+import pusher from './pusher';
+
+export const RestrictionsContext = React.createContext({
+  disable_chat_image: false,
+  disable_moment_image: false,
+  disable_chat: false,
+  disable_moment: false,
+  full_mute: false
+});
 
 function App() {
   const [user, setUser] = useState(() => localStorage.getItem('chat_user') || null);
@@ -16,6 +25,45 @@ function App() {
   const [updateUrl, setUpdateUrl] = useState('');
   const [isDownloadingUpdate, setIsDownloadingUpdate] = useState(false);
   const [downloadProgress, setDownloadProgress] = useState(0);
+  const [restrictions, setRestrictions] = useState({
+    disable_chat_image: false,
+    disable_moment_image: false,
+    disable_chat: false,
+    disable_moment: false,
+    full_mute: false
+  });
+
+  const fetchRestrictions = async (username) => {
+    try {
+      const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+      const res = await fetch(`${API_URL}/api/restrictions/${username}`);
+      if (res.ok) {
+        const data = await res.json();
+        setRestrictions(data);
+      }
+    } catch (e) {
+      console.error('Failed to fetch restrictions:', e);
+    }
+  };
+
+  useEffect(() => {
+    if (user) {
+      fetchRestrictions(user);
+    }
+  }, [user]);
+
+  useEffect(() => {
+    const channel = pusher.subscribe('global-events');
+    channel.bind('restriction-updated', (data) => {
+      if (data.username === user || data.username === 'GLOBAL') {
+        fetchRestrictions(user);
+      }
+    });
+    return () => {
+      channel.unbind('restriction-updated');
+      pusher.unsubscribe('global-events');
+    };
+  }, [user]);
 
   useEffect(() => {
     if (window.Capacitor && window.Capacitor.isNativePlatform()) {
@@ -212,7 +260,9 @@ function App() {
           <Login onLogin={handleLogin} onGoToRegister={() => setIsRegistering(true)} />
         )
       ) : (
-        <ChatList currentUser={user} onLogout={() => { localStorage.removeItem('chat_user'); setUser(null); }} />
+        <RestrictionsContext.Provider value={restrictions}>
+          <ChatList currentUser={user} onLogout={() => { localStorage.removeItem('chat_user'); setUser(null); }} />
+        </RestrictionsContext.Provider>
       )}
     </div>
   );
