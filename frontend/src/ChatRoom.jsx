@@ -30,164 +30,164 @@ const formatDateDivider = (dateString) => {
 };
 
 const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPreviewModalImage, setLongPressMessage }) => {
-    const getInitialImgSrc = () => {
-        if (base64Part.startsWith('data:image/')) return base64Part;
-        if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
-        if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
-        return null;
-    };
-    
-    const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
-    const [isFailed, setIsFailed] = useState(false);
-    const msgId = msg.id;
-    
-    const holdTimeout = useRef(null);
-    const [isHolding, setIsHolding] = useState(false);
-
-    const handleTouchStart = () => {
-      if (selectionMode) return;
-      setIsHolding(false);
-      holdTimeout.current = setTimeout(() => {
-        setIsHolding(true);
-        setLongPressMessage(msg);
-      }, 500);
-    };
-
-    const handleTouchEnd = () => {
-      if (holdTimeout.current) clearTimeout(holdTimeout.current);
-    };
-    
-    useEffect(() => {
-      let isMounted = true;
-      const loadMedia = async () => {
-        try {
-          if (base64Part.startsWith('data:image/')) {
-            // Old system / backward compatibility
-            setImgSrc(base64Part);
-            return;
-          }
-          
-          if (base64Part === 'MEDIA_DELETED') {
-            setIsFailed(true);
-            return;
-          }
-
-            if (base64Part.startsWith('IMGBB_IMAGE|||')) {
-              const url = base64Part.split('|||')[1];
-              
-              const localStored = await localforage.getItem(`r2_media_${msgId}`);
-              if (localStored) {
-                if (isMounted) setImgSrc(localStored);
-                return;
-              }
-              
-              if (isMounted) setImgSrc(url);
-              return;
-            }
-
-          if (base64Part.startsWith('R2_IMAGE|||')) {
-            const parts = base64Part.split('|||');
-            const key = parts[1];
-            let imageUrl = parts[2];
-            
-            // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
-            const localStored = await localforage.getItem(`r2_media_${msgId}`);
-            if (localStored) {
-              if (isMounted) setImgSrc(localStored);
-              return;
-            }
-
-            // Jika belum di-download, tampilkan dulu dari R2 Url
-            if (isMounted) setImgSrc(imageUrl);
-
-            // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
-            if (!isMe) {
-              try {
-                // Download image as blob
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                
-                // Convert blob to base64 for Capacitor Filesystem
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                  const base64data = reader.result;
-                  try {
-                    // Save to local device (Documents folder)
-                    const fileName = `chat_image_${Date.now()}.jpg`;
-                    await Filesystem.writeFile({
-                      path: fileName,
-                      data: base64data,
-                      directory: Directory.Documents
-                    });
-                    
-                    // Save to localforage cache so it doesn't download again
-                    await localforage.setItem(`r2_media_${msgId}`, base64data);
-                    
-                    if (isMounted) {
-                      setImgSrc(base64data);
-                    }
-                    
-                    // Trigger Auto Delete from Server after 1 minute (60000 ms)
-                    setTimeout(() => {
-                      fetch(`${API_URL}/api/messages/media/${msgId}`, { method: 'DELETE' }).catch(console.error);
-                    }, 60000);
-                    
-                  } catch (e) {
-                    console.error("Gagal menyimpan ke galeri", e);
-                  }
-                };
-                reader.readAsDataURL(blob);
-              } catch (e) {
-                console.error("Gagal mengunduh gambar", e);
-              }
-            }
-          }
-        } catch (err) {
-          if (isMounted) setIsFailed(true);
-        }
-      };
-      loadMedia();
-      return () => { isMounted = false; };
-    }, [msgId, base64Part, isMe]);
-
-    return (
-      <div>
-        {imgSrc && !isFailed ? (
-          <img 
-            src={imgSrc} 
-            alt="Gambar" 
-            onTouchStart={handleTouchStart}
-            onTouchEnd={handleTouchEnd}
-            onMouseDown={handleTouchStart}
-            onMouseUp={handleTouchEnd}
-            onMouseLeave={handleTouchEnd}
-            onClick={(e) => {
-              if (selectionMode) return;
-              e.stopPropagation();
-              if (isHolding) return;
-              setPreviewModalImage(imgSrc);
-            }}
-            style={{ 
-              maxWidth: '55cqw', 
-              maxHeight: '350px', 
-              borderRadius: '2cqw', 
-              display: 'block', 
-              margin: '0.5cqh 0', 
-              objectFit: 'cover',
-              cursor: selectionMode ? 'pointer' : 'zoom-in',
-              transition: 'transform 0.15s ease'
-            }} 
-          />
-        ) : (
-          <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
-            <ImageOff size={18} color="#ef4444" />
-            <span>Gambar {isFailed || base64Part === 'MEDIA_DELETED' ? 'telah dihapus (View Once)' : 'sedang dimuat...'}</span>
-          </div>
-        )}
-        {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
-      </div>
-    );
+  const getInitialImgSrc = () => {
+    if (base64Part.startsWith('data:image/')) return base64Part;
+    if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
+    if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
+    return null;
   };
+
+  const [imgSrc, setImgSrc] = useState(getInitialImgSrc);
+  const [isFailed, setIsFailed] = useState(false);
+  const msgId = msg.id;
+
+  const holdTimeout = useRef(null);
+  const [isHolding, setIsHolding] = useState(false);
+
+  const handleTouchStart = () => {
+    if (selectionMode) return;
+    setIsHolding(false);
+    holdTimeout.current = setTimeout(() => {
+      setIsHolding(true);
+      setLongPressMessage(msg);
+    }, 500);
+  };
+
+  const handleTouchEnd = () => {
+    if (holdTimeout.current) clearTimeout(holdTimeout.current);
+  };
+
+  useEffect(() => {
+    let isMounted = true;
+    const loadMedia = async () => {
+      try {
+        if (base64Part.startsWith('data:image/')) {
+          // Old system / backward compatibility
+          setImgSrc(base64Part);
+          return;
+        }
+
+        if (base64Part === 'MEDIA_DELETED') {
+          setIsFailed(true);
+          return;
+        }
+
+        if (base64Part.startsWith('IMGBB_IMAGE|||')) {
+          const url = base64Part.split('|||')[1];
+
+          const localStored = await localforage.getItem(`r2_media_${msgId}`);
+          if (localStored) {
+            if (isMounted) setImgSrc(localStored);
+            return;
+          }
+
+          if (isMounted) setImgSrc(url);
+          return;
+        }
+
+        if (base64Part.startsWith('R2_IMAGE|||')) {
+          const parts = base64Part.split('|||');
+          const key = parts[1];
+          let imageUrl = parts[2];
+
+          // Cek apakah sudah di-download ke localforage sebelumnya (termasuk untuk pengirim)
+          const localStored = await localforage.getItem(`r2_media_${msgId}`);
+          if (localStored) {
+            if (isMounted) setImgSrc(localStored);
+            return;
+          }
+
+          // Jika belum di-download, tampilkan dulu dari R2 Url
+          if (isMounted) setImgSrc(imageUrl);
+
+          // Jika bukan pesan kita, download ke Galeri (Filesystem) lalu auto-delete dari server
+          if (!isMe) {
+            try {
+              // Download image as blob
+              const response = await fetch(imageUrl);
+              const blob = await response.blob();
+
+              // Convert blob to base64 for Capacitor Filesystem
+              const reader = new FileReader();
+              reader.onloadend = async () => {
+                const base64data = reader.result;
+                try {
+                  // Save to local device (Documents folder)
+                  const fileName = `chat_image_${Date.now()}.jpg`;
+                  await Filesystem.writeFile({
+                    path: fileName,
+                    data: base64data,
+                    directory: Directory.Documents
+                  });
+
+                  // Save to localforage cache so it doesn't download again
+                  await localforage.setItem(`r2_media_${msgId}`, base64data);
+
+                  if (isMounted) {
+                    setImgSrc(base64data);
+                  }
+
+                  // Trigger Auto Delete from Server after 1 minute (60000 ms)
+                  setTimeout(() => {
+                    fetch(`${API_URL}/api/messages/media/${msgId}`, { method: 'DELETE' }).catch(console.error);
+                  }, 60000);
+
+                } catch (e) {
+                  console.error("Gagal menyimpan ke galeri", e);
+                }
+              };
+              reader.readAsDataURL(blob);
+            } catch (e) {
+              console.error("Gagal mengunduh gambar", e);
+            }
+          }
+        }
+      } catch (err) {
+        if (isMounted) setIsFailed(true);
+      }
+    };
+    loadMedia();
+    return () => { isMounted = false; };
+  }, [msgId, base64Part, isMe]);
+
+  return (
+    <div>
+      {imgSrc && !isFailed ? (
+        <img
+          src={imgSrc}
+          alt="Gambar"
+          onTouchStart={handleTouchStart}
+          onTouchEnd={handleTouchEnd}
+          onMouseDown={handleTouchStart}
+          onMouseUp={handleTouchEnd}
+          onMouseLeave={handleTouchEnd}
+          onClick={(e) => {
+            if (selectionMode) return;
+            e.stopPropagation();
+            if (isHolding) return;
+            setPreviewModalImage(imgSrc);
+          }}
+          style={{
+            maxWidth: '55cqw',
+            maxHeight: '350px',
+            borderRadius: '2cqw',
+            display: 'block',
+            margin: '0.5cqh 0',
+            objectFit: 'cover',
+            cursor: selectionMode ? 'pointer' : 'zoom-in',
+            transition: 'transform 0.15s ease'
+          }}
+        />
+      ) : (
+        <div style={{ padding: '1.5cqh 2.5cqw', background: 'rgba(0,0,0,0.2)', borderRadius: '2cqw', color: '#a1a1aa', display: 'flex', alignItems: 'center', gap: '2cqw', fontSize: 'var(--font-caption)', border: '1px dashed rgba(255,255,255,0.2)', margin: '0.5cqh 0' }}>
+          <ImageOff size={18} color="#ef4444" />
+          <span>Gambar {isFailed || base64Part === 'MEDIA_DELETED' ? 'telah dihapus (View Once)' : 'sedang dimuat...'}</span>
+        </div>
+      )}
+      {captionPart && <div style={{ marginTop: '1cqh', color: '#e9edef' }}>{captionPart}</div>}
+    </div>
+  );
+};
 
 const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const restrictions = useContext(RestrictionsContext);
@@ -213,7 +213,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   }, [currentUser]);
 
   const [imoAiAvatar, setImoAiAvatar] = useState("https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai");
-  
+
   useEffect(() => {
     fetch(`${API_URL}/api/users/imo_ai`)
       .then(res => res.json())
@@ -229,15 +229,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const isFirstLoad = useRef(true);
   const [loading, setLoading] = useState(!cachedMessages[cacheKey]);
   const [partnerLastSeen, setPartnerLastSeen] = useState(null);
-  
+
   // Long Press State
   const [longPressMessage, setLongPressMessage] = useState(null);
-  
+
   // Scroll & Unread State
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevMessagesLength = useRef(messages.length);
-  
+
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
     const isBottom = scrollHeight - scrollTop - clientHeight < 150;
@@ -252,7 +252,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [editMessageText, setEditMessageText] = useState('');
   const [showDeleteActionModal, setShowDeleteActionModal] = useState(null);
   const pressTimer = useRef(null);
-  
+
   // Selection Mode State
   const [showMenu, setShowMenu] = useState(false);
   const [selectionMode, setSelectionMode] = useState(null); // 'favorite' | 'delete' | null
@@ -262,9 +262,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const [imageCaption, setImageCaption] = useState('');
   const [previewModalImage, setPreviewModalImage] = useState(null);
-  
 
-  
+
+
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   // removed socketRef
@@ -430,7 +430,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       .then(({ data, lastSeen }) => {
         const history = data.map(m => {
           const rawDate = typeof m.created_at === 'string' && !m.created_at.includes('T') ? m.created_at.replace(' ', 'T') + 'Z' : m.created_at;
-          
+
           let msgStatus = 'sent';
           if (!isFriend) {
             msgStatus = 'sent';
@@ -458,7 +458,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             reply_sender: m.reply_sender
           };
         });
-        
+
         setMessages(history);
         cachedMessages[cacheKey] = history;
         setLoading(false);
@@ -472,10 +472,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   useEffect(() => {
     fetchMessages();
-    
+
     const channelName = `user-${currentUser}`;
     const channel = pusher.subscribe(channelName);
-    
+
     const handleNewMessage = (data) => {
       if (data.sender === chat.username || data.recipient === chat.username) {
         fetchMessages();
@@ -512,10 +512,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const handleSend = async (e) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
-    
+
     const textToSend = newMessage;
     setNewMessage('');
-    
+
     const tempId = `temp-${Date.now()}`;
     const newMsg = {
       id: tempId,
@@ -529,11 +529,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       reply_text: replyingTo?.text || null,
       reply_sender: replyingTo?.sender || null
     };
-    
+
     setMessages(prev => [...prev, newMsg]);
     const currentReplyingTo = replyingTo;
     setReplyingTo(null);
-    
+
     let sentData = null;
     try {
       const res = await fetch(`${API_URL}/api/messages/send`, {
@@ -562,21 +562,21 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           const aiRes = await fetch(`${API_URL}/api/messages/send`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ 
-              sender: 'imo_ai', 
-              recipient: chat.username === 'imo_ai' ? currentUser : 'SYSTEM_AI_REPLY', 
-              text: reply, 
+            body: JSON.stringify({
+              sender: 'imo_ai',
+              recipient: chat.username === 'imo_ai' ? currentUser : 'SYSTEM_AI_REPLY',
+              text: reply,
               chat_context: chatContext,
               reply_to: sentData.id,
               reply_text: sentData.text,
-              reply_sender: sentData.sender 
+              reply_sender: sentData.sender
             })
           });
           const aiData = await aiRes.json();
           if (!aiData.error) {
-            setMessages(prev => [...prev, { 
-              ...aiData, 
-              sender: 'imo_ai', 
+            setMessages(prev => [...prev, {
+              ...aiData,
+              sender: 'imo_ai',
               rawDate: new Date().toISOString(),
               time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
               status: 'sent'
@@ -611,7 +611,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        
+
         setSelectedImage(canvas.toDataURL('image/jpeg', 0.7));
         setImageCaption('');
       };
@@ -630,32 +630,32 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
   const confirmSendImage = async () => {
     if (!selectedImage) return;
-    
+
     try {
-        const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
-        const resBlob = await fetch(selectedImage);
-        const blob = await resBlob.blob();
-        const formData = new FormData();
-        formData.append('image', blob);
-        
-        const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
-          method: 'POST',
-          body: formData
-        });
-        if (!uploadRes.ok) {
-          throw new Error("Gagal upload gambar ke ImgBB");
-        }
-        const uploadResData = await uploadRes.json();
-        if (!uploadResData.success) {
-          throw new Error("ImgBB tidak merespon sukses");
-        }
-        
-        const baseText = `IMGBB_IMAGE|||${uploadResData.data.url}`;
-        let textToSend = baseText;
-        if (imageCaption.trim()) {
-            textToSend = baseText + '|||CAPTION|||' + imageCaption.trim();
-        }
-      
+      const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+      const resBlob = await fetch(selectedImage);
+      const blob = await resBlob.blob();
+      const formData = new FormData();
+      formData.append('image', blob);
+
+      const uploadRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
+        method: 'POST',
+        body: formData
+      });
+      if (!uploadRes.ok) {
+        throw new Error("Gagal upload gambar ke ImgBB");
+      }
+      const uploadResData = await uploadRes.json();
+      if (!uploadResData.success) {
+        throw new Error("ImgBB tidak merespon sukses");
+      }
+
+      const baseText = `IMGBB_IMAGE|||${uploadResData.data.url}`;
+      let textToSend = baseText;
+      if (imageCaption.trim()) {
+        textToSend = baseText + '|||CAPTION|||' + imageCaption.trim();
+      }
+
       const tempId = `temp-${Date.now()}`;
       const newMsg = {
         id: tempId,
@@ -669,7 +669,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         reply_text: replyingTo?.text || null,
         reply_sender: replyingTo?.sender || null
       };
-      
+
       setMessages(prev => [...prev, newMsg]);
       const currentReplyingTo = replyingTo;
       setReplyingTo(null);
@@ -684,10 +684,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       if (!res.ok) {
         throw new Error("Gagal kirim gambar");
       }
-      
+
       const resData = await res.json();
       await localforage.setItem(`r2_media_${resData.id}`, selectedImage);
-      
+
       fetchMessages();
     } catch (err) {
       notify.error("Gagal mengirim gambar: " + err.message);
@@ -805,18 +805,18 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
     if (base64Part.startsWith('data:image/') || base64Part.startsWith('R2_IMAGE|||') || base64Part.startsWith('IMGBB_IMAGE|||') || base64Part === 'MEDIA_DELETED' || base64Part === 'MEDIA_LOCAL_SAVED') {
       return (
-        <MediaMessage 
+        <MediaMessage
           msg={msg}
-          base64Part={base64Part} 
-          captionPart={captionPart} 
-          isMe={isMe} 
+          base64Part={base64Part}
+          captionPart={captionPart}
+          isMe={isMe}
           selectionMode={selectionMode}
           setPreviewModalImage={setPreviewModalImage}
           setLongPressMessage={setLongPressMessage}
         />
       );
     }
-    
+
     return rawText;
   };
 
@@ -851,7 +851,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         lastDateLabel = currentLabel;
       }
 
-      const isEmojiOnly = msg.is_deleted_everyone !== 1 && !msg.reply_to && (function(str) {
+      const isEmojiOnly = msg.is_deleted_everyone !== 1 && !msg.reply_to && (function (str) {
         if (!str || typeof str !== 'string' || str.includes('|||')) return false;
         const noSpace = str.replace(/\s+/g, '');
         if (noSpace.length === 0) return false;
@@ -870,9 +870,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         }}
         >
           {msg.sender === 'imo_ai' && (
-            <img 
-              src={imoAiAvatar} 
-              alt="AI" 
+            <img
+              src={imoAiAvatar}
+              alt="AI"
               style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }}
             />
           )}
@@ -895,14 +895,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             position: 'relative',
             border: selectedMessages.has(msg.id) ? '2px solid var(--primary)' : '2px solid transparent',
             boxSizing: 'border-box'
-          }} onClick={() => { 
+          }} onClick={() => {
             if (selectionMode) {
-              toggleSelection(msg.id); 
+              toggleSelection(msg.id);
             } else {
               setLongPressMessage(msg);
             }
           }}>
-            
+
             {selectionMode && (
               <div style={{
                 position: 'absolute',
@@ -932,8 +932,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', width: '100%', maxWidth: '100%' }}>
                 {msg.reply_to && msg.reply_text && (
-                  <div 
-                    onClick={(e) => { e.stopPropagation(); const el = document.getElementById(`msg-${msg.reply_to}`); if(el) { el.scrollIntoView({behavior: 'smooth', block: 'center'}); el.classList.add('blink-once'); setTimeout(() => el.classList.remove('blink-once'), 2000); } }}
+                  <div
+                    onClick={(e) => { e.stopPropagation(); const el = document.getElementById(`msg-${msg.reply_to}`); if (el) { el.scrollIntoView({ behavior: 'smooth', block: 'center' }); el.classList.add('blink-once'); setTimeout(() => el.classList.remove('blink-once'), 2000); } }}
                     style={{ background: 'rgba(0,0,0,0.2)', padding: '6px 8px', borderRadius: '6px', borderLeft: '4px solid var(--primary)', marginBottom: '6px', cursor: 'pointer', display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: '8px', maxWidth: '100%' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minWidth: 0, overflow: 'hidden' }}>
                       <span style={{ color: 'var(--primary)', fontSize: '12px', fontWeight: 'bold' }}>{msg.reply_sender === currentUser ? 'Anda' : (msg.reply_sender === chat.username ? chat.name : msg.reply_sender)}</span>
@@ -950,7 +950,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 <span style={{ display: 'inline-block', width: msg.sender === 'me' ? '50px' : '40px', height: '10px' }} />
               </div>
             )}
-            <div style={{ 
+            <div style={{
               position: 'absolute',
               right: isEmojiOnly ? '-4px' : '4px',
               bottom: isEmojiOnly ? '-4px' : '4px',
@@ -968,8 +968,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               {msg.time}
               {msg.sender === 'me' && msg.is_deleted_everyone !== 1 && (
                 msg.status === 'sending' ? <Clock size={14} color="rgba(255,255,255,0.6)" /> :
-                msg.status === 'sent' ? <Check size={15} /> : 
-                <CheckCheck size={15} color={msg.status === 'read' ? '#53bdeb' : 'rgba(255,255,255,0.6)'} />
+                  msg.status === 'sent' ? <Check size={15} /> :
+                    <CheckCheck size={15} color={msg.status === 'read' ? '#53bdeb' : 'rgba(255,255,255,0.6)'} />
               )}
             </div>
           </div>
@@ -1023,13 +1023,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                       if (partnerLastSeen === '') return 'Belum pernah online';
                       if (!isFriend) return 'Tidak berteman';
                       if (!partnerLastSeen) return 'Memuat status...';
-                      
+
                       const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
                       const last = new Date(lastSeenStr).getTime();
                       const now = Date.now();
                       const diffMinutes = (now - last) / (1000 * 60);
                       const diffHours = diffMinutes / 60;
-                      
+
                       if (diffMinutes < 2) {
                         return (
                           <>
@@ -1068,13 +1068,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {/* Messages Area */}
-      <div 
-        className="chat-list" 
+      <div
+        className="chat-list"
         onScroll={handleScroll}
         style={{ flex: 1, padding: '4px 16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', position: 'relative' }}
       >
         {loading && <div style={{ textAlign: 'center', marginTop: '20px' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
-        
+
         {!loading && messages.length === 0 && (
           <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '10cqh', fontSize: 'var(--font-body)' }}>
             Belum ada pesan. Mulai obrolan dengan {chat.name}!
@@ -1125,27 +1125,30 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <X size={20} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer', flexShrink: 0, paddingLeft: '10px' }} onClick={() => setReplyingTo(null)} />
         </div>
       )}
-      
-        {isAiTyping && (
-          <div style={{ padding: '4px 16px', fontSize: '12px', color: 'var(--primary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
-             <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> imo_ai sedang mengetik...
+
+      {isAiTyping && (
+        <div style={{ padding: '4px 16px', fontSize: '12px', color: 'var(--primary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> imo_ai sedang mengetik...
+        </div>
+      )}
+      <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
+        {showMentionPopup && (
+          <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+            onClick={() => {
+              if (!chat.isDeleted) {
+                setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
+                  const hasSpace = match.startsWith(' ');
+                  return (hasSpace ? ' ' : '') + '@imo_ai ';
+                }));
+                setMentionSearchQuery('');
+                setShowMentionPopup(false);
+                inputRef.current?.focus();
+              }
+            }}>
+            <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
+            <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten Imo</span></div>
           </div>
         )}
-        <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
-          {showMentionPopup && (
-            <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-                 onClick={() => {
-                    if (!chat.isDeleted) {
-                      setNewMessage(prev => prev.replace(/@[a-zA-Z0-9_]*$/, '@imo_ai '));
-                      setMentionSearchQuery('');
-                      setShowMentionPopup(false);
-                      inputRef.current?.focus();
-                    }
-                 }}>
-              <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
-              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
-            </div>
-          )}
         <input
           type="file"
           accept="image/*"
@@ -1155,10 +1158,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image}
         />
         <div style={{ display: 'flex', alignItems: 'center' }}>
-          <ImageIcon 
-            size={24} 
-            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }} 
-            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && !restrictions?.disable_chat_image && fileInputRef.current?.click()} 
+          <ImageIcon
+            size={24}
+            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }}
+            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && !restrictions?.disable_chat_image && fileInputRef.current?.click()}
           />
         </div>
         <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={emojiPickerRef}>
@@ -1169,7 +1172,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           />
           {showEmojiPicker && !chat.isDeleted && !selectionMode && !restrictions?.full_mute && (
             <div style={{ position: 'absolute', bottom: '50px', left: '-40px', zIndex: 50 }}>
-              <EmojiPicker 
+              <EmojiPicker
                 onEmojiClick={(emojiObject) => {
                   setNewMessage(prev => prev + emojiObject.emoji);
                 }}
@@ -1186,16 +1189,16 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             </div>
           )}
         </div>
-        <input 
+        <input
           ref={inputRef}
-          type="text" 
+          type="text"
           value={newMessage}
           onChange={(e) => {
             const val = e.target.value;
             setNewMessage(val);
-            const match = val.match(/@[a-zA-Z0-9_]*$/);
+            const match = val.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
             if (match) {
-              const query = match[0].substring(1).toLowerCase();
+              const query = match[1].toLowerCase();
               if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || query === '') {
                 setMentionSearchQuery(query);
                 setShowMentionPopup(true);
@@ -1220,14 +1223,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'text'
           }}
         />
-        <button type="submit" disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat} style={{ 
-          background: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#3f3f46' : 'var(--primary)', 
-          border: 'none', 
-          width: '9.5cqw', 
-          height: '9.5cqw', 
-          borderRadius: '50%', 
-          display: 'flex', 
-          alignItems: 'center', 
+        <button type="submit" disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat} style={{
+          background: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#3f3f46' : 'var(--primary)',
+          border: 'none',
+          width: '9.5cqw',
+          height: '9.5cqw',
+          borderRadius: '50%',
+          display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
           cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'pointer',
           color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#52525b' : 'white',
@@ -1236,20 +1239,20 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <Send size={18} style={{ marginLeft: '0.5cqw' }} />
         </button>
       </form>
-      
+
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div style={{ 
-          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
           background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
           display: 'flex', justifyContent: 'center', alignItems: 'center',
           zIndex: 1000, padding: '5cqw'
         }}>
-          <div style={{ 
-            background: 'var(--dark-surface)', 
-            padding: '5cqw', 
-            borderRadius: '4cqw', 
-            width: '90%', 
+          <div style={{
+            background: 'var(--dark-surface)',
+            padding: '5cqw',
+            borderRadius: '4cqw',
+            width: '90%',
             border: '1px solid var(--dark-border)',
             boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)'
           }}>
@@ -1288,9 +1291,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
 
           {/* Image Preview Container */}
           <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2cqh 4cqw', overflow: 'hidden' }}>
-            <img 
-              src={selectedImage} 
-              alt="Preview" 
+            <img
+              src={selectedImage}
+              alt="Preview"
               style={{
                 maxWidth: '100%',
                 maxHeight: '100%',
@@ -1301,14 +1304,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 background: 'transparent',
                 boxShadow: 'none',
                 borderRadius: 0
-              }} 
+              }}
             />
           </div>
 
           {/* Caption Input & Send Controls */}
           <div style={{ padding: '2.5cqh 4cqw calc(2.5cqh + env(safe-area-inset-bottom, 24px)) 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', alignItems: 'center' }}>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={imageCaption}
               onChange={(e) => setImageCaption(e.target.value)}
               placeholder="Tambah keterangan (opsional)..."
@@ -1325,16 +1328,16 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                 fontSize: 'var(--font-body)'
               }}
             />
-            <button 
-              onClick={confirmSendImage} 
-              style={{ 
-                background: 'var(--primary)', 
-                border: 'none', 
-                width: '9.5cqw', 
-                height: '9.5cqw', 
-                borderRadius: '50%', 
-                display: 'flex', 
-                alignItems: 'center', 
+            <button
+              onClick={confirmSendImage}
+              style={{
+                background: 'var(--primary)',
+                border: 'none',
+                width: '9.5cqw',
+                height: '9.5cqw',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
                 justifyContent: 'center',
                 cursor: 'pointer',
                 color: 'white',
@@ -1391,8 +1394,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         <div onClick={() => setShowEditModal(null)} style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end', justifyContent: 'center', paddingBottom: '20px' }}>
           <div onClick={e => e.stopPropagation()} style={{ background: 'var(--dark-surface)', padding: '20px', borderRadius: '16px', width: '90%', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             <h3 style={{ margin: 0, color: 'white', fontSize: '16px' }}>Edit Pesan</h3>
-            <input 
-              type="text" 
+            <input
+              type="text"
               value={editMessageText}
               onChange={e => setEditMessageText(e.target.value)}
               style={{ width: '100%', boxSizing: 'border-box', padding: '12px', borderRadius: '8px', background: 'rgba(255,255,255,0.05)', border: 'none', color: 'white', outline: 'none' }}
@@ -1406,7 +1409,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         </div>
       )}
 
-      <style dangerouslySetInnerHTML={{__html: `
+      <style dangerouslySetInnerHTML={{
+        __html: `
         @keyframes bounce {
           0%, 80%, 100% { transform: scale(0); }
           40% { transform: scale(1); }
@@ -1425,7 +1429,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         <>
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, backdropFilter: 'blur(4px)' }} onClick={() => setViewProfileUser(null)} />
           <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '6cqw', padding: '8cqw 6cqw', width: '90%', maxWidth: '85vw', zIndex: 10001, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div 
+            <div
               style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', marginBottom: '4cqh', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
               onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
             >
@@ -1433,14 +1437,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             </div>
             <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
             <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '5cqh' }}>@{viewProfileUser.username}</div>
-            
+
             <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)' }}>
               <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '2cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
               <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
                 {viewProfileUser.bio || 'Tidak ada bio.'}
               </div>
             </div>
-            
+
             <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3.5cqw', borderRadius: '3cqw', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
               Tutup
             </button>
@@ -1460,7 +1464,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             <X size={24} color="white" style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.2)', padding: '2cqw', borderRadius: '50%' }} onClick={(e) => { e.stopPropagation(); setPreviewModalImage(null); }} />
           </div>
           <img src={previewModalImage} alt="Fullscreen Preview" style={{ maxWidth: '100%', maxHeight: '80%', objectFit: 'contain', marginBottom: '4cqh' }} onClick={(e) => e.stopPropagation()} />
-          <div 
+          <div
             onClick={async (e) => {
               e.stopPropagation();
               try {
