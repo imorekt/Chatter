@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { callImoAI } from './utils/aiConfig';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock, ChevronDown } from 'lucide-react';
 
 import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
@@ -230,6 +230,20 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   
   // Long Press State
   const [longPressMessage, setLongPressMessage] = useState(null);
+  
+  // Scroll & Unread State
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const prevMessagesLength = useRef(messages.length);
+  
+  const handleScroll = (e) => {
+    const { scrollTop, scrollHeight, clientHeight } = e.target;
+    const isBottom = scrollHeight - scrollTop - clientHeight < 150;
+    setIsAtBottom(isBottom);
+    if (isBottom && unreadCount > 0) {
+      setUnreadCount(0);
+    }
+  };
   const [showMentionPopup, setShowMentionPopup] = useState(false);
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
@@ -385,8 +399,23 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       scrollToBottom('auto');
       if (messages.length > 0) isFirstLoad.current = false;
     } else {
-      scrollToBottom('smooth');
+      if (isAtBottom) {
+        scrollToBottom('smooth');
+        setUnreadCount(0);
+      } else {
+        const diff = messages.length - prevMessagesLength.current;
+        if (diff > 0) {
+          const lastMsg = messages[messages.length - 1];
+          if (lastMsg && (lastMsg.sender === currentUser || lastMsg.sender === 'me')) {
+            scrollToBottom('smooth');
+            setUnreadCount(0);
+          } else {
+            setUnreadCount(prev => prev + diff);
+          }
+        }
+      }
     }
+    prevMessagesLength.current = messages.length;
   }, [messages, showEmojiPicker]);
 
   const fetchMessages = () => {
@@ -1037,7 +1066,11 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {/* Messages Area */}
-      <div className="chat-list" style={{ flex: 1, padding: '4px 16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto' }}>
+      <div 
+        className="chat-list" 
+        onScroll={handleScroll}
+        style={{ flex: 1, padding: '4px 16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', position: 'relative' }}
+      >
         {loading && <div style={{ textAlign: 'center', marginTop: '20px' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
         
         {!loading && messages.length === 0 && (
@@ -1057,6 +1090,25 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         )}
         <div ref={messagesEndRef} />
       </div>
+
+      {!isAtBottom && (
+        <div style={{ position: 'absolute', bottom: replyingTo ? '140px' : '90px', right: '16px', zIndex: 100 }}>
+          <button
+            onClick={() => {
+              scrollToBottom('smooth');
+              setUnreadCount(0);
+            }}
+            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', color: 'var(--dark-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', position: 'relative' }}
+          >
+            <ChevronDown size={24} />
+            {unreadCount > 0 && (
+              <div style={{ position: 'absolute', top: '-6px', right: '-6px', background: 'var(--primary)', color: 'white', fontSize: '10px', fontWeight: 'bold', borderRadius: '10px', padding: '2px 6px', minWidth: '16px', textAlign: 'center' }}>
+                {unreadCount}
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Composer */}
       {replyingTo && (
