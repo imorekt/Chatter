@@ -327,7 +327,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       if (!res.ok) throw new Error("Gagal mengomentari");
       fetchMoments();
 
-      if (text.includes('@imo_ai')) {
+      if (text.includes('@imo_ai') || text.includes('@Imo') || text.includes('@imo')) {
         const moment = moments.find(m => m.id === momentId);
         if (moment) {
           const chatContext = `moment-${momentId}`;
@@ -337,10 +337,11 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
           ];
           callImoAI(chatContext, history, text, currentUserDisplayName, moment.user_display_name || moment.username)
             .then(async (reply) => {
+              const finalReply = `@${currentUserDisplayName} ${reply}`;
               await fetch(`${API_URL}/api/moments/comment`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ moment_id: momentId, username: 'imo_ai', content: reply })
+                body: JSON.stringify({ moment_id: momentId, username: 'imo_ai', content: finalReply })
               });
               fetchMoments();
             })
