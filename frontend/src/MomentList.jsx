@@ -375,10 +375,10 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
         if (moment) {
           const chatContext = `moment-${momentId}`;
           const history = [
-            { sender: moment.username, sender_display: moment.user_display_name, text: moment.content },
-            ...(moment.comments || []).map(c => ({ sender: c.username, sender_display: c.user_display_name, text: c.content }))
+            { sender: moment.username, sender_display: moment.user_display_name, text: `[ISI POSTINGAN UTAMA]: "${moment.content}" ${moment.image_url ? '(beserta lampiran sebuah gambar/foto)' : '(tanpa gambar/foto, hanya teks)'}` },
+            ...(moment.comments || []).map(c => ({ sender: c.username, sender_display: c.user_display_name, text: `[KOMENTAR]: ${c.content}` }))
           ];
-          callImoAI(chatContext, history, text, currentUserDisplayName, moment.user_display_name || moment.username)
+          callImoAI(chatContext, history, `[KOMENTAR BARU]: ${text}`, currentUserDisplayName, moment.user_display_name || moment.username)
             .then(async (reply) => {
               const finalReply = `@${currentUserDisplayName} ${reply}`;
               await fetch(`${API_URL}/api/moments/comment`, {
