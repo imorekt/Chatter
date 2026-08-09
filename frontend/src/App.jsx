@@ -216,42 +216,7 @@ function App() {
 
   return (
     <div className="app-container">
-      {showUpdate && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          backdropFilter: 'blur(5px)'
-        }}>
-          <div style={{
-            backgroundColor: 'var(--surface)', padding: '2rem',
-            borderRadius: '16px', width: '85%', maxWidth: '400px',
-            textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-          }}>
-            <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
-            <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-              Kiw versi baru tersedia,, tolong update ya!
-            </p>
-            <button
-              onClick={handleUpdate}
-              disabled={isDownloadingUpdate}
-              style={{
-                width: '100%', padding: '12px', borderRadius: '12px',
-                backgroundColor: 'var(--primary)', color: 'white',
-                border: 'none', fontWeight: 'bold', fontSize: '1rem',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {isDownloadingUpdate ? (
-                <>Mengunduh... {downloadProgress}%</>
-              ) : (
-                <><Download size={20} /> Update Sekarang</>
-              )}
-            </button>
-          </div>
-        </div>
-      )}
+      {/* Update popup removed completely */}
       <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
       {!user ? (
         isRegistering ? (
