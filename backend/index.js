@@ -420,10 +420,11 @@ app.get('/api/moments', async (req, res) => {
 
 app.post('/api/moments', async (req, res) => {
   const { username, content, image_url } = req.body;
-  if (!username || !content) return res.status(400).json({ error: "Username dan konten wajib diisi" });
+  if (!username || (!content && !image_url)) return res.status(400).json({ error: "Username dan konten/gambar wajib diisi" });
   
   try {
-    const result = await db.execute({ sql: `INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, args: [username, content, image_url || null] });
+    const finalContent = content || "";
+    const result = await db.execute({ sql: `INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, args: [username, finalContent, image_url || null] });
     pusher.trigger('global-events', 'new-moment', { id: result.lastInsertRowid.toString(), username });
     res.json({ success: true, id: result.lastInsertRowid.toString() });
   } catch (err) {

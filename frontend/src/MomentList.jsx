@@ -202,12 +202,11 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
           throw new Error("VITE_IMGBB_API_KEY belum dikonfigurasi.");
         }
         
-        // Convert base64 to Blob
-        const resBlob = await fetch(newImageUrl);
-        const blob = await resBlob.blob();
+        // Extract base64 part
+        const base64Data = newImageUrl.split(',')[1];
         
         const formData = new FormData();
-        formData.append('image', blob);
+        formData.append('image', base64Data);
         
         // Upload to ImgBB (without expiration parameter, so it lasts forever)
         const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, {
@@ -637,11 +636,13 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
 
                   <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
                     {mentionPopupMomentId === moment.id && (
-                      <div className="absolute bottom-full left-0 mb-2 bg-[#1A1F2E] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-[#2D3348] z-50 w-max max-h-48 overflow-y-auto hide-scrollbar p-1">
+                      <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', background: '#1A1F2E', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid #2D3348', zIndex: 50, width: '220px', maxHeight: '200px', overflowY: 'auto', padding: '4px' }} className="hide-scrollbar">
                         {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
                           <div 
                             key={idx} 
-                            className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700/50 last:border-0"
+                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', cursor: 'pointer', borderBottom: '1px solid rgba(51, 65, 85, 0.5)', transition: 'background 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#334155'}
+                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => {
                                 setCommentTexts(prev => {
                                   const text = prev[moment.id] || '';
@@ -654,9 +655,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                                 document.getElementById(`comment-input-${moment.id}`)?.focus();
                             }}>
                             {user.avatar ? (
-                              <img src={user.avatar} className="w-8 h-8 rounded-full bg-slate-700 object-cover" alt="" />
+                              <img src={user.avatar} style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#334155', objectFit: 'cover', flexShrink: 0 }} alt="" />
                             ) : (
-                              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-white">{user.username.charAt(0).toUpperCase()}</div>
+                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '500', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>
                             )}
                             <div className="flex flex-col">
                               <span className="text-white text-[14px] font-bold">{user.display_name || user.username}</span>

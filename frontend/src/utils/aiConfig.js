@@ -97,7 +97,13 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         history.shift();
     }
 
-    const newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
+    let newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
+
+    // Pastikan history terakhir adalah 'model' karena `chat.sendMessage` otomatis menambahkan 'user' sebagai pesan berikutnya
+    if (history.length > 0 && history[history.length - 1].role === 'user') {
+        const lastUserMsg = history.pop();
+        newPromptFormatted = lastUserMsg.parts[0].text + `\n\n${newPromptFormatted}`;
+    }
 
     // Tentukan index API Key awal berdasarkan hash chatContext agar setiap room punya default key
     let hash = 0;
