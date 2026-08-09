@@ -33,7 +33,7 @@ const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPr
   const getInitialImgSrc = () => {
     if (base64Part.startsWith('data:image/')) return base64Part;
     if (base64Part.startsWith('R2_IMAGE|||')) return base64Part.split('|||')[2];
-    if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1];
+    if (base64Part.startsWith('IMGBB_IMAGE|||')) return base64Part.split('|||')[1].replace('i.ibb.co', 'i.ibb.co.com');
     return null;
   };
 
@@ -73,7 +73,7 @@ const MediaMessage = ({ msg, base64Part, captionPart, isMe, selectionMode, setPr
         }
 
         if (base64Part.startsWith('IMGBB_IMAGE|||')) {
-          const url = base64Part.split('|||')[1];
+          const url = base64Part.split('|||')[1].replace('i.ibb.co', 'i.ibb.co.com');
 
           const localStored = await localforage.getItem(`r2_media_${msgId}`);
           if (localStored) {
@@ -823,7 +823,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const renderMessages = () => {
     const getReplyThumbnail = (text) => {
       if (!text) return null;
-      if (text.startsWith('IMGBB_IMAGE|||')) return text.split('|||')[1];
+      if (text.startsWith('IMGBB_IMAGE|||')) return text.split('|||')[1].replace('i.ibb.co', 'i.ibb.co.com');
       if (text.startsWith('R2_IMAGE|||')) return text.split('|||')[2];
       if (text.startsWith('data:image/')) return text.includes('|||CAPTION|||') ? text.split('|||CAPTION|||')[0] : text;
       return null;

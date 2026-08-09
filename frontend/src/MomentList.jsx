@@ -609,10 +609,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                   {moment.content.split(' ').map((word, i) => word.startsWith('@') ? <span key={i} style={{ color: 'var(--primary)' }}>{word} </span> : word + ' ')}
                 </div>
               )}
-              
               {moment.image_url && (
-                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000', cursor: 'pointer', width: '100%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPreviewModalImage(moment.image_url)}>
-                  <img src={moment.image_url} alt="Moment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                <div style={{ marginBottom: '2cqh', borderRadius: '2cqw', overflow: 'hidden', background: '#000', cursor: 'pointer', width: '100%', aspectRatio: '1/1', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setPreviewModalImage(moment.image_url.replace('i.ibb.co', 'i.ibb.co.com'))}>
+                  <img src={moment.image_url.replace('i.ibb.co', 'i.ibb.co.com')} alt="Moment" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 </div>
               )}
               
