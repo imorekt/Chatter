@@ -163,7 +163,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     let systemInstruction = `Kamu adalah Momo (Asisten Imou) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
 
     if (isMoment) {
-        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA DAN ASIK. MAKSIMAL 5 KALIMAT PENDEK SAJA.`;
+        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA dengan emoji DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 5 KALIMAT PENDEK SAJA. JANGAN MENYERTAKAN TEKS "[KOMENTAR]:" PADA BALASANMU.`;
     }
 
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
@@ -231,7 +231,11 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
         try {
             console.log(`Mencoba API Key index ke-${currentKeyIndex}...`);
-            const responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext);
+            let responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext);
+            
+            // Hapus prefix [KOMENTAR]: jika AI masih tidak sengaja menyertakannya
+            responseText = responseText.replace(/^\[KOMENTAR\]:\s*/i, '');
+            
             return responseText; // Jika sukses, langsung kembalikan hasil
         } catch (error) {
             console.error(`Gagal dengan API Key index ke-${currentKeyIndex}:`, error.message || error);
