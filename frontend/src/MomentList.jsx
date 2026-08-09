@@ -82,19 +82,38 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   useEffect(() => {
     // Generate taggable users from contactsData
     const friends = contactsData?.friends || [];
-    const users = friends.map(f => ({
-      username: f.username,
-      display_name: f.display_name,
-      avatar: f.avatar
-    }));
+    const users = friends
+      .filter(f => f.username !== 'imo_ai') // Prevent duplicates
+      .map(f => ({
+        username: f.username,
+        display_name: f.display_name,
+        avatar: f.avatar
+      }));
     
     // add imo_ai
     users.unshift({
       username: 'imo_ai',
-      display_name: 'Imo AI',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai'
+      display_name: 'Momo',
+      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai' // Fallback
     });
     setTaggableUsers(users);
+
+    // Fetch real avatar for Momo
+    fetch(`${API_URL}/api/users/imo_ai`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.avatar) {
+          setTaggableUsers(prev => {
+            const newUsers = [...prev];
+            const imoAiIdx = newUsers.findIndex(u => u.username === 'imo_ai');
+            if (imoAiIdx !== -1) {
+              newUsers[imoAiIdx].avatar = data.avatar;
+            }
+            return newUsers;
+          });
+        }
+      })
+      .catch(console.error);
   }, [contactsData]);
 
   useEffect(() => {
@@ -348,7 +367,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       if (!res.ok) throw new Error("Gagal mengomentari");
       fetchMoments();
 
-      if (text.includes('@imo_ai') || text.includes('@Imo') || text.includes('@imo')) {
+      // Check if Momo is tagged
+      if (text.includes('@Momo') || text.includes('@momo') || text.includes('@imo_ai') || text.includes('@imo') || text.includes('@Imo')) {
         const moment = moments.find(m => m.id === momentId);
         if (moment) {
           const chatContext = `moment-${momentId}`;
@@ -660,9 +680,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                                 setMentionSearchQuery('');
                                 document.getElementById(`comment-input-${moment.id}`)?.focus();
                             }}>
-                            {user.username === 'imo_ai' ? (
-                              <div style={{ fontSize: '16px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>🤖</div>
-                            ) : user.avatar ? (
+                            {user.avatar ? (
                               <img src={user.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.1)', objectFit: 'cover', flexShrink: 0 }} alt="" />
                             ) : (
                               <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>

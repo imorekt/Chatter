@@ -29,6 +29,18 @@ const Profile = ({ onLogout, email }) => {
   const [adminCommandInput, setAdminCommandInput] = useState('');
   const [isSendingCommand, setIsSendingCommand] = useState(false);
   const commandEndRef = useRef(null);
+  const [imoAiAvatar, setImoAiAvatar] = useState("https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai");
+
+  useEffect(() => {
+    fetch(`${API_URL}/api/users/imo_ai`)
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.avatar) {
+          setImoAiAvatar(data.avatar);
+        }
+      })
+      .catch(console.error);
+  }, []);
 
   // Admin Bubble Swipe State
   const [bubbleOffset, setBubbleOffset] = useState(0);
@@ -540,8 +552,13 @@ const Profile = ({ onLogout, email }) => {
           
           <div className="hide-scrollbar" style={{ flex: 1, padding: '4cqw', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '2cqh', background: '#0F172A' }}>
             {adminCommandMessages.map((msg, idx) => (
-              <div key={idx} style={{ alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start', background: msg.sender === 'me' ? 'var(--primary)' : '#1E293B', color: 'white', padding: '2cqh 3cqw', borderRadius: '3cqw', borderBottomRightRadius: msg.sender === 'me' ? '0' : '3cqw', borderBottomLeftRadius: msg.sender === 'imo_ai' ? '0' : '3cqw', maxWidth: '80%', wordBreak: 'break-word', fontSize: 'var(--font-body)', fontFamily: msg.sender === 'imo_ai' ? 'monospace' : 'inherit' }}>
-                {msg.text}
+              <div key={idx} style={{ display: 'flex', gap: '8px', alignSelf: msg.sender === 'me' ? 'flex-end' : 'flex-start', maxWidth: '80%' }}>
+                {msg.sender === 'imo_ai' && (
+                  <img src={imoAiAvatar} alt="Momo" style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }} />
+                )}
+                <div style={{ background: msg.sender === 'me' ? 'var(--primary)' : '#1E293B', color: 'white', padding: '2cqh 3cqw', borderRadius: '3cqw', borderBottomRightRadius: msg.sender === 'me' ? '0' : '3cqw', borderBottomLeftRadius: msg.sender === 'imo_ai' ? '0' : '3cqw', wordBreak: 'break-word', fontSize: 'var(--font-body)', fontFamily: msg.sender === 'imo_ai' ? 'monospace' : 'inherit' }}>
+                  {msg.text}
+                </div>
               </div>
             ))}
             {isSendingCommand && (

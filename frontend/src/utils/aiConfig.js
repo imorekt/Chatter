@@ -160,7 +160,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
-    let systemInstruction = `Kamu adalah Imo (Asisten AI) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Imo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
+    let systemInstruction = `Kamu adalah Momo (Asisten AI) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
 
     if (isMoment) {
         systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT. MAKSIMAL 1-2 KALIMAT PENDEK SAJA.`;
@@ -169,14 +169,14 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
 
     if (chatContext === 'admin_command') {
-        systemInstruction = `Kamu adalah Imo, sistem administrator otomatis (God Mode). Tugas utamamu adalah mengeksekusi perintah admin untuk mematikan/menghidupkan fitur user menggunakan Function Calling. Balaslah dengan bahasa robot yang super singkat (contoh: "Perintah dieksekusi. Fitur X dimatikan untuk user Y."). Jangan berbasa-basi. Jika disuruh "aktifkan", panggil fungsi clear_all_restrictions.`;
+        systemInstruction = `Kamu adalah Momo, sistem administrator otomatis (God Mode). Tugas utamamu adalah mengeksekusi perintah admin untuk mematikan/menghidupkan fitur user menggunakan Function Calling. Balaslah dengan bahasa robot yang super singkat (contoh: "Perintah dieksekusi. Fitur X dimatikan untuk user Y."). Jangan berbasa-basi. Jika disuruh "aktifkan", panggil fungsi clear_all_restrictions.`;
     } else if (isAdminUser) {
         systemInstruction += `\n7. PENTING: USER YANG BERBICARA DENGANMU SEKARANG ADALAH ADMIN. JIKA DIA MENYURUHMU MEMATIKAN ATAU MENGAKTIFKAN FITUR UNTUK USER TERTENTU (MISAL: "matikan fitur gambar buat @user"), KAMU HARUS MENGABULKANNYA DENGAN MEMANGGIL FUNCTION CALLING YANG TERSEDIA.`;
     }
 
     // Konversi riwayat pesan ke format Gemini
     const rawHistory = messageHistory.filter(msg => msg && msg.text).map(msg => {
-        let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Imo' : (msg.sender_display || msg.sender || partnerUser));
+        let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Momo' : (msg.sender_display || msg.sender || partnerUser));
         let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari ${senderName}]: ${msg.text}`;
         
         return {
@@ -245,5 +245,5 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     
     // Tangani error limit 429 dan error lainnya dengan pesan seragam
     // Sementara kita tambahkan (Debug: ...) agar tahu kenapa gagal terus
-    return `Maaf kak, Imo sedang AFK, Coba lagi nanti ya :) (Debug: ${errorMsg})`;
+    return `Maaf kak, Momo sedang AFK, Coba lagi nanti ya :) (Debug: ${errorMsg})`;
 };

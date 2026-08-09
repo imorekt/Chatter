@@ -1135,12 +1135,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           {showMentionPopup && (
             <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                  onClick={() => {
-                     setNewMessage(prev => prev.replace(/@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai '));
-                     setShowMentionPopup(false);
-                     inputRef.current?.focus();
+                    if (!chat.isDeleted) {
+                      setNewMessage(prev => prev.replace(/@momo$|@Momo$|@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai '));
+                      setMentionSearchQuery('');
+                      setShowMentionPopup(false);
+                      inputRef.current?.focus();
+                    }
                  }}>
-              <div style={{ fontSize: '20px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '36px', height: '36px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</div>
-              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>imo_ai <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
+              <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
+              <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten AI</span></div>
             </div>
           )}
         <input
@@ -1190,7 +1193,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           onChange={(e) => {
             const val = e.target.value;
             setNewMessage(val);
-            if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
+            if (val.endsWith('@') || val.endsWith('@Momo') || val.endsWith('@momo') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
+              const query = val.split('@').pop().toLowerCase();
+              setMentionSearchQuery(query);
               setShowMentionPopup(true);
             } else {
               setShowMentionPopup(false);
