@@ -30,6 +30,11 @@ const Profile = ({ onLogout, email }) => {
   const [isSendingCommand, setIsSendingCommand] = useState(false);
   const commandEndRef = useRef(null);
 
+  // Admin Bubble Swipe State
+  const [bubbleOffset, setBubbleOffset] = useState(0);
+  const dragStartX = useRef(0);
+  const isDraggingBubble = useRef(false);
+
   const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
   useEffect(() => {
@@ -471,6 +476,54 @@ const Profile = ({ onLogout, email }) => {
               {isCropping ? <Loader2 size={16} className="animate-spin" /> : 'Simpan Foto'}
             </button>
           </div>
+        </div>
+      )}
+
+      {/* Floating Admin Command Bubble (admin1 & admin2 only) */}
+      {isAdmin && (
+        <div 
+          onTouchStart={(e) => {
+            dragStartX.current = e.touches[0].clientX;
+            isDraggingBubble.current = false;
+          }}
+          onTouchMove={(e) => {
+            const deltaX = dragStartX.current - e.touches[0].clientX;
+            if (Math.abs(deltaX) > 10) isDraggingBubble.current = true;
+            if (deltaX > 0) {
+              setBubbleOffset(deltaX);
+            }
+          }}
+          onTouchEnd={() => {
+            if (!isDraggingBubble.current || bubbleOffset > 40) {
+              setShowAdminCommand(true);
+            }
+            setBubbleOffset(0);
+          }}
+          onClick={() => {
+            if (!isDraggingBubble.current) {
+              setShowAdminCommand(true);
+            }
+          }}
+          style={{ 
+            position: 'fixed', 
+            right: `${16 + bubbleOffset}px`, 
+            top: '45%', 
+            transform: 'translateY(-50%)', 
+            background: 'linear-gradient(135deg, #3B82F6, #1D4ED8)', 
+            width: '48px', 
+            height: '48px', 
+            borderRadius: '50%', 
+            display: 'flex', 
+            justifyContent: 'center', 
+            alignItems: 'center', 
+            boxShadow: '0 8px 24px rgba(59, 130, 246, 0.5), 0 0 0 2px rgba(255, 255, 255, 0.2)',
+            zIndex: 999,
+            cursor: 'pointer',
+            touchAction: 'none',
+            transition: bubbleOffset > 0 ? 'none' : 'right 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+          }}
+        >
+          <Terminal size={22} color="white" />
         </div>
       )}
 

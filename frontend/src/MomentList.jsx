@@ -642,12 +642,12 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
 
                   <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
                     {mentionPopupMomentId === moment.id && (
-                      <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', background: '#1A1F2E', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid #2D3348', zIndex: 50, width: '220px', maxHeight: '200px', overflowY: 'auto', padding: '4px' }} className="hide-scrollbar">
+                      <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', background: 'var(--dark-surface)', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', border: '1px solid var(--dark-border)', zIndex: 100, minWidth: '200px', maxWidth: '260px', maxHeight: '185px', overflowY: 'auto', padding: '4px' }} className="hide-scrollbar">
                         {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
                           <div 
                             key={idx} 
-                            style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '12px', cursor: 'pointer', borderBottom: '1px solid rgba(51, 65, 85, 0.5)', transition: 'background 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#334155'}
+                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', borderRadius: '8px', transition: 'background 0.2s' }}
+                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
                             onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
                             onClick={() => {
                                 setCommentTexts(prev => {
@@ -660,14 +660,16 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                                 setMentionSearchQuery('');
                                 document.getElementById(`comment-input-${moment.id}`)?.focus();
                             }}>
-                            {user.avatar ? (
-                              <img src={user.avatar} style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#334155', objectFit: 'cover', flexShrink: 0 }} alt="" />
+                            {user.username === 'imo_ai' ? (
+                              <div style={{ fontSize: '16px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>🤖</div>
+                            ) : user.avatar ? (
+                              <img src={user.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.1)', objectFit: 'cover', flexShrink: 0 }} alt="" />
                             ) : (
-                              <div style={{ width: '32px', height: '32px', borderRadius: '50%', backgroundColor: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: '500', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>
+                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>
                             )}
-                            <div className="flex flex-col">
-                              <span className="text-white text-[14px] font-bold">{user.display_name || user.username}</span>
-                              <span className="text-[#8B95A5] text-[12px]">@{user.username} {user.username === 'imo_ai' && '- Asisten AI'}</span>
+                            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                              <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.display_name || user.username}</span>
+                              <span style={{ color: 'var(--dark-text-muted)', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@{user.username} {user.username === 'imo_ai' && '- Asisten AI'}</span>
                             </div>
                           </div>
                         ))}
