@@ -38,7 +38,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     const genAI = new GoogleGenerativeAI(apiKey);
     // Sesuai permintaan: menggunakan Gemini 3.5 Flash (yg tersedia tanpa limit 0)
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-1.5-flash",
+        model: "gemini-3.5-flash",
         systemInstruction: systemInstruction 
     });
 
