@@ -240,5 +240,6 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     // Tangani error limit 429 dan error lainnya dengan pesan seragam
-    return "Maaf kak, Imo sedang AFK, Coba lagi nanti ya :)";
+    // Sementara kita tambahkan (Debug: ...) agar tahu kenapa gagal terus
+    return `Maaf kak, Imo sedang AFK, Coba lagi nanti ya :) (Debug: ${errorMsg})`;
 };

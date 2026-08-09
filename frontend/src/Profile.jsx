@@ -529,7 +529,7 @@ const Profile = ({ onLogout, email }) => {
 
       {/* Admin Command Modal */}
       {showAdminCommand && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 1100, display: 'flex', flexDirection: 'column' }}>
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 1100, display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '2cqh 4cqw', background: 'var(--dark-surface)', borderBottom: '1px solid var(--dark-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw', color: '#3B82F6' }}>
               <Terminal size={20} />
