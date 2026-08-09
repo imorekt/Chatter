@@ -492,7 +492,7 @@ app.post('/api/moments/delete-bulk', async (req, res) => {
     return res.status(400).json({ error: "Invalid data" });
   }
   
-  if (username !== 'admin1@local.dev' && username !== 'admin2@local.dev') {
+  if (username !== 'admin1@local.dev' && username !== 'admin2@local.dev' && username.toLowerCase() !== 'admin1' && username.toLowerCase() !== 'admin2') {
     return res.status(403).json({ error: "Forbidden: Not an admin" });
   }
 
