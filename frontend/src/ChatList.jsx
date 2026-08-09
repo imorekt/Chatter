@@ -443,9 +443,9 @@ const ChatList = ({ onLogout, currentUser }) => {
       )}
 
       {activeChat ? (
-        <ChatRoom chat={activeChat} onBack={closeModal} currentUser={currentUser} isFriend={contactsData.friends?.some(f => f.username === activeChat.username) || false} />
+        <ChatRoom key={activeChat.username} chat={activeChat} onBack={closeModal} currentUser={currentUser} isFriend={contactsData.friends?.some(f => f.username === activeChat.username) || false} />
       ) : activeFavoriteUser ? (
-        <FavoriteRoom partner={activeFavoriteUser} onBack={closeModal} currentUser={currentUser} />
+        <FavoriteRoom key={activeFavoriteUser.username} partner={activeFavoriteUser} onBack={closeModal} currentUser={currentUser} />
       ) : (
         <div className="chat-app" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
           <div className="chat-header-bar">
