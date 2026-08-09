@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
 import { callImoAI } from './utils/aiConfig';
-import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock, ChevronDown } from 'lucide-react';
+import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock, ChevronDown, Lock } from 'lucide-react';
 
 import Pusher from 'pusher-js';
 import EmojiPicker, { Categories } from 'emoji-picker-react';
@@ -1132,142 +1132,155 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> imo_ai sedang mengetik...
         </div>
       )}
-      <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
-        {showMentionPopup && (
-          <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '8px 0', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', flexDirection: 'column', minWidth: '220px' }}>
-            {('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
-              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-                onClick={() => {
-                  if (!chat.isDeleted) {
-                    setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
-                      const hasSpace = match.startsWith(' ');
-                      return (hasSpace ? ' ' : '') + '@Momo ';
-                    }));
-                    setMentionSearchQuery('');
-                    setShowMentionPopup(false);
-                    inputRef.current?.focus();
-                  }
-                }}>
-                <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
-                <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Asisten Imo</span></div>
-              </div>
-            )}
-            
-            {chat?.username && (chat.username.toLowerCase().startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
-              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderTop: ('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') ? '1px solid var(--dark-border)' : 'none' }}
-                onClick={() => {
-                  if (!chat.isDeleted) {
-                    setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
-                      const hasSpace = match.startsWith(' ');
-                      return (hasSpace ? ' ' : '') + '@' + chat.username + ' ';
-                    }));
-                    setMentionSearchQuery('');
-                    setShowMentionPopup(false);
-                    inputRef.current?.focus();
-                  }
-                }}>
-                {chat.avatar ? (
-                  <img src={chat.avatar} alt={chat.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
-                ) : (
-                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '16px' }}>
-                    {chat.username.charAt(0).toUpperCase()}
+      <form onSubmit={handleSend} style={{ padding: '2cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', position: 'relative' }}>
+        {(restrictions?.full_mute || restrictions?.disable_chat) ? (
+          <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', padding: '1cqh 0', color: '#52525b', background: 'rgba(255,255,255,0.02)', borderRadius: '5cqw' }}>
+            <Lock size={20} />
+            <span style={{ fontSize: 'var(--font-body)', fontWeight: 'bold' }}>Anda tidak dapat berinteraksi</span>
+          </div>
+        ) : (
+          <>
+            {showMentionPopup && (
+              <div style={{ position: 'absolute', bottom: 'calc(100% + 10px)', left: 0, right: 0, background: 'var(--dark-bg)', borderRadius: '12px', border: '1px solid var(--dark-border)', boxShadow: '0 -4px 12px rgba(0,0,0,0.5)', zIndex: 60, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                <div style={{ padding: '8px 12px', color: 'var(--dark-text-muted)', fontSize: '12px', borderBottom: '1px solid var(--dark-border)', background: 'rgba(255,255,255,0.02)' }}>Sebut seseorang</div>
+                
+                {('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
+                  <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                    onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+                    onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                    onClick={() => {
+                      if (!chat.isDeleted) {
+                        setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
+                          const hasSpace = match.startsWith(' ');
+                          return (hasSpace ? ' ' : '') + '@imo_ai ';
+                        }));
+                        setMentionSearchQuery('');
+                        setShowMentionPopup(false);
+                        inputRef.current?.focus();
+                      }
+                    }}>
+                    <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
+                    <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Asisten Imo</span></div>
                   </div>
                 )}
-                <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>{chat.username} <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Lawan Bicara</span></div>
+                
+                {chat?.username && (chat.username.toLowerCase().startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
+                  <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderTop: ('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') ? '1px solid var(--dark-border)' : 'none' }}
+                    onClick={() => {
+                      if (!chat.isDeleted) {
+                        setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
+                          const hasSpace = match.startsWith(' ');
+                          return (hasSpace ? ' ' : '') + '@' + chat.username + ' ';
+                        }));
+                        setMentionSearchQuery('');
+                        setShowMentionPopup(false);
+                        inputRef.current?.focus();
+                      }
+                    }}>
+                    {chat.avatar ? (
+                      <img src={chat.avatar} alt={chat.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '16px' }}>
+                        {chat.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>{chat.username} <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Lawan Bicara</span></div>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-        )}
-        <input
-          type="file"
-          accept="image/*"
-          ref={fileInputRef}
-          style={{ display: 'none' }}
-          onChange={handleImageUpload}
-          disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image}
-        />
-        <div style={{ display: 'flex', alignItems: 'center' }}>
-          <ImageIcon
-            size={24}
-            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat_image) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }}
-            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && !restrictions?.disable_chat_image && fileInputRef.current?.click()}
-          />
-        </div>
-        <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={emojiPickerRef}>
-          <Smile
-            size={24}
-            style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.full_mute) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)', display: 'block' }}
-            onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.full_mute && setShowEmojiPicker(!showEmojiPicker)}
-          />
-          {showEmojiPicker && !chat.isDeleted && !selectionMode && !restrictions?.full_mute && (
-            <div style={{ position: 'absolute', bottom: '50px', left: '-40px', zIndex: 50 }}>
-              <EmojiPicker
-                onEmojiClick={(emojiObject) => {
-                  setNewMessage(prev => prev + emojiObject.emoji);
-                }}
-                theme="dark"
-                searchDisabled={true}
-                skinTonesDisabled={true}
-                style={{ width: '90vw', maxWidth: '320px' }}
-                categories={[
-                  { name: 'Baru Dipakai', category: Categories.SUGGESTED },
-                  { name: 'Emot Wajah', category: Categories.SMILEYS_PEOPLE },
-                  { name: 'Lope Lope', category: Categories.SYMBOLS }
-                ]}
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              onChange={handleImageUpload}
+              disabled={chat.isDeleted || !!selectionMode || restrictions?.disable_chat_image}
+            />
+            <div style={{ display: 'flex', alignItems: 'center' }}>
+              <ImageIcon
+                size={24}
+                style={{ cursor: (chat.isDeleted || selectionMode || restrictions?.disable_chat_image) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode || restrictions?.disable_chat_image) ? '#52525b' : 'var(--dark-text-muted)', display: 'block' }}
+                onClick={() => !chat.isDeleted && !selectionMode && !restrictions?.disable_chat_image && fileInputRef.current?.click()}
               />
             </div>
-          )}
-        </div>
-        <input
-          ref={inputRef}
-          type="text"
-          value={newMessage}
-          onChange={(e) => {
-            const val = e.target.value;
-            setNewMessage(val);
-            const match = val.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
-            if (match) {
-              const query = match[1].toLowerCase();
-              const partnerName = chat?.username?.toLowerCase() || '';
-              if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || partnerName.startsWith(query) || query === '') {
-                setMentionSearchQuery(query);
-                setShowMentionPopup(true);
-              } else {
-                setShowMentionPopup(false);
-              }
-            } else {
-              setShowMentionPopup(false);
-            }
-          }}
-          placeholder={chat.isDeleted || restrictions?.full_mute || restrictions?.disable_chat ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
-          disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat}
-          style={{
-            flex: 1,
-            background: 'rgba(255,255,255,0.05)',
-            border: 'none',
-            borderRadius: '5cqw',
-            padding: '2cqh 4cqw',
-            color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#a1a1aa' : 'white',
-            outline: 'none',
-            fontSize: 'var(--font-body)',
-            cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'text'
-          }}
-        />
-        <button type="submit" disabled={chat.isDeleted || !!selectionMode || restrictions?.full_mute || restrictions?.disable_chat} style={{
-          background: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#3f3f46' : 'var(--primary)',
-          border: 'none',
-          width: '9.5cqw',
-          height: '9.5cqw',
-          borderRadius: '50%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          cursor: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? 'not-allowed' : 'pointer',
-          color: (chat.isDeleted || selectionMode || restrictions?.full_mute || restrictions?.disable_chat) ? '#52525b' : 'white',
-          flexShrink: 0
-        }}>
-          <Send size={18} style={{ marginLeft: '0.5cqw' }} />
-        </button>
+            <div style={{ position: 'relative', display: 'flex', alignItems: 'center' }} ref={emojiPickerRef}>
+              <Smile
+                size={24}
+                style={{ cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer', color: (chat.isDeleted || selectionMode) ? '#52525b' : showEmojiPicker ? 'var(--primary)' : 'var(--dark-text-muted)', display: 'block' }}
+                onClick={() => !chat.isDeleted && !selectionMode && setShowEmojiPicker(!showEmojiPicker)}
+              />
+              {showEmojiPicker && !chat.isDeleted && !selectionMode && (
+                <div style={{ position: 'absolute', bottom: '50px', left: '-40px', zIndex: 50 }}>
+                  <EmojiPicker
+                    onEmojiClick={(emojiObject) => {
+                      setNewMessage(prev => prev + emojiObject.emoji);
+                    }}
+                    theme="dark"
+                    searchDisabled={true}
+                    skinTonesDisabled={true}
+                    style={{ width: '90vw', maxWidth: '320px' }}
+                    categories={[
+                      { name: 'Baru Dipakai', category: Categories.SUGGESTED },
+                      { name: 'Emot Wajah', category: Categories.SMILEYS_PEOPLE },
+                      { name: 'Lope Lope', category: Categories.SYMBOLS }
+                    ]}
+                  />
+                </div>
+              )}
+            </div>
+            <input
+              ref={inputRef}
+              type="text"
+              value={newMessage}
+              onChange={(e) => {
+                const val = e.target.value;
+                setNewMessage(val);
+                const match = val.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
+                if (match) {
+                  const query = match[1].toLowerCase();
+                  const partnerName = chat?.username?.toLowerCase() || '';
+                  if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || partnerName.startsWith(query) || query === '') {
+                    setMentionSearchQuery(query);
+                    setShowMentionPopup(true);
+                  } else {
+                    setShowMentionPopup(false);
+                  }
+                } else {
+                  setShowMentionPopup(false);
+                }
+              }}
+              placeholder={chat.isDeleted ? "Anda tidak dapat membalas percakapan ini" : "Ketik pesan..."}
+              disabled={chat.isDeleted || !!selectionMode}
+              style={{
+                flex: 1,
+                background: 'rgba(255,255,255,0.05)',
+                border: 'none',
+                borderRadius: '5cqw',
+                padding: '2cqh 4cqw',
+                color: (chat.isDeleted || selectionMode) ? '#a1a1aa' : 'white',
+                outline: 'none',
+                fontSize: 'var(--font-body)',
+                cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'text'
+              }}
+            />
+            <button type="submit" disabled={chat.isDeleted || !!selectionMode} style={{
+              background: (chat.isDeleted || selectionMode) ? '#3f3f46' : 'var(--primary)',
+              border: 'none',
+              width: '9.5cqw',
+              height: '9.5cqw',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: (chat.isDeleted || selectionMode) ? 'not-allowed' : 'pointer',
+              color: (chat.isDeleted || selectionMode) ? '#52525b' : 'white',
+              flexShrink: 0
+            }}>
+              <Send size={18} style={{ marginLeft: '0.5cqw' }} />
+            </button>
+          </>
+        )}
       </form>
 
       {/* Delete Confirmation Modal */}

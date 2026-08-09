@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useContext } from 'react';
-import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check } from 'lucide-react';
+import { Heart, MessageSquare, Send, Image as ImageIcon, Loader2, MoreHorizontal, MoreVertical, Trash2, Edit2, Edit3, X, Check, Lock } from 'lucide-react';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
 import pusher from './pusher';
@@ -474,7 +474,12 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   return (
     <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', padding: '4cqw', background: 'transparent', minHeight: 0 }}>
       {/* Post Creator */}
-      {(!restrictions?.full_mute && !restrictions?.disable_moment) && (
+      {(restrictions?.full_mute || restrictions?.disable_moment) ? (
+        <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', color: '#52525b', minHeight: '8cqh', border: '1px dashed #3f3f46' }}>
+          <Lock size={20} />
+          <span style={{ fontSize: 'var(--font-body)', fontWeight: 'bold' }}>Anda tidak dapat memposting moment</span>
+        </div>
+      ) : (
         <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh' }}>
           <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
           {currentUserAvatar ? (
@@ -669,78 +674,85 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                     </div>
                   )}
 
-                  <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
-                    {mentionPopupMomentId === moment.id && (
-                      <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', background: 'var(--dark-surface)', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', border: '1px solid var(--dark-border)', zIndex: 100, minWidth: '200px', maxWidth: '260px', maxHeight: '185px', overflowY: 'auto', padding: '4px' }} className="hide-scrollbar">
-                        {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
-                          <div 
-                            key={idx} 
-                            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', borderRadius: '8px', transition: 'background 0.2s' }}
-                            onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
-                            onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-                            onClick={() => {
-                                setCommentTexts(prev => {
-                                  const text = prev[moment.id] || '';
-                                  const parts = text.split('@');
-                                  parts.pop(); // remove the query part
-                                  const insertedName = user.username === 'imo_ai' ? 'Momo' : user.username;
-                                  return { ...prev, [moment.id]: parts.join('@') + (parts.length > 0 ? '@' : '') + insertedName + ' ' };
-                                });
+                  {(restrictions?.full_mute || restrictions?.disable_moment) ? (
+                    <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'center', justifyContent: 'center', padding: '1.5cqh', background: 'rgba(255,255,255,0.02)', borderRadius: '3cqw', color: '#52525b', border: '1px dashed #3f3f46' }}>
+                      <Lock size={16} />
+                      <span style={{ fontSize: 'var(--font-caption)', fontWeight: 'bold' }}>Komentar dikunci</span>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
+                      {mentionPopupMomentId === moment.id && (
+                        <div style={{ position: 'absolute', bottom: '100%', left: 0, marginBottom: '8px', background: 'var(--dark-surface)', borderRadius: '12px', boxShadow: '0 8px 24px rgba(0,0,0,0.4)', border: '1px solid var(--dark-border)', zIndex: 100, minWidth: '200px', maxWidth: '260px', maxHeight: '185px', overflowY: 'auto', padding: '4px' }} className="hide-scrollbar">
+                          {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
+                            <div 
+                              key={idx} 
+                              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 10px', cursor: 'pointer', borderRadius: '8px', transition: 'background 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.backgroundColor = 'rgba(255,255,255,0.08)'}
+                              onMouseOut={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+                              onClick={() => {
+                                  setCommentTexts(prev => {
+                                    const text = prev[moment.id] || '';
+                                    const parts = text.split('@');
+                                    parts.pop(); // remove the query part
+                                    const insertedName = user.username === 'imo_ai' ? 'Momo' : user.username;
+                                    return { ...prev, [moment.id]: parts.join('@') + (parts.length > 0 ? '@' : '') + insertedName + ' ' };
+                                  });
+                                  setMentionPopupMomentId(null);
+                                  setMentionSearchQuery('');
+                                  document.getElementById(`comment-input-${moment.id}`)?.focus();
+                              }}>
+                              {user.avatar ? (
+                                <img src={user.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.1)', objectFit: 'cover', flexShrink: 0 }} alt="" />
+                              ) : (
+                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>
+                              )}
+                              <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.display_name || user.username}</span>
+                                <span style={{ color: 'var(--dark-text-muted)', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@{user.username} {user.username === 'imo_ai' && '- Asisten AI'}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
+                        <textarea 
+                          id={`comment-input-${moment.id}`}
+                          className="hide-scrollbar"
+                          rows={1}
+                          placeholder="Tulis komentar..."
+                          value={commentTexts[moment.id] || ''}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setCommentTexts(prev => ({...prev, [moment.id]: val}));
+                            if (val === '') {
+                               setReplyingToMomentUsers(prev => {
+                                 const next = { ...prev };
+                                 delete next[moment.id];
+                                 return next;
+                               });
+                            }
+                            
+                            // Deteksi pola @username
+                            const mentionMatch = val.match(/@([a-zA-Z0-9_.-]*)$/);
+                            if (mentionMatch) {
+                              setMentionSearchQuery(mentionMatch[1].toLowerCase());
+                              setMentionPopupMomentId(moment.id);
+                            } else {
+                              if (mentionPopupMomentId === moment.id) {
                                 setMentionPopupMomentId(null);
                                 setMentionSearchQuery('');
-                                document.getElementById(`comment-input-${moment.id}`)?.focus();
-                            }}>
-                            {user.avatar ? (
-                              <img src={user.avatar} style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'rgba(255,255,255,0.1)', objectFit: 'cover', flexShrink: 0 }} alt="" />
-                            ) : (
-                              <div style={{ width: '28px', height: '28px', borderRadius: '50%', backgroundColor: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '12px', fontWeight: 'bold', color: 'white', flexShrink: 0 }}>{user.username.charAt(0).toUpperCase()}</div>
-                            )}
-                            <div style={{ display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                              <span style={{ color: 'white', fontSize: '12px', fontWeight: 'bold', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{user.display_name || user.username}</span>
-                              <span style={{ color: 'var(--dark-text-muted)', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>@{user.username} {user.username === 'imo_ai' && '- Asisten AI'}</span>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                    <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
-                      <textarea 
-                        id={`comment-input-${moment.id}`}
-                        className="hide-scrollbar"
-                        rows={1}
-                        placeholder="Tulis komentar..."
-                        value={commentTexts[moment.id] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value;
-                          setCommentTexts(prev => ({...prev, [moment.id]: val}));
-                          if (val === '') {
-                             setReplyingToMomentUsers(prev => {
-                               const next = { ...prev };
-                               delete next[moment.id];
-                               return next;
-                             });
-                          }
-                          
-                          // Deteksi pola @username
-                          const mentionMatch = val.match(/@([a-zA-Z0-9_.-]*)$/);
-                          if (mentionMatch) {
-                            setMentionSearchQuery(mentionMatch[1].toLowerCase());
-                            setMentionPopupMomentId(moment.id);
-                          } else {
-                            if (mentionPopupMomentId === moment.id) {
-                              setMentionPopupMomentId(null);
-                              setMentionSearchQuery('');
+                              }
                             }
-                          }
-                        }}
-                        style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '3cqw', padding: '1cqh 3cqw', color: 'white', outline: 'none', resize: 'none', fontSize: 'var(--font-caption)', fontFamily: 'inherit', minHeight: '4.5cqh', overflowY: 'auto' }}
-                        onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 36) + 'px'; }}
-                      />
+                          }}
+                          style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '3cqw', padding: '1cqh 3cqw', color: 'white', outline: 'none', resize: 'none', fontSize: 'var(--font-caption)', fontFamily: 'inherit', minHeight: '4.5cqh', overflowY: 'auto' }}
+                          onInput={(e) => { e.target.style.height = 'auto'; e.target.style.height = Math.max(e.target.scrollHeight, 36) + 'px'; }}
+                        />
+                      </div>
+                      <button onClick={() => handleComment(moment.id)} style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '50%', width: '7cqw', height: '7cqw', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
+                        <Send size={14} />
+                      </button>
                     </div>
-                    <button onClick={() => handleComment(moment.id)} style={{ background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '50%', width: '7cqw', height: '7cqw', display: 'flex', justifyContent: 'center', alignItems: 'center', cursor: 'pointer', flexShrink: 0 }}>
-                      <Send size={14} />
-                    </button>
-                  </div>
+                  )}
                 </>
               )}
             </div>
