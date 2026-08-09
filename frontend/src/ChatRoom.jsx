@@ -1483,26 +1483,56 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       {viewProfileUser && (
         <>
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, backdropFilter: 'blur(4px)' }} onClick={() => setViewProfileUser(null)} />
-          <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '6cqw', padding: '8cqw 6cqw', width: '90%', maxWidth: '85vw', zIndex: 10001, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <div
-              style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', marginBottom: '4cqh', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
-              onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
-            >
-              {viewProfileUser.avatar ? <img src={viewProfileUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : viewProfileUser.username.charAt(0).toUpperCase()}
-            </div>
-            <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
-            <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '5cqh' }}>@{viewProfileUser.username}</div>
-
-            <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)' }}>
-              <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '2cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
-              <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
-                {viewProfileUser.bio || 'Tidak ada bio.'}
+          <div className="hide-scrollbar" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '4cqw', width: '90%', maxWidth: '85vw', maxHeight: '90vh', overflowY: 'auto', zIndex: 10001, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }}>
+            
+            {/* Cover Photo */}
+            <div style={{ width: '100%', height: '20cqh', background: viewProfileUser.cover_url ? `url(${viewProfileUser.cover_url}) center/cover no-repeat` : 'linear-gradient(135deg, var(--dark-bg), var(--dark-border))', position: 'relative', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }}>
+              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }} />
+              
+              {/* Overlapping Avatar */}
+              <div style={{ position: 'absolute', bottom: '-8cqh', left: '50%', transform: 'translateX(-50%)' }}>
+                <div 
+                  style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'var(--dark-bg)', padding: '0.8cqw', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
+                  onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
+                >
+                  {viewProfileUser.avatar ? <img src={viewProfileUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (
+                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {viewProfileUser.username.charAt(0).toUpperCase()}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
-            <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3.5cqw', borderRadius: '3cqw', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
-              Tutup
-            </button>
+            {/* Profile Info */}
+            <div style={{ padding: '10cqh 5cqw 5cqw 5cqw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white', fontWeight: 'bold' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
+              <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '3cqh', fontWeight: '600' }}>@{viewProfileUser.username}</div>
+              
+              {/* Stats */}
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '3cqh', width: '100%' }}>
+                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                  <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.momentCount || 0}</span>
+                  <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
+                </div>
+                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                  <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.username === 'imo_ai' ? (viewProfileUser.followerCount || 0) : (viewProfileUser.friendCount || 0)}</span>
+                  <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{viewProfileUser.username === 'imo_ai' ? 'Follower' : 'Teman'}</span>
+                </div>
+              </div>
+
+              {/* Bio */}
+              <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '4cqh', border: '1px solid var(--dark-border)' }}>
+                <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '1cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
+                <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
+                  {viewProfileUser.bio || 'Tidak ada bio.'}
+                </div>
+              </div>
+              
+              <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3cqw', borderRadius: '3cqw', background: 'transparent', border: '1px solid var(--dark-border)', color: 'var(--dark-text-muted)', fontWeight: '600', cursor: 'pointer' }}>
+                Tutup
+              </button>
+            </div>
           </div>
         </>
       )}

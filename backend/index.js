@@ -668,9 +668,13 @@ app.post('/api/users/avatar', async (req, res) => {
 });
 
 app.put('/api/users/:username', async (req, res) => {
-  const { display_name, bio } = req.body;
+  const { display_name, bio, cover_url } = req.body;
   try {
-    await db.execute({ sql: `UPDATE users SET display_name = ?, bio = ? WHERE username = ?`, args: [display_name, bio, req.params.username] });
+    if (cover_url !== undefined) {
+      await db.execute({ sql: `UPDATE users SET display_name = ?, bio = ?, cover_url = ? WHERE username = ?`, args: [display_name, bio, cover_url, req.params.username] });
+    } else {
+      await db.execute({ sql: `UPDATE users SET display_name = ?, bio = ? WHERE username = ?`, args: [display_name, bio, req.params.username] });
+    }
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ error: "Gagal menyimpan profil" });
@@ -701,15 +705,33 @@ app.get('/api/users/search', async (req, res) => {
 
 app.get('/api/users/:username', async (req, res) => {
   try {
-    const result = await db.execute({ sql: `SELECT username, display_name, avatar, bio FROM users WHERE username = ?`, args: [req.params.username] });
+    const result = await db.execute({ sql: `SELECT username, display_name, avatar, cover_url, bio FROM users WHERE username = ?`, args: [req.params.username] });
     const user = result.rows[0] || {};
     
-    // Jika imo_ai, hitung followers (contacts dengan status accepted)
-    if (req.params.username === 'imo_ai' && user.username) {
-        const followerResult = await db.execute({
-            sql: `SELECT count(*) as count FROM contacts WHERE receiver_username = 'imo_ai' AND status = 'accepted'`
-        });
-        user.followerCount = followerResult.rows[0].count || 0;
+    if (user.username) {
+        // Jika imo_ai, hitung followers (contacts dengan status accepted)
+        if (req.params.username === 'imo_ai') {
+            const followerResult = await db.execute({
+                sql: `SELECT count(*) as count FROM contacts WHERE receiver_username = 'imo_ai' AND status = 'accepted'`
+            });
+            user.followerCount = followerResult.rows[0].count || 0;
+            user.momentCount = 0;
+            user.friendCount = user.followerCount;
+        } else {
+            // Hitung friends
+            const friendsResult = await db.execute({
+                sql: `SELECT count(*) as count FROM contacts WHERE (receiver_username = ? OR sender_username = ?) AND status = 'accepted'`,
+                args: [user.username, user.username]
+            });
+            user.friendCount = friendsResult.rows[0].count || 0;
+
+            // Hitung moments
+            const momentsResult = await db.execute({
+                sql: `SELECT count(*) as count FROM moments WHERE username = ?`,
+                args: [user.username]
+            });
+            user.momentCount = momentsResult.rows[0].count || 0;
+        }
     }
     
     res.json(user);

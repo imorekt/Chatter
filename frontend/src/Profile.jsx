@@ -17,11 +17,15 @@ const Profile = ({ onLogout, email }) => {
   const [deleteEmailInput, setDeleteEmailInput] = useState('');
   const [isDeleting, setIsDeleting] = useState(false);
   const [avatar, setAvatar] = useState(() => localStorage.getItem(`avatar_${email}`) || null);
+  const [coverUrl, setCoverUrl] = useState(() => localStorage.getItem(`cover_${email}`) || null);
+  const [momentCount, setMomentCount] = useState(0);
+  const [friendCount, setFriendCount] = useState(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
   const [isSavingNotif, setIsSavingNotif] = useState(false);
   const fileInputRef = useRef(null);
+  const coverInputRef = useRef(null);
 
   // Admin Command AI State
   const [showAdminCommand, setShowAdminCommand] = useState(false);
@@ -53,11 +57,14 @@ const Profile = ({ onLogout, email }) => {
     localforage.getItem(`profile_${email}`).then(val => {
       if (val) {
         if (val.avatar) setAvatar(val.avatar);
+        if (val.cover_url) setCoverUrl(val.cover_url);
         if (val.display_name) {
           setDisplayName(val.display_name);
           setOriginalDisplayName(val.display_name);
         }
         if (val.bio) setBio(val.bio);
+        if (val.momentCount !== undefined) setMomentCount(val.momentCount);
+        if (val.friendCount !== undefined) setFriendCount(val.friendCount);
         setIsLoadingProfile(false);
       }
     });
@@ -69,6 +76,10 @@ const Profile = ({ onLogout, email }) => {
           setAvatar(data.avatar);
           localStorage.setItem(`avatar_${email}`, data.avatar);
         }
+        if (data.cover_url) {
+          setCoverUrl(data.cover_url);
+          localStorage.setItem(`cover_${email}`, data.cover_url);
+        }
         if (data.display_name) {
           setDisplayName(data.display_name);
           setOriginalDisplayName(data.display_name);
@@ -79,6 +90,8 @@ const Profile = ({ onLogout, email }) => {
         if (data.bio) {
           setBio(data.bio);
         }
+        if (data.momentCount !== undefined) setMomentCount(data.momentCount);
+        if (data.friendCount !== undefined) setFriendCount(data.friendCount);
         localforage.setItem(`profile_${email}`, data);
         setIsLoadingProfile(false);
       })
@@ -117,9 +130,11 @@ const Profile = ({ onLogout, email }) => {
   };
 
   const handleAvatarUpload = () => {
-    if (fileInputRef.current) {
-      fileInputRef.current.click();
-    }
+    if (fileInputRef.current) fileInputRef.current.click();
+  };
+
+  const handleCoverUpload = () => {
+    if (coverInputRef.current) coverInputRef.current.click();
   };
 
   const handleFileChange = (e) => {
@@ -133,6 +148,38 @@ const Profile = ({ onLogout, email }) => {
     const reader = new FileReader();
     reader.onloadend = () => {
       setImageSrc(reader.result);
+    };
+    reader.readAsDataURL(file);
+    e.target.value = '';
+  };
+
+  const handleCoverChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      return notify.error('Tolong pilih file gambar (JPG/PNG).');
+    }
+
+    const reader = new FileReader();
+    reader.onloadend = async () => {
+      const base64Data = reader.result;
+      setCoverUrl(base64Data);
+      try {
+        const res = await fetch(`${API_URL}/api/users/${email}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ display_name: displayName, bio: bio, cover_url: base64Data })
+        });
+        if (res.ok) {
+          localStorage.setItem(`cover_${email}`, base64Data);
+          notify.success('Sampul profil berhasil diperbarui.');
+        } else {
+          notify.error('Gagal menyimpan sampul');
+        }
+      } catch (err) {
+        notify.error('Terjadi kesalahan koneksi');
+      }
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -275,44 +322,84 @@ const Profile = ({ onLogout, email }) => {
   const isAdmin = email && (email.toLowerCase() === 'admin1' || email.toLowerCase() === 'admin 1' || email.toLowerCase() === 'admin2' || email.toLowerCase() === 'admin 2');
 
   return (
-    <div className="hide-scrollbar" style={{ flex: 1, padding: '2cqh var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '2.5cqh', overflowY: 'auto' }}>
-      <h2 style={{ fontSize: 'var(--font-title)', fontWeight: 'bold', margin: 0 }}>Profil</h2>
+    <div className="hide-scrollbar" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
+      
+      {/* HEADER SECTION (Cover & Avatar) */}
+      <div style={{ position: 'relative', width: '100%', marginBottom: '12cqh' }}>
+        {/* Cover Photo */}
+        <div style={{ width: '100%', height: '25cqh', background: coverUrl ? `url(${coverUrl}) center/cover no-repeat` : 'linear-gradient(135deg, var(--dark-bg), var(--dark-border))', position: 'relative' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)' }} />
+          
+          <div style={{ position: 'absolute', top: '2cqh', left: '4cqw', zIndex: 10 }}>
+            <h2 style={{ fontSize: 'var(--font-title)', fontWeight: 'bold', margin: 0, color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Profil</h2>
+          </div>
+          
+          {/* Settings Icon */}
+          <div 
+            onClick={() => setShowNotifSettings(true)}
+            style={{ position: 'absolute', top: '2cqh', right: '4cqw', zIndex: 10, cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)' }}
+          >
+            <Bell size={20} color="white" />
+          </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2cqw' }}>
-        <div style={{ position: 'relative', width: '20cqw', height: '20cqw' }}>
-          {avatar ? (
-            <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover', background: 'var(--dark-surface)' }} />
-          ) : (
-            <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '7cqw' }}>
-              {email.charAt(0).toUpperCase()}
-            </div>
-          )}
           <button
-            onClick={handleAvatarUpload}
-            disabled={isUploading}
+            onClick={handleCoverUpload}
             style={{
-              position: 'absolute', bottom: 0, right: 0,
-              background: 'var(--primary)', border: 'none', borderRadius: '50%',
-              width: '6cqw', height: '6cqw', display: 'flex', justifyContent: 'center', alignItems: 'center',
-              color: 'white', cursor: 'pointer'
+              position: 'absolute', bottom: '2cqh', right: '4cqw',
+              background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '2cqw',
+              padding: '1cqh 2cqw', display: 'flex', gap: '1cqw', alignItems: 'center',
+              color: 'white', cursor: 'pointer', backdropFilter: 'blur(4px)', fontSize: 'var(--font-caption)'
             }}
           >
-            {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+            <Camera size={14} /> Ubah Sampul
           </button>
-          <input
-            type="file"
-            accept="image/*"
-            ref={fileInputRef}
-            onChange={handleFileChange}
-            style={{ display: 'none' }}
-          />
+          <input type="file" accept="image/*" ref={coverInputRef} onChange={handleCoverChange} style={{ display: 'none' }} />
         </div>
+
+        {/* Overlapping Avatar */}
+        <div style={{ position: 'absolute', bottom: '-8cqh', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ position: 'relative', width: '22cqw', height: '22cqw', borderRadius: '50%', padding: '0.8cqw', background: 'var(--dark-bg)' }}>
+            {avatar ? (
+              <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+            ) : (
+              <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw' }}>
+                {email.charAt(0).toUpperCase()}
+              </div>
+            )}
+            <button
+              onClick={handleAvatarUpload}
+              disabled={isUploading}
+              style={{
+                position: 'absolute', bottom: '1cqw', right: '1cqw',
+                background: 'var(--primary)', border: '2px solid var(--dark-bg)', borderRadius: '50%',
+                width: '6.5cqw', height: '6.5cqw', display: 'flex', justifyContent: 'center', alignItems: 'center',
+                color: 'white', cursor: 'pointer'
+              }}
+            >
+              {isUploading ? <Loader2 size={14} className="animate-spin" /> : <Camera size={14} />}
+            </button>
+            <input type="file" accept="image/*" ref={fileInputRef} onChange={handleFileChange} style={{ display: 'none' }} />
+          </div>
+        </div>
+      </div>
+
+      <div style={{ padding: '0 var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '2cqh' }}>
         <div style={{ textAlign: 'center' }}>
           <div style={{ fontSize: 'var(--font-title)', color: 'white', fontWeight: 'bold', marginBottom: '0.5cqh' }}>{originalDisplayName || email}</div>
           <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', fontWeight: '600' }}>@{email}</div>
-          <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginTop: '0.5cqh' }}>Bergabung sejak: 2026</div>
         </div>
-      </div>
+
+        {/* Stats Row */}
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '1cqh' }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+            <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{momentCount}</span>
+            <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
+          </div>
+          <div style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+            <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{friendCount}</span>
+            <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Teman</span>
+          </div>
+        </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: '2cqh' }}>
         {isLoadingProfile ? (
@@ -356,15 +443,7 @@ const Profile = ({ onLogout, email }) => {
         )}
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.2cqh', marginTop: '1cqh' }}>
-        <button 
-          onClick={() => setShowNotifSettings(true)}
-          style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}
-        >
-          <Bell size={18} />
-          Notifikasi
-        </button>
-
+      <div style={{ padding: '0 var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '1.2cqh', marginTop: '1cqh' }}>
         <button 
           onClick={() => setShowLogoutConfirm(true)}
           style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}

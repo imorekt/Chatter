@@ -9,8 +9,8 @@ const db = createClient({
 async function run() {
   console.log("Starting migration...");
   try {
-    await db.execute("ALTER TABLE users ADD COLUMN last_seen DATETIME");
-    console.log("Column last_seen added successfully!");
+    await db.execute("ALTER TABLE users ADD COLUMN cover_url TEXT");
+    console.log("Column cover_url added successfully!");
   } catch (err) {
     console.error("Migration failed:", err.message);
   }
