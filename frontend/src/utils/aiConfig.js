@@ -164,6 +164,8 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     if (isMoment) {
         systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA dengan emoji DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 5 KALIMAT PENDEK SAJA. JANGAN MENYERTAKAN TEKS "[KOMENTAR]:" PADA BALASANMU.`;
+    } else {
+        systemInstruction += `\n6. KARENA INI DI CHATROOM, BALASANMU HARUS ASIK, SUKA KETAWA, SUKA BERCANDA DENGAN EMOJI, SUKA NYOMBLANGIN, DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 10 KALIMAT SAJA.`;
     }
 
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
