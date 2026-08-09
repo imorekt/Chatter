@@ -1136,7 +1136,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
                  onClick={() => {
                     if (!chat.isDeleted) {
-                      setNewMessage(prev => prev.replace(/@momo$|@Momo$|@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai '));
+                      setNewMessage(prev => prev.replace(/@[a-zA-Z0-9_]*$/, '@imo_ai '));
                       setMentionSearchQuery('');
                       setShowMentionPopup(false);
                       inputRef.current?.focus();
@@ -1193,10 +1193,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           onChange={(e) => {
             const val = e.target.value;
             setNewMessage(val);
-            if (val.endsWith('@') || val.endsWith('@Momo') || val.endsWith('@momo') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
-              const query = val.split('@').pop().toLowerCase();
-              setMentionSearchQuery(query);
-              setShowMentionPopup(true);
+            const match = val.match(/@[a-zA-Z0-9_]*$/);
+            if (match) {
+              const query = match[0].substring(1).toLowerCase();
+              if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || query === '') {
+                setMentionSearchQuery(query);
+                setShowMentionPopup(true);
+              } else {
+                setShowMentionPopup(false);
+              }
             } else {
               setShowMentionPopup(false);
             }
