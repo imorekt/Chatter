@@ -1092,13 +1092,14 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       </div>
 
       {!isAtBottom && (
-        <div style={{ position: 'absolute', bottom: replyingTo ? '140px' : '90px', right: '16px', zIndex: 100 }}>
+        <div style={{ position: 'absolute', bottom: replyingTo ? '190px' : '140px', right: '20px', zIndex: 100 }}>
           <button
+            className="fab"
             onClick={() => {
               scrollToBottom('smooth');
               setUnreadCount(0);
             }}
-            style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', color: 'var(--dark-text)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', position: 'relative' }}
+            style={{ position: 'relative', bottom: 'auto', right: 'auto', background: 'var(--dark-surface)', border: '1px solid var(--dark-border)', color: 'var(--dark-text)' }}
           >
             <ChevronDown size={24} />
             {unreadCount > 0 && (
