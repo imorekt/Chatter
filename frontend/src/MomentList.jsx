@@ -483,7 +483,18 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
         <div style={{ background: 'var(--dark-surface)', padding: '3cqw', borderRadius: '3cqw', marginBottom: '3cqh' }}>
           <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
           {currentUserAvatar ? (
-            <img src={currentUserAvatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+            <img 
+              src={currentUserAvatar} 
+              alt="Avatar" 
+              style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} 
+              onError={(e) => {
+                if (e.target.src.includes('i.ibb.co/')) {
+                  e.target.src = e.target.src.replace('i.ibb.co/', 'i.ibb.co.com/');
+                } else {
+                  setCurrentUserAvatar(null);
+                }
+              }}
+            />
           ) : (
             <div style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'var(--primary)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
               {currentUser ? currentUser.charAt(0).toUpperCase() : 'U'}
