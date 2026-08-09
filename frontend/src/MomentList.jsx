@@ -370,7 +370,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
 
       // Check if Momo is tagged or if replying to Momo
       const repliedUser = replyingToMomentUsers[momentId];
-      if (text.includes('@Momo') || text.includes('@momo') || text.includes('@imo_ai') || text.includes('@imo') || text.includes('@Imo') || repliedUser === 'imo_ai') {
+      if (/\bmomo\b/i.test(text) || text.includes('@imo_ai') || text.includes('@imo') || text.includes('@Imo') || repliedUser === 'imo_ai') {
         const moment = moments.find(m => m.id === momentId);
         if (moment) {
           const chatContext = `moment-${momentId}`;
