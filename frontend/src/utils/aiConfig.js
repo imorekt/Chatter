@@ -61,10 +61,10 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
-    let systemInstruction = `Kamu adalah Imo (Asisten AI) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Imo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.`;
+    let systemInstruction = `Kamu adalah Imo (Asisten AI) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Imo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
 
     if (isMoment) {
-        systemInstruction += `\n5. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, PADAT, DAN LANGSUNG TO THE POINT. JANGAN PANJANG LEBAR.`;
+        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT. MAKSIMAL 1-2 KALIMAT PENDEK SAJA.`;
     }
 
     // Konversi riwayat pesan ke format Gemini
@@ -104,6 +104,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     
     let startIndex = Math.abs(hash) % keys.length;
     let attempts = 0;
+    let lastError = null;
 
     // Loop mencoba (merotasi) API Key jika kena limit atau gagal
     while (attempts < keys.length) {
@@ -115,13 +116,12 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
             const responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction);
             return responseText; // Jika sukses, langsung kembalikan hasil
         } catch (error) {
-            console.error(`Gagal dengan API Key index ke-${currentKeyIndex}:`, error.message);
-            // Lanjut ke API Key berikutnya (rotasi) jika gagal (karena limit dll)
+            console.error(`Gagal dengan API Key index ke-${currentKeyIndex}:`, error.message || error);
+            lastError = error;
             attempts++;
         }
     }
 
-    // Jika semua API Key di-loop tapi gagal
-    return "Maaf Kak, imo_ai saat ini sedang mengalami gangguan. Silakan coba lagi nanti ya :)";
+    // Jika semua API Key gagal, berikan pesan default beserta error terakhir
+    return `Maaf Kak, imo_ai saat ini sedang mengalami gangguan. [Debug: ${lastError ? lastError.message || lastError : 'Unknown Error'}]`;
 };
-

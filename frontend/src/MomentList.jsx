@@ -25,7 +25,7 @@ const getUserColor = (username) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, selectionMode, selectedItems, toggleSelectItem }) => {
+const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, selectionMode, selectedItems, toggleSelectItem, contactsData }) => {
   const [moments, setMoments] = useState(cachedMoments);
   const [loading, setLoading] = useState(cachedMoments.length === 0 && !hasFetchedMoments);
   const [newPost, setNewPost] = useState('');
@@ -46,6 +46,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   const [editingCommentId, setEditingCommentId] = useState(null);
   const [editCommentContent, setEditCommentContent] = useState('');
   const [mentionPopupMomentId, setMentionPopupMomentId] = useState(null);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
+  const [taggableUsers, setTaggableUsers] = useState([]);
   const commentPressTimer = useRef(null);
   const fileInputRef = useRef(null);
   
@@ -74,6 +76,24 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       })
       .catch(console.error);
   }, [currentUser]);
+
+  useEffect(() => {
+    // Generate taggable users from contactsData
+    const friends = contactsData?.friends || [];
+    const users = friends.map(f => ({
+      username: f.username,
+      display_name: f.display_name,
+      avatar: f.avatar
+    }));
+    
+    // add imo_ai
+    users.unshift({
+      username: 'imo_ai',
+      display_name: 'Imo AI',
+      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=imo_ai'
+    });
+    setTaggableUsers(users);
+  }, [contactsData]);
 
   useEffect(() => {
     const handleHardwareBack = (e) => {
@@ -368,9 +388,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   };
 
   const handleCommentPressStart = (c, momentId) => {
-    if (c.username !== currentUser) return;
+    if (c.username !== currentUser && currentUser !== 'admin1@local.dev' && currentUser !== 'admin2@local.dev') return;
     commentPressTimer.current = setTimeout(() => {
-      setCommentActionModal({ ...c, momentId });
+      setCommentActionModal({ commentId: c.id, momentId: momentId, text: c.content, isOwner: c.username === currentUser });
     }, 500);
   };
 
@@ -378,7 +398,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
     if (commentPressTimer.current) clearTimeout(commentPressTimer.current);
   };
 
-  const handleDeleteComment = async (commentId) => {
+  const handleDeleteComment = async (momentId, commentId) => {
     try {
       const res = await fetch(`${API_URL}/api/moments/comment/${commentId}`, { method: 'DELETE' });
       if (res.ok) {
@@ -545,7 +565,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                 </div>
               ) : (
                 <div style={{ color: 'var(--dark-text)', fontSize: 'var(--font-body)', lineHeight: '1.4', marginBottom: '1.5cqh' }}>
-                  {moment.content}
+                  {moment.content.split(' ').map((word, i) => word.startsWith('@') ? <span key={i} style={{ color: 'var(--primary)' }}>{word} </span> : word + ' ')}
                 </div>
               )}
               
@@ -600,10 +620,10 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                           onMouseDown={() => handleCommentPressStart(c, moment.id)}
                           onMouseUp={handleCommentPressEnd}
                           onMouseLeave={handleCommentPressEnd}
-                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '2px 4px', background: commentActionModal?.id === c.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '4px' }}
+                          style={{ fontSize: 'var(--font-caption)', lineHeight: '1.3', cursor: 'pointer', padding: '2px 4px', background: commentActionModal?.commentId === c.id ? 'rgba(255,255,255,0.1)' : 'transparent', borderRadius: '4px' }}
                         >
                           <span style={{ color: getUserColor(c.username), fontWeight: '600', marginRight: '1.5cqw' }}>{c.user_display_name || c.username}:</span>
-                          <span style={{ color: 'var(--dark-text)', whiteSpace: 'pre-wrap' }}>{c.content}</span>
+                          <span style={{ color: 'var(--dark-text)', whiteSpace: 'pre-wrap' }}>{c.content.split(' ').map((word, i) => word.startsWith('@') ? <span key={i} style={{ color: 'var(--primary)' }}>{word} </span> : word + ' ')}</span>
                         </div>
                       ))}
                     </div>
@@ -611,17 +631,33 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
 
                   <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
                     {mentionPopupMomentId === moment.id && (
-                      <div style={{ position: 'absolute', bottom: '100%', left: '0', marginBottom: '8px', background: 'var(--dark-surface)', padding: '8px 12px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', width: 'max-content' }}
-                           onClick={() => {
-                               setCommentTexts(prev => ({
-                                   ...prev, 
-                                   [moment.id]: (prev[moment.id] || '').replace(/@imo$|@Imo$|@imo_ai$|@$/, '@imo_ai ')
-                               }));
-                               setMentionPopupMomentId(null);
-                               document.getElementById(`comment-input-${moment.id}`)?.focus();
-                           }}>
-                        <div style={{ fontSize: '18px', background: 'rgba(255,255,255,0.1)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>🤖</div>
-                        <div style={{ color: 'white', fontWeight: 'bold', fontSize: '13px' }}>imo_ai <span style={{ color: 'var(--dark-text-muted)', fontSize: '11px', fontWeight: 'normal' }}>- Asisten AI</span></div>
+                      <div className="absolute bottom-full left-0 mb-2 bg-slate-800 rounded-xl shadow-2xl border border-slate-700 z-50 w-64 max-h-48 overflow-y-auto hide-scrollbar">
+                        {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
+                          <div 
+                            key={idx} 
+                            className="flex items-center gap-3 p-3 hover:bg-slate-700 cursor-pointer border-b border-slate-700/50 last:border-0"
+                            onClick={() => {
+                                setCommentTexts(prev => {
+                                  const text = prev[moment.id] || '';
+                                  const parts = text.split('@');
+                                  parts.pop(); // remove the query part
+                                  return { ...prev, [moment.id]: parts.join('@') + (parts.length > 0 ? '@' : '') + user.username + ' ' };
+                                });
+                                setMentionPopupMomentId(null);
+                                setMentionSearchQuery('');
+                                document.getElementById(`comment-input-${moment.id}`)?.focus();
+                            }}>
+                            {user.avatar ? (
+                              <img src={user.avatar} className="w-8 h-8 rounded-full bg-slate-700 object-cover" alt="" />
+                            ) : (
+                              <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-white">{user.username.charAt(0).toUpperCase()}</div>
+                            )}
+                            <div className="flex flex-col">
+                              <span className="text-white text-sm font-medium">{user.display_name || user.username}</span>
+                              <span className="text-slate-400 text-xs">@{user.username} {user.username === 'imo_ai' && '- AI'}</span>
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
                     <div style={{ position: 'relative', flex: 1, display: 'flex' }}>
@@ -634,10 +670,17 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                         onChange={(e) => {
                           const val = e.target.value;
                           setCommentTexts(prev => ({...prev, [moment.id]: val}));
-                          if (val.endsWith('@') || val.endsWith('@Imo') || val.endsWith('@imo') || val.endsWith('@imo_ai')) {
+                          
+                          // Deteksi pola @username
+                          const mentionMatch = val.match(/@([a-zA-Z0-9_.-]*)$/);
+                          if (mentionMatch) {
+                            setMentionSearchQuery(mentionMatch[1].toLowerCase());
                             setMentionPopupMomentId(moment.id);
                           } else {
-                            if (mentionPopupMomentId === moment.id) setMentionPopupMomentId(null);
+                            if (mentionPopupMomentId === moment.id) {
+                              setMentionPopupMomentId(null);
+                              setMentionSearchQuery('');
+                            }
                           }
                         }}
                         style={{ flex: 1, background: 'rgba(255,255,255,0.05)', border: '1px solid var(--dark-border)', borderRadius: '3cqw', padding: '1cqh 3cqw', color: 'white', outline: 'none', resize: 'none', fontSize: 'var(--font-caption)', fontFamily: 'inherit', minHeight: '4.5cqh', overflowY: 'auto' }}
@@ -657,20 +700,41 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       
       {/* Comment Action Modal */}
       {commentActionModal && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 1000, display: 'flex', alignItems: 'flex-end' }} onClick={() => setCommentActionModal(null)}>
-          <div style={{ background: 'var(--dark-surface)', width: '100%', padding: '4cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }} onClick={e => e.stopPropagation()}>
-            <button onClick={() => {
-              setEditingCommentId(commentActionModal.id);
-              setEditCommentContent(commentActionModal.content);
-              setCommentActionModal(null);
-            }} style={{ width: '100%', padding: '4cqh 0', background: 'transparent', border: 'none', color: 'white', fontSize: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', borderBottom: '1px solid var(--dark-border)' }}>
-              <Edit2 size={20} /> Edit Komentar
-            </button>
-            <button onClick={() => handleDeleteComment(commentActionModal.id)} style={{ width: '100%', padding: '4cqh 0', background: 'transparent', border: 'none', color: '#EF4444', fontSize: 'var(--font-body)', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer' }}>
-              <Trash2 size={20} /> Hapus Komentar
-            </button>
+        <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setCommentActionModal(null)}>
+            <div className="bg-slate-800 rounded-xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
+              <div className="p-4 border-b border-slate-700">
+                <h3 className="text-white font-medium">Aksi Komentar</h3>
+              </div>
+              <div className="p-2">
+                {commentActionModal.isOwner && (
+                  <button
+                    onClick={() => {
+                      setEditingCommentId(commentActionModal.commentId);
+                      setEditCommentContent(commentActionModal.text);
+                      setCommentActionModal(null);
+                    }}
+                    className="w-full flex items-center gap-3 p-3 text-slate-200 hover:bg-slate-700 rounded-lg"
+                  >
+                    <Edit3 size={18} /> Edit Komentar
+                  </button>
+                )}
+                <button
+                  onClick={() => handleDeleteComment(commentActionModal.momentId, commentActionModal.commentId)}
+                  className="w-full flex items-center gap-3 p-3 text-red-400 hover:bg-slate-700 rounded-lg"
+                >
+                  <Trash2 size={18} /> Hapus Komentar
+                </button>
+              </div>
+              <div className="p-2 border-t border-slate-700">
+                <button
+                  onClick={() => setCommentActionModal(null)}
+                  className="w-full p-3 text-slate-400 text-center hover:bg-slate-700 rounded-lg"
+                >
+                  Batal
+                </button>
+              </div>
+            </div>
           </div>
-        </div>
       )}
 
       {/* Edit Comment Modal */}

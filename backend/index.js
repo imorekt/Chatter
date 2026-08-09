@@ -528,6 +528,32 @@ app.post('/api/moments/comment', async (req, res) => {
       sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`, null, 'comment');
       pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'comment' });
     }
+
+    // Ekstrak tag mention dari komentar (contoh: @username1 @username2)
+    const mentionRegex = /@([a-zA-Z0-9_.-]+)/g;
+    let match;
+    const mentionedUsers = new Set();
+    while ((match = mentionRegex.exec(content)) !== null) {
+      const mentionedUsername = match[1];
+      // Jangan mengirim notifikasi ke diri sendiri atau ke pemilik moment jika dia sudah dikirim notif komen
+      if (mentionedUsername !== username && mentionedUsername !== 'imo_ai' && mentionedUsername !== 'Imo' && mentionedUsername !== 'imo') {
+        if (!moment || mentionedUsername !== moment.username) {
+          mentionedUsers.add(mentionedUsername);
+        }
+      }
+    }
+
+    // Kirim notifikasi mention ke tiap user yang ditag
+    for (const mUser of mentionedUsers) {
+      // Cek apakah user ada di database
+      const userCheck = await db.execute({ sql: 'SELECT username FROM users WHERE username = ?', args: [mUser] });
+      if (userCheck.rows.length > 0) {
+        await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'mention', ?, ?)`, args: [mUser, username, moment_id, content] });
+        sendPushNotification(mUser, "Mention Baru", `${username} menyebut Anda dalam komentar: ${content}`, null, 'mention');
+        pusher.trigger(`user-${mUser}`, 'new-notification', { type: 'mention' });
+      }
+    }
+
     res.json({ success: true, id: insertResult.lastInsertRowid.toString() });
   } catch (err) {
     res.status(500).json({ error: err.message });
