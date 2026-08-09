@@ -83,9 +83,9 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         }];
     }
 
-    // Menggunakan Gemini 3.6 Flash (versi terbaru yang didukung oleh API Key ini)
+    // Menggunakan Gemini 3.5 Flash Lite
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-3.6-flash",
+        model: "gemini-3.5-flash-lite",
         systemInstruction: systemInstruction,
         ...(toolsConfig && { tools: toolsConfig })
     });
