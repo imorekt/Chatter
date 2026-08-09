@@ -193,6 +193,25 @@ async function initDb() {
 }
 initDb();
 
+
+async function checkRestriction(username, type) {
+  if (username === 'imo_ai') return false;
+  try {
+    const res = await db.execute({ sql: "SELECT * FROM user_restrictions WHERE username = ? OR username = 'GLOBAL'", args: [username] });
+    let isRestricted = false;
+    res.rows.forEach(row => {
+      if (row.full_mute) isRestricted = true;
+      if (type === 'chat' && row.disable_chat) isRestricted = true;
+      if (type === 'moment' && row.disable_moment) isRestricted = true;
+      if (type === 'chat_image' && row.disable_chat_image) isRestricted = true;
+      if (type === 'moment_image' && row.disable_moment_image) isRestricted = true;
+    });
+    return isRestricted;
+  } catch(e) {
+    return false;
+  }
+}
+
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -1229,16 +1248,7 @@ app.get('/api/version', async (req, res) => {
   }
 });
 
-app.use(express.static(path.join(__dirname, 'dist')));
-
-app.use((req, res) => {
-  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
-});
-
-if (process.env.VERCEL) {
-  module.exports = app;
-} else {
-  // --- RESTRICTIONS API ---
+// --- RESTRICTIONS API ---
 app.get('/api/restrictions/:username', async (req, res) => {
   const { username } = req.params;
   try {
@@ -1331,7 +1341,16 @@ app.post('/api/users/:username/settings', async (req, res) => {
   }
 });
 
-  const PORT = process.env.PORT || 3001;
+\napp.use(express.static(path.join(__dirname, 'dist')));
+
+app.use((req, res) => {
+  res.sendFile(path.join(__dirname, 'dist', 'index.html'));
+});
+
+if (process.env.VERCEL) {
+  module.exports = app;
+} else {
+    const PORT = process.env.PORT || 3001;
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Server listening on port ${PORT}`);
   });
