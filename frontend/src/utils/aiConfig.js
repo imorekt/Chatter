@@ -78,9 +78,9 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         }];
     }
 
-    // Menggunakan Gemini 3 Flash Preview (model eksperimental Google terbaru)
+    // Menggunakan Gemini 3.1 Flash Lite (model yang lebih ringan dan cepat)
     const model = genAI.getGenerativeModel({ 
-        model: "gemini-3-flash-preview",
+        model: "gemini-3.1-flash-lite",
         systemInstruction: systemInstruction,
         ...(toolsConfig && { tools: toolsConfig })
     });
