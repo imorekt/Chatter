@@ -157,8 +157,8 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
                     <Check size={18} />
                   </button>
                 ) : (
-                  <button onClick={() => handleRequest(user.username)} style={{ background: 'var(--primary)', border: 'none', borderRadius: '50%', width: 36, height: 36, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-                    <UserPlus size={18} />
+                  <button onClick={() => handleRequest(user.username)} style={{ background: 'var(--primary)', border: 'none', borderRadius: user.username === 'imo_ai' ? '12px' : '50%', width: user.username === 'imo_ai' ? 'auto' : 36, height: 36, padding: user.username === 'imo_ai' ? '0 12px' : '0', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}>
+                    {user.username === 'imo_ai' ? 'Follow AI' : <UserPlus size={18} />}
                   </button>
                 )}
               </div>
@@ -278,12 +278,21 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
             <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
             <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '5cqh' }}>@{viewProfileUser.username}</div>
             
-            <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)' }}>
-              <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '2cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
-              <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
-                {viewProfileUser.bio || 'Tidak ada bio.'}
+            {viewProfileUser.username === 'imo_ai' ? (
+              <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)', textAlign: 'center' }}>
+                <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '1cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Follower</div>
+                <div style={{ fontSize: '24px', color: 'white', fontWeight: 'bold' }}>
+                  {viewProfileUser.followerCount || 0}
+                </div>
               </div>
-            </div>
+            ) : (
+              <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '6cqh', border: '1px solid var(--dark-border)' }}>
+                <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '2cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
+                <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
+                  {viewProfileUser.bio || 'Tidak ada bio.'}
+                </div>
+              </div>
+            )}
             
             <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3.5cqw', borderRadius: '3cqw', background: 'var(--primary)', border: 'none', color: 'white', fontWeight: '600', cursor: 'pointer' }}>
               Tutup

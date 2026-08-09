@@ -631,7 +631,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
 
                   <div style={{ display: 'flex', gap: '2cqw', marginTop: '1.2cqh', alignItems: 'flex-end', position: 'relative' }}>
                     {mentionPopupMomentId === moment.id && (
-                      <div className="absolute bottom-full left-0 mb-2 bg-slate-800 rounded-xl shadow-2xl border border-slate-700 z-50 w-64 max-h-48 overflow-y-auto hide-scrollbar">
+                      <div className="absolute bottom-full left-0 mb-2 bg-[#1A1F2E] rounded-xl shadow-[0_4px_12px_rgba(0,0,0,0.3)] border border-[#2D3348] z-50 w-max max-h-48 overflow-y-auto hide-scrollbar p-1">
                         {taggableUsers.filter(u => u.username.toLowerCase().includes(mentionSearchQuery) || (u.display_name && u.display_name.toLowerCase().includes(mentionSearchQuery))).map((user, idx) => (
                           <div 
                             key={idx} 
@@ -653,8 +653,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                               <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-sm font-medium text-white">{user.username.charAt(0).toUpperCase()}</div>
                             )}
                             <div className="flex flex-col">
-                              <span className="text-white text-sm font-medium">{user.display_name || user.username}</span>
-                              <span className="text-slate-400 text-xs">@{user.username} {user.username === 'imo_ai' && '- AI'}</span>
+                              <span className="text-white text-[14px] font-bold">{user.display_name || user.username}</span>
+                              <span className="text-[#8B95A5] text-[12px]">@{user.username} {user.username === 'imo_ai' && '- Asisten AI'}</span>
                             </div>
                           </div>
                         ))}

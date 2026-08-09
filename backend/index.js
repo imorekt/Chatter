@@ -666,7 +666,17 @@ app.get('/api/users/search', async (req, res) => {
 app.get('/api/users/:username', async (req, res) => {
   try {
     const result = await db.execute({ sql: `SELECT username, display_name, avatar, bio FROM users WHERE username = ?`, args: [req.params.username] });
-    res.json(result.rows[0] || {});
+    const user = result.rows[0] || {};
+    
+    // Jika imo_ai, hitung followers (contacts dengan status accepted)
+    if (req.params.username === 'imo_ai' && user.username) {
+        const followerResult = await db.execute({
+            sql: `SELECT count(*) as count FROM contacts WHERE receiver_username = 'imo_ai' AND status = 'accepted'`
+        });
+        user.followerCount = followerResult.rows[0].count || 0;
+    }
+    
+    res.json(user);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -677,6 +687,13 @@ app.post('/api/contacts/request', async (req, res) => {
   if (!sender || !receiver) return res.status(400).json({ error: "Data tidak lengkap" });
   
   try {
+    if (receiver === 'imo_ai') {
+        // Auto-accept untuk imo_ai
+        await db.execute({ sql: `INSERT INTO contacts (sender_username, receiver_username, status) VALUES (?, ?, 'accepted')`, args: [sender, receiver] });
+        res.json({ success: true, auto_accepted: true });
+        return;
+    }
+
     await db.execute({ sql: `INSERT INTO contacts (sender_username, receiver_username, status) VALUES (?, ?, 'pending')`, args: [sender, receiver] });
     await db.execute({
       sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
