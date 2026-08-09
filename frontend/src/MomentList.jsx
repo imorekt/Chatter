@@ -684,7 +684,8 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                                   const text = prev[moment.id] || '';
                                   const parts = text.split('@');
                                   parts.pop(); // remove the query part
-                                  return { ...prev, [moment.id]: parts.join('@') + (parts.length > 0 ? '@' : '') + user.username + ' ' };
+                                  const insertedName = user.username === 'imo_ai' ? 'Momo' : user.username;
+                                  return { ...prev, [moment.id]: parts.join('@') + (parts.length > 0 ? '@' : '') + insertedName + ' ' };
                                 });
                                 setMentionPopupMomentId(null);
                                 setMentionSearchQuery('');
