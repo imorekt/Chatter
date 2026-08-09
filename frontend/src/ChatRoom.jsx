@@ -870,12 +870,24 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           gap: '8px'
         }}
         >
-          {msg.sender === 'imo_ai' && (
-            <img
-              src={imoAiAvatar}
-              alt="AI"
-              style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }}
-            />
+          {msg.sender !== 'me' && (
+            msg.sender === 'imo_ai' ? (
+              <img
+                src={imoAiAvatar}
+                alt="AI"
+                style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: '#1e293b', objectFit: 'cover' }}
+              />
+            ) : chat.avatar ? (
+              <img
+                src={chat.avatar}
+                alt={chat.name || chat.username}
+                style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: 'var(--primary)', objectFit: 'cover' }}
+              />
+            ) : (
+              <div style={{ width: '28px', height: '28px', borderRadius: '50%', flexShrink: 0, marginTop: '2px', background: 'var(--primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>
+                {(chat.name || chat.username || 'U').charAt(0).toUpperCase()}
+              </div>
+            )
           )}
           <div style={{
             background: isEmojiOnly ? 'transparent' : (msg.sender === 'me' ? '#005c4b' : (msg.sender === 'imo_ai' ? '#1e293b' : '#202c33')),
