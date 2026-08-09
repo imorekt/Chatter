@@ -247,6 +247,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     }
   };
   const [showMentionPopup, setShowMentionPopup] = useState(false);
+  const [mentionSearchQuery, setMentionSearchQuery] = useState('');
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [showEditModal, setShowEditModal] = useState(null);
   const [editMessageText, setEditMessageText] = useState('');

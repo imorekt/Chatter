@@ -452,6 +452,8 @@ app.post('/api/moments', async (req, res) => {
   if (!username || (!content && !image_url)) return res.status(400).json({ error: "Username dan konten/gambar wajib diisi" });
   
   try {
+    const isRestricted = await checkRestriction(username, image_url ? 'moment_image' : 'moment');
+    if (isRestricted) return res.status(403).json({ error: 'Anda sedang dibatasi (Muted)' });
     const finalContent = content || "";
     const result = await db.execute({ sql: `INSERT INTO moments (username, content, image_url) VALUES (?, ?, ?)`, args: [username, finalContent, image_url || null] });
     pusher.trigger('global-events', 'new-moment', { id: result.lastInsertRowid.toString(), username });
@@ -516,6 +518,8 @@ app.post('/api/moments/like', async (req, res) => {
   const { moment_id, username } = req.body;
   
   try {
+    const isRestricted = await checkRestriction(username, 'moment');
+    if (isRestricted) return res.status(403).json({ error: 'Anda sedang dibatasi (Muted)' });
     const result = await db.execute({ sql: `SELECT id FROM likes WHERE moment_id = ? AND username = ?`, args: [moment_id, username] });
     const row = result.rows[0];
     
@@ -550,6 +554,8 @@ app.post('/api/moments/comment', async (req, res) => {
   if (!moment_id || !username || !content) return res.status(400).json({ error: "Data tidak lengkap" });
   
   try {
+    const isRestricted = await checkRestriction(username, 'moment');
+    if (isRestricted) return res.status(403).json({ error: 'Anda sedang dibatasi (Muted)' });
     const insertResult = await db.execute({ sql: `INSERT INTO comments (moment_id, username, content) VALUES (?, ?, ?)`, args: [moment_id, username, content] });
     const momentResult = await db.execute({ sql: 'SELECT username FROM moments WHERE id = ?', args: [moment_id] });
     const moment = momentResult.rows[0];
@@ -1085,6 +1091,8 @@ app.get('/api/favorites/messages/:username/:partner', async (req, res) => {
 app.post('/api/messages/send', async (req, res) => {
   const data = req.body;
   try {
+    const isRestricted = await checkRestriction(data.sender, data.text.includes('|||CAPTION|||') || data.text.startsWith('data:image/') || data.text === 'MEDIA_LOCAL_SAVED' ? 'chat_image' : 'chat');
+    if (isRestricted) return res.status(403).json({ error: 'Anda sedang dibatasi (Muted)' });
     if (data.sender !== 'imo_ai') {
       const contactCheck = await db.execute({
         sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,

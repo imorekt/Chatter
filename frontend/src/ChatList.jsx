@@ -164,6 +164,9 @@ const ChatList = ({ onLogout, currentUser }) => {
     if (activeNav === 'chat' || activeNav === 'kontak') {
       fetchChats();
     }
+    if (activeNav === 'kontak') {
+      fetchContacts();
+    }
   }, [currentUser, activeNav, activeChat, activeFavoriteUser]);
 
   useEffect(() => {
