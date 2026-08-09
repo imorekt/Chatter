@@ -1341,7 +1341,7 @@ app.post('/api/users/:username/settings', async (req, res) => {
   }
 });
 
-\napp.use(express.static(path.join(__dirname, 'dist')));
+app.use(express.static(path.join(__dirname, 'dist')));
 
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, 'dist', 'index.html'));
