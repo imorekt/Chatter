@@ -552,7 +552,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       notify.error(err.message || "Gagal mengirim pesan");
     }
 
-    if ((chat.username === 'imo_ai' || textToSend.includes('@imo_ai') || currentReplyingTo?.sender === 'imo_ai') && sentData) {
+    if ((chat.username === 'imo_ai' || textToSend.includes('@imo_ai') || textToSend.includes('@momo') || textToSend.includes('@Momo') || currentReplyingTo?.sender === 'imo_ai') && sentData) {
       setIsAiTyping(true);
       const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
       const history = messages.slice(-30);

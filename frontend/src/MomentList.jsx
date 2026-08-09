@@ -41,6 +41,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   const [editContent, setEditContent] = useState('');
   const [momentToDelete, setMomentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [replyingToMomentUsers, setReplyingToMomentUsers] = useState({});
   const [openComments, setOpenComments] = useState({});
   const [likesModalUsers, setLikesModalUsers] = useState(null);
   const [previewModalImage, setPreviewModalImage] = useState(null);
@@ -367,8 +368,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       if (!res.ok) throw new Error("Gagal mengomentari");
       fetchMoments();
 
-      // Check if Momo is tagged
-      if (text.includes('@Momo') || text.includes('@momo') || text.includes('@imo_ai') || text.includes('@imo') || text.includes('@Imo')) {
+      // Check if Momo is tagged or if replying to Momo
+      const repliedUser = replyingToMomentUsers[momentId];
+      if (text.includes('@Momo') || text.includes('@momo') || text.includes('@imo_ai') || text.includes('@imo') || text.includes('@Imo') || repliedUser === 'imo_ai') {
         const moment = moments.find(m => m.id === momentId);
         if (moment) {
           const chatContext = `moment-${momentId}`;
@@ -392,13 +394,21 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
     } catch (error) {
       notify.error('Gagal mengirim komentar');
       fetchMoments();
+    } finally {
+      // Clear replyingTo state for this moment after sending
+      setReplyingToMomentUsers(prev => {
+        const next = { ...prev };
+        delete next[momentId];
+        return next;
+      });
     }
   };
 
-  const handleCommentClick = (momentId, replyUsername) => {
+  const handleCommentClick = (momentId, replyDisplayName, replyUsername) => {
     setOpenComments(prev => ({ ...prev, [momentId]: true }));
-    const prefix = `@${replyUsername} `;
+    const prefix = `@${replyDisplayName} `;
     setCommentTexts(prev => ({ ...prev, [momentId]: prefix }));
+    setReplyingToMomentUsers(prev => ({ ...prev, [momentId]: replyUsername }));
     setTimeout(() => {
       const input = document.getElementById(`comment-input-${momentId}`);
       if (input) {
@@ -644,7 +654,7 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                       {moment.comments.map(c => (
                         <div 
                           key={c.id} 
-                          onClick={() => handleCommentClick(moment.id, c.user_display_name || c.username)}
+                          onClick={() => handleCommentClick(moment.id, c.user_display_name || c.username, c.username)}
                           onTouchStart={() => handleCommentPressStart(c, moment.id)}
                           onTouchEnd={handleCommentPressEnd}
                           onTouchMove={handleCommentPressEnd}
@@ -703,6 +713,13 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                         onChange={(e) => {
                           const val = e.target.value;
                           setCommentTexts(prev => ({...prev, [moment.id]: val}));
+                          if (val === '') {
+                             setReplyingToMomentUsers(prev => {
+                               const next = { ...prev };
+                               delete next[moment.id];
+                               return next;
+                             });
+                          }
                           
                           // Deteksi pola @username
                           const mentionMatch = val.match(/@([a-zA-Z0-9_.-]*)$/);
