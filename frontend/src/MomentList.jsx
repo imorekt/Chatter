@@ -388,7 +388,9 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   };
 
   const handleCommentPressStart = (c, momentId) => {
-    if (c.username !== currentUser && currentUser !== 'admin1@local.dev' && currentUser !== 'admin2@local.dev') return;
+    const lowerUser = (currentUser || '').toLowerCase();
+    const isAdmin = lowerUser === 'admin1' || lowerUser === 'admin 1' || lowerUser === 'admin2' || lowerUser === 'admin 2';
+    if (c.username !== currentUser && !isAdmin) return;
     commentPressTimer.current = setTimeout(() => {
       setCommentActionModal({ commentId: c.id, momentId: momentId, text: c.content, isOwner: c.username === currentUser });
     }, 500);
@@ -530,7 +532,11 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                   <div style={{ fontWeight: '600', color: getUserColor(moment.username), fontSize: 'var(--font-body)' }}>{moment.user_display_name || moment.username}</div>
                   <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{formatDate(moment.created_at)}</div>
                 </div>
-                {(moment.username === currentUser || currentUser === 'admin1@local.dev' || currentUser === 'admin2@local.dev') && !selectionMode && (
+                {(() => {
+                  const lowerUser = (currentUser || '').toLowerCase();
+                  const isAdmin = lowerUser === 'admin1' || lowerUser === 'admin 1' || lowerUser === 'admin2' || lowerUser === 'admin 2';
+                  return (moment.username === currentUser || isAdmin) && !selectionMode;
+                })() && (
                   <div style={{ position: 'relative' }}>
                     <div style={{ cursor: 'pointer', padding: '1cqw', color: 'var(--dark-text-muted)' }} onClick={() => setShowMenuId(showMenuId === moment.id ? null : moment.id)}>
                       <MoreVertical size={20} />
