@@ -68,15 +68,29 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     // Konversi riwayat pesan ke format Gemini
-    const history = messageHistory.map(msg => {
+    const rawHistory = messageHistory.filter(msg => msg && msg.text).map(msg => {
         let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Imo' : (msg.sender_display || msg.sender || partnerUser));
         let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari ${senderName}]: ${msg.text}`;
         
         return {
             role: msg.sender === 'imo_ai' ? 'model' : 'user',
-            parts: [{ text: textContent }]
+            text: textContent
         };
     });
+
+    // Gemini API secara ketat mengharuskan role bergantian (user, model, user, model)
+    const history = [];
+    for (const msg of rawHistory) {
+        if (history.length > 0 && history[history.length - 1].role === msg.role) {
+            // Gabungkan pesan jika role-nya sama secara berurutan
+            history[history.length - 1].parts[0].text += `\n${msg.text}`;
+        } else {
+            history.push({
+                role: msg.role,
+                parts: [{ text: msg.text }]
+            });
+        }
+    }
 
     const newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
 
