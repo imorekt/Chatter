@@ -92,6 +92,11 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         }
     }
 
+    // Pastikan history pertama selalu memiliki role 'user' (Gemini API requirement)
+    if (history.length > 0 && history[0].role === 'model') {
+        history.shift();
+    }
+
     const newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
 
     // Tentukan index API Key awal berdasarkan hash chatContext agar setiap room punya default key
