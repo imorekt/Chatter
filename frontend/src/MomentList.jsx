@@ -700,41 +700,39 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       
       {/* Comment Action Modal */}
       {commentActionModal && (
-        <div className="absolute inset-0 bg-black/60 flex items-center justify-center p-4 z-50 animate-in fade-in" onClick={() => setCommentActionModal(null)}>
-            <div className="bg-slate-800 rounded-xl w-full max-w-sm overflow-hidden shadow-2xl" onClick={e => e.stopPropagation()}>
-              <div className="p-4 border-b border-slate-700">
-                <h3 className="text-white font-medium">Aksi Komentar</h3>
-              </div>
-              <div className="p-2">
-                {commentActionModal.isOwner && (
-                  <button
-                    onClick={() => {
-                      setEditingCommentId(commentActionModal.commentId);
-                      setEditCommentContent(commentActionModal.text);
-                      setCommentActionModal(null);
-                    }}
-                    className="w-full flex items-center gap-3 p-3 text-slate-200 hover:bg-slate-700 rounded-lg"
-                  >
-                    <Edit3 size={18} /> Edit Komentar
-                  </button>
-                )}
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '5cqw' }} onClick={() => setCommentActionModal(null)}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderRadius: '4cqw', width: '90%', border: '1px solid var(--dark-border)', display: 'flex', flexDirection: 'column', gap: '3cqh' }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0', fontSize: 'var(--font-title)', color: 'white', textAlign: 'center', borderBottom: '1px solid var(--dark-border)', paddingBottom: '3cqh' }}>Aksi Komentar</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2cqh' }}>
+              {commentActionModal.isOwner && (
                 <button
-                  onClick={() => handleDeleteComment(commentActionModal.momentId, commentActionModal.commentId)}
-                  className="w-full flex items-center gap-3 p-3 text-red-400 hover:bg-slate-700 rounded-lg"
+                  onClick={() => {
+                    setEditingCommentId(commentActionModal.commentId);
+                    setEditCommentContent(commentActionModal.text);
+                    setCommentActionModal(null);
+                  }}
+                  style={{ background: 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--dark-border)', borderRadius: '2cqw', padding: '2cqh 4cqw', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw' }}
                 >
-                  <Trash2 size={18} /> Hapus Komentar
+                  <Edit3 size={18} /> Edit Komentar
                 </button>
-              </div>
-              <div className="p-2 border-t border-slate-700">
-                <button
-                  onClick={() => setCommentActionModal(null)}
-                  className="w-full p-3 text-slate-400 text-center hover:bg-slate-700 rounded-lg"
-                >
-                  Batal
-                </button>
-              </div>
+              )}
+              <button
+                onClick={() => handleDeleteComment(commentActionModal.momentId, commentActionModal.commentId)}
+                style={{ background: 'rgba(255,59,48,0.1)', color: '#ff3b30', border: '1px solid rgba(255,59,48,0.3)', borderRadius: '2cqw', padding: '2cqh 4cqw', fontWeight: '500', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw' }}
+              >
+                <Trash2 size={18} /> Hapus Komentar
+              </button>
+              
+              <button
+                onClick={() => setCommentActionModal(null)}
+                style={{ background: 'transparent', color: 'var(--dark-text-muted)', border: 'none', fontWeight: '600', cursor: 'pointer', marginTop: '1cqh', padding: '1cqh' }}
+              >
+                Batal
+              </button>
             </div>
           </div>
+        </div>
       )}
 
       {/* Edit Comment Modal */}
