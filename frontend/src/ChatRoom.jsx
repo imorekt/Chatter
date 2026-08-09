@@ -1133,20 +1133,48 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       )}
       <form onSubmit={handleSend} style={{ position: 'relative', padding: '0 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: replyingTo ? 'none' : '1px solid var(--dark-border)', alignItems: 'center', minHeight: '70px', maxHeight: '70px', boxSizing: 'border-box', flexShrink: 0 }}>
         {showMentionPopup && (
-          <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '10px 16px', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
-            onClick={() => {
-              if (!chat.isDeleted) {
-                setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
-                  const hasSpace = match.startsWith(' ');
-                  return (hasSpace ? ' ' : '') + '@Momo ';
-                }));
-                setMentionSearchQuery('');
-                setShowMentionPopup(false);
-                inputRef.current?.focus();
-              }
-            }}>
-            <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
-            <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal' }}>- Asisten Imo</span></div>
+          <div style={{ position: 'absolute', bottom: '100%', left: '2cqw', marginBottom: '8px', background: 'var(--dark-surface)', padding: '8px 0', borderRadius: '12px', boxShadow: '0 4px 12px rgba(0,0,0,0.3)', border: '1px solid var(--dark-border)', zIndex: 100, display: 'flex', flexDirection: 'column', minWidth: '220px' }}>
+            {('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
+              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+                onClick={() => {
+                  if (!chat.isDeleted) {
+                    setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
+                      const hasSpace = match.startsWith(' ');
+                      return (hasSpace ? ' ' : '') + '@Momo ';
+                    }));
+                    setMentionSearchQuery('');
+                    setShowMentionPopup(false);
+                    inputRef.current?.focus();
+                  }
+                }}>
+                <img src={imoAiAvatar} alt="Momo" style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#1e293b', objectFit: 'cover' }} />
+                <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>Momo <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Asisten Imo</span></div>
+              </div>
+            )}
+            
+            {chat?.username && (chat.username.toLowerCase().startsWith(mentionSearchQuery) || mentionSearchQuery === '') && (
+              <div style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', borderTop: ('momo'.startsWith(mentionSearchQuery) || 'imo_ai'.startsWith(mentionSearchQuery) || 'imo'.startsWith(mentionSearchQuery) || mentionSearchQuery === '') ? '1px solid var(--dark-border)' : 'none' }}
+                onClick={() => {
+                  if (!chat.isDeleted) {
+                    setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
+                      const hasSpace = match.startsWith(' ');
+                      return (hasSpace ? ' ' : '') + '@' + chat.username + ' ';
+                    }));
+                    setMentionSearchQuery('');
+                    setShowMentionPopup(false);
+                    inputRef.current?.focus();
+                  }
+                }}>
+                {chat.avatar ? (
+                  <img src={chat.avatar} alt={chat.name} style={{ width: '36px', height: '36px', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '16px' }}>
+                    {chat.username.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ color: 'white', fontWeight: 'bold', fontSize: '14px' }}>{chat.username} <span style={{ color: 'var(--dark-text-muted)', fontSize: '12px', fontWeight: 'normal', marginLeft: '4px' }}>- Lawan Bicara</span></div>
+              </div>
+            )}
           </div>
         )}
         <input
@@ -1199,7 +1227,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
             const match = val.match(/(?:^|\s)@([a-zA-Z0-9_]*)$/);
             if (match) {
               const query = match[1].toLowerCase();
-              if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || query === '') {
+              const partnerName = chat?.username?.toLowerCase() || '';
+              if ('momo'.startsWith(query) || 'imo_ai'.startsWith(query) || 'imo'.startsWith(query) || partnerName.startsWith(query) || query === '') {
                 setMentionSearchQuery(query);
                 setShowMentionPopup(true);
               } else {
