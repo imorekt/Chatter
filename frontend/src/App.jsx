@@ -152,10 +152,10 @@ function App() {
         const res = await fetch(`${API_URL}/api/version`);
         const data = await res.json();
         const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
-        // Jangan tampilkan peringatan update jika sedang jalan di localhost (kecuali di Android/Capacitor yang memang pakai localhost)
+        // Jangan tampilkan peringatan update jika sedang jalan di localhost port 3111 (untuk development web)
         const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
-        const isLocalhost = !isNative && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
-        if (!isLocalhost && data.latest_version > currentVersion && data.update_url) {
+        const isLocalWebDev = !isNative && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port === '3111';
+        if (!isLocalWebDev && data.latest_version > currentVersion && data.update_url) {
           setUpdateUrl(data.update_url);
           setShowUpdate(true);
         }
