@@ -239,6 +239,9 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         }
     }
 
+    // Jika semua API Key gagal, berikan pesan default beserta error terakhir
+    const errorMsg = lastError ? (lastError.message || lastError.toString()) : 'Unknown Error';
+    
     // Tangani error limit 429 dan error lainnya dengan pesan seragam
     // Sementara kita tambahkan (Debug: ...) agar tahu kenapa gagal terus
     return `Maaf kak, Imo sedang AFK, Coba lagi nanti ya :) (Debug: ${errorMsg})`;
