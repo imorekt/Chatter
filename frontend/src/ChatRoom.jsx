@@ -1152,7 +1152,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                       if (!chat.isDeleted) {
                         setNewMessage(prev => prev.replace(/(?:^|\s)@([a-zA-Z0-9_]*)$/, (match) => {
                           const hasSpace = match.startsWith(' ');
-                          return (hasSpace ? ' ' : '') + '@imo_ai ';
+                          return (hasSpace ? ' ' : '') + '@momo ';
                         }));
                         setMentionSearchQuery('');
                         setShowMentionPopup(false);
