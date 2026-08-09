@@ -94,8 +94,9 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
 
     let result = await chat.sendMessage([{text: newPromptFormatted}]);
     
-    if (result.response.functionCalls && result.response.functionCalls().length > 0) {
-        const call = result.response.functionCalls()[0];
+    const calls = result.response.functionCalls ? result.response.functionCalls() : undefined;
+    if (calls && calls.length > 0) {
+        const call = calls[0];
         if (call.name === "set_restriction") {
             const { targetUser, restrictionType, isEnabled } = call.args;
             try {
