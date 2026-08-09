@@ -523,7 +523,7 @@ app.post('/api/moments/comment', async (req, res) => {
     const insertResult = await db.execute({ sql: `INSERT INTO comments (moment_id, username, content) VALUES (?, ?, ?)`, args: [moment_id, username, content] });
     const momentResult = await db.execute({ sql: 'SELECT username FROM moments WHERE id = ?', args: [moment_id] });
     const moment = momentResult.rows[0];
-    if (moment && moment.username !== username) {
+    if (moment && moment.username !== username && username !== 'imo_ai') {
       await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
       sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`, null, 'comment');
       pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'comment' });
@@ -547,7 +547,7 @@ app.post('/api/moments/comment', async (req, res) => {
     for (const mUser of mentionedUsers) {
       // Cek apakah user ada di database
       const userCheck = await db.execute({ sql: 'SELECT username FROM users WHERE username = ?', args: [mUser] });
-      if (userCheck.rows.length > 0) {
+      if (userCheck.rows.length > 0 && username !== 'imo_ai') {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'mention', ?, ?)`, args: [mUser, username, moment_id, content] });
         sendPushNotification(mUser, "Mention Baru", `${username} menyebut Anda dalam komentar: ${content}`, null, 'mention');
         pusher.trigger(`user-${mUser}`, 'new-notification', { type: 'mention' });
@@ -1085,7 +1085,9 @@ app.post('/api/messages/send', async (req, res) => {
       pushText = '📸 Mengirim Gambar';
     }
     if (data.recipient !== 'SYSTEM_AI_REPLY') {
-      sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender }, 'message');
+      if (data.sender !== 'imo_ai') {
+        sendPushNotification(data.recipient, `Pesan baru dari ${data.sender}`, pushText, { type: 'chat', sender: data.sender }, 'message');
+      }
       pusher.trigger(`user-${data.recipient}`, 'new-message', data);
     } else if (data.sender === 'imo_ai' && data.chat_context) {
       // If AI replies in a group/1-on-1 chat, send pusher to both participants in context
