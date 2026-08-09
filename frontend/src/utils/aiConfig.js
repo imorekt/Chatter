@@ -3,18 +3,18 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // Kumpulan API Key yang sudah diobfuscate (disamarkan)
 // Ditambah 4 kunci baru dari request user
 const OBFUSCATED_KEYS = [
-  "=EVewc1MW9WOq50ZxhjTvNVSIxURBJmMTZTVmpkTtp2Mt1mewcWdK5ULv1SS24kU4IWQuEVQ",
-  "=EVQmlGR3sWW1cUYNZUZ691ZL10S3kjZTJHWxVnbUVlRvh3ZG91MJREMpJET24kU4IWQuEVQ",
-  "=cnd1J2MjhWS552Y2NGeDtWbUlFSsZVSWJ0QxA3XVlTa3VlaRVzNDtWU6BzS24kU4IWQuEVQ",
-  "=E1RKZkVfVUOu92bN91UuZndh9UZVFXa4IEZt92akVDS6lULolDeZJjTDVmS24kU4IWQuEVQ",
-  "=EFRKtEOy8lWDlUZrVmYOBFOhlTbW9UYSpHUwVnV08FZzYFVzUnZYNzaU90S24kU4IWQuEVQ",
-  "=EVSDdEbXFWM3MFV5hFSNJUO4BHbt92UJNWZyhHSjZHTa1iU2E1V6d1UpVWS24kU4IWQuEVQ",
-  "=EERWhkTlVUcXplNkVWQoFWLFhzbVtUZQZ1N2BVcF9EcvJTLn9UWx4Ed5E3S24kU4IWQuEVQ",
-  "=E0V0sUbaJnNEBVTzFkU2omWZZXOuBFOmR2SIRkR0VTNL5EaMFTbqtGcllDT24kU4IWQuEVQ",
-  "=EFSJplY3lFWLVnRT5mVHh0T51iRr1mQ2R3U0g3MVRHb0MnQV1ke5F1YEJGT24kU4IWQuEVQ",
-  "=cHesJjUGBTNDF0Z1N1VUJlRuplcxBXOPZ0YygVOBRWdq1yMSFGNPVjWxVkS24kU4IWQuEVQ",
-  "=EEVBN2RupVdsZDVihjbGJ3QldEdulXToRGTMJjWYZHNpR0QwV3MspGayQDT24kU4IWQuEVQ",
-  "=c2MT9EUzQ0SidDSMhzd1MWZJN0V3UjVzQ0XWB3cxJzYzUjYZhXL5gnUmt2S24kU4IWQuEVQ"
+    "=EVewc1MW9WOq50ZxhjTvNVSIxURBJmMTZTVmpkTtp2Mt1mewcWdK5ULv1SS24kU4IWQuEVQ",
+    "=EVQmlGR3sWW1cUYNZUZ691ZL10S3kjZTJHWxVnbUVlRvh3ZG91MJREMpJET24kU4IWQuEVQ",
+    "=cnd1J2MjhWS552Y2NGeDtWbUlFSsZVSWJ0QxA3XVlTa3VlaRVzNDtWU6BzS24kU4IWQuEVQ",
+    "=E1RKZkVfVUOu92bN91UuZndh9UZVFXa4IEZt92akVDS6lULolDeZJjTDVmS24kU4IWQuEVQ",
+    "=EFRKtEOy8lWDlUZrVmYOBFOhlTbW9UYSpHUwVnV08FZzYFVzUnZYNzaU90S24kU4IWQuEVQ",
+    "=EVSDdEbXFWM3MFV5hFSNJUO4BHbt92UJNWZyhHSjZHTa1iU2E1V6d1UpVWS24kU4IWQuEVQ",
+    "=EERWhkTlVUcXplNkVWQoFWLFhzbVtUZQZ1N2BVcF9EcvJTLn9UWx4Ed5E3S24kU4IWQuEVQ",
+    "=E0V0sUbaJnNEBVTzFkU2omWZZXOuBFOmR2SIRkR0VTNL5EaMFTbqtGcllDT24kU4IWQuEVQ",
+    "=EFSJplY3lFWLVnRT5mVHh0T51iRr1mQ2R3U0g3MVRHb0MnQV1ke5F1YEJGT24kU4IWQuEVQ",
+    "=cHesJjUGBTNDF0Z1N1VUJlRuplcxBXOPZ0YygVOBRWdq1yMSFGNPVjWxVkS24kU4IWQuEVQ",
+    "=EEVBN2RupVdsZDVihjbGJ3QldEdulXToRGTMJjWYZHNpR0QwV3MspGayQDT24kU4IWQuEVQ",
+    "=c2MT9EUzQ0SidDSMhzd1MWZJN0V3UjVzQ0XWB3cxJzYzUjYZhXL5gnUmt2S24kU4IWQuEVQ"
 ];
 
 // Helper untuk membuka samaran (deobfuscate) API Key
@@ -22,7 +22,7 @@ const getRealKeys = () => {
     try {
         if (OBFUSCATED_KEYS.length === 0) return [];
         return OBFUSCATED_KEYS.map(k => atob(k.split('').reverse().join('')));
-    } catch(e) {
+    } catch (e) {
         console.error("Gagal membaca API Key imo_ai");
         return [];
     }
@@ -33,7 +33,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
 
     let toolsConfig = undefined;
-    
+
     if (chatContext === 'admin_command' || isAdminUser) {
         toolsConfig = [{
             functionDeclarations: [
@@ -79,7 +79,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     }
 
     // Menggunakan Gemini 3.1 Flash Lite (model yang lebih ringan dan cepat)
-    const model = genAI.getGenerativeModel({ 
+    const model = genAI.getGenerativeModel({
         model: "gemini-3.1-flash-lite",
         systemInstruction: systemInstruction,
         ...(toolsConfig && { tools: toolsConfig })
@@ -92,8 +92,8 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         },
     });
 
-    let result = await chat.sendMessage([{text: newPromptFormatted}]);
-    
+    let result = await chat.sendMessage([{ text: newPromptFormatted }]);
+
     const calls = result.response.functionCalls ? result.response.functionCalls() : undefined;
     if (calls && calls.length > 0) {
         const call = calls[0];
@@ -106,7 +106,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: targetUser, type: restrictionType, value: isEnabled })
                 });
-                
+
                 result = await chat.sendMessage([{
                     functionResponse: {
                         name: "set_restriction",
@@ -131,7 +131,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: targetUser })
                 });
-                
+
                 result = await chat.sendMessage([{
                     functionResponse: {
                         name: "clear_all_restrictions",
@@ -160,10 +160,10 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
-    let systemInstruction = `Kamu adalah Momo (Asisten AI) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
+    let systemInstruction = `Kamu adalah Momo (Asisten Imou) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan dengan asyik dan ramah.\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin tanpa terlalu formal kecuali diminta.\n5. JANGAN TERLALU BANYAK BASA BASI ATAU BANYAK OMONG. LANGSUNG TO THE POINT SAJA. Boleh bercanda tapi tetap singkat dan padat.`;
 
     if (isMoment) {
-        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT. MAKSIMAL 1-2 KALIMAT PENDEK SAJA.`;
+        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA DAN ASIK. MAKSIMAL 5 KALIMAT PENDEK SAJA.`;
     }
 
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
@@ -178,7 +178,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     const rawHistory = messageHistory.filter(msg => msg && msg.text).map(msg => {
         let senderName = msg.sender === 'me' ? currentUser : (msg.sender === 'imo_ai' ? 'Momo' : (msg.sender_display || msg.sender || partnerUser));
         let textContent = msg.sender === 'imo_ai' ? msg.text : `[Dari ${senderName}]: ${msg.text}`;
-        
+
         return {
             role: msg.sender === 'imo_ai' ? 'model' : 'user',
             text: textContent
@@ -219,7 +219,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
         hash = ((hash << 5) - hash) + char;
         hash = hash & hash;
     }
-    
+
     let startIndex = Math.abs(hash) % keys.length;
     let attempts = 0;
     let lastError = null;
@@ -242,7 +242,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     // Jika semua API Key gagal, berikan pesan default beserta error terakhir
     const errorMsg = lastError ? (lastError.message || lastError.toString()) : 'Unknown Error';
-    
+
     // Tangani error limit 429 dan error lainnya dengan pesan seragam
     // Sementara kita tambahkan (Debug: ...) agar tahu kenapa gagal terus
     return `Maaf kak, Momo sedang AFK, Coba lagi nanti ya :) (Debug: ${errorMsg})`;
