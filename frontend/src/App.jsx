@@ -255,7 +255,7 @@ function App() {
           alignItems: 'center'
         }} />
       )}
-      <div className="h-screen w-screen bg-dark-bg text-dark-text overflow-hidden relative selection:bg-primary/30">
+      <div className="app-container">
         {showUpdate && (
             <div style={{
                 position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
