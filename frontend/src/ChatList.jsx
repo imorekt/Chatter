@@ -857,8 +857,7 @@ const ChatList = ({ onLogout, currentUser }) => {
 
         </>
       )}
-
-      {activeNav === 'kontak' && (
+      <div style={{ display: activeNav === 'kontak' ? 'contents' : 'none' }}>
         <ContactList 
           onContactClick={(contact) => { setActiveChat(contact); handleNavChange('chat'); }} 
           searchQuery={searchQuery} 
@@ -869,10 +868,16 @@ const ChatList = ({ onLogout, currentUser }) => {
           toggleSelectItem={toggleSelectItem}
           onRefreshContacts={fetchContacts}
         />
-      )}
-      {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />}
-      {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} selectionMode={selectionMode === 'moment'} selectedItems={selectedItems} toggleSelectItem={toggleSelectItem} contactsData={contactsData} />}
-      {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser?.email || (typeof currentUser === 'string' ? currentUser : '')} friends={contactsData?.friends || []} />}
+      </div>
+      <div style={{ display: activeNav === 'music' ? 'contents' : 'none' }}>
+        <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />
+      </div>
+      <div style={{ display: activeNav === 'moment' ? 'contents' : 'none' }}>
+        <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} selectionMode={selectionMode === 'moment'} selectedItems={selectedItems} toggleSelectItem={toggleSelectItem} contactsData={contactsData} />
+      </div>
+      <div style={{ display: activeNav === 'profil' ? 'contents' : 'none' }}>
+        <Profile onLogout={onLogout} email={currentUser?.email || (typeof currentUser === 'string' ? currentUser : '')} friends={contactsData?.friends || []} />
+      </div>
 
       {/* Bulk Delete Confirm Modal */}
       {showBulkDeleteConfirm && (
