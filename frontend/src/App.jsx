@@ -20,6 +20,7 @@ export const RestrictionsContext = React.createContext({
 });
 
 function App() {
+  const [showCustomSplash, setShowCustomSplash] = useState(true);
   const [user, setUser] = useState(() => localStorage.getItem('chat_user') || null);
   const [isRegistering, setIsRegistering] = useState(false);
   const [showUpdate, setShowUpdate] = useState(false);
@@ -76,11 +77,16 @@ function App() {
         }
       });
       
-      // Hide splash screen after exactly 3 seconds
-      setTimeout(() => {
-        SplashScreen.hide();
-      }, 3000);
+      // Hide the native OS splash screen immediately so our React one takes over
+      SplashScreen.hide();
     }
+    
+    // Hide our custom React splash screen after exactly 3 seconds
+    const splashTimer = setTimeout(() => {
+      setShowCustomSplash(false);
+    }, 3000);
+
+    return () => clearTimeout(splashTimer);
   }, []);
 
   useEffect(() => {
@@ -233,56 +239,71 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      {showUpdate && (
-          <div style={{
-              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-              backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              backdropFilter: 'blur(5px)'
-          }}>
-              <div style={{
-                  backgroundColor: 'var(--surface)', padding: '2rem',
-                  borderRadius: '16px', width: '85%', maxWidth: '400px',
-                  textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-              }}>
-                  <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
-                  <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-                      Kiw versi baru tersedia,, tolong update ya!
-                  </p>
-                  <button
-                      onClick={handleUpdate}
-                      disabled={isDownloadingUpdate}
-                      style={{
-                          width: '100%', padding: '12px', borderRadius: '12px',
-                          backgroundColor: 'var(--primary)', color: 'white',
-                          border: 'none', fontWeight: 'bold', fontSize: '1rem',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          gap: '8px'
-                      }}
-                  >
-                      {isDownloadingUpdate ? (
-                          <>Mengunduh... {downloadProgress}%</>
-                      ) : (
-                          <><Download size={20} /> Update Sekarang</>
-                      )}
-                  </button>
-              </div>
-          </div>
+    <RestrictionsContext.Provider value={restrictions}>
+      {showCustomSplash && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, right: 0, bottom: 0,
+          backgroundColor: '#161616',
+          backgroundImage: 'url(/splash_hd_transparent.png)',
+          backgroundPosition: 'center',
+          backgroundSize: 'cover',
+          backgroundRepeat: 'no-repeat',
+          zIndex: 999999,
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }} />
       )}
-      <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
-      {!user ? (
-        isRegistering ? (
-          <Register onBackToLogin={() => setIsRegistering(false)} />
+      <div className="h-screen w-screen bg-dark-bg text-dark-text overflow-hidden relative selection:bg-primary/30">
+        {showUpdate && (
+            <div style={{
+                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                backdropFilter: 'blur(5px)'
+            }}>
+                <div style={{
+                    backgroundColor: 'var(--surface)', padding: '2rem',
+                    borderRadius: '16px', width: '85%', maxWidth: '400px',
+                    textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                }}>
+                    <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
+                    <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+                        Kiw versi baru tersedia,, tolong update ya!
+                    </p>
+                    <button
+                        onClick={handleUpdate}
+                        disabled={isDownloadingUpdate}
+                        style={{
+                            width: '100%', padding: '12px', borderRadius: '12px',
+                            backgroundColor: 'var(--primary)', color: 'white',
+                            border: 'none', fontWeight: 'bold', fontSize: '1rem',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        {isDownloadingUpdate ? (
+                            <>Mengunduh... {downloadProgress}%</>
+                        ) : (
+                            <><Download size={20} /> Update Sekarang</>
+                        )}
+                    </button>
+                </div>
+            </div>
+        )}
+        <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
+        {!user ? (
+          isRegistering ? (
+            <Register onBackToLogin={() => setIsRegistering(false)} />
+          ) : (
+            <Login onLogin={handleLogin} onGoToRegister={() => setIsRegistering(true)} />
+          )
         ) : (
-          <Login onLogin={handleLogin} onGoToRegister={() => setIsRegistering(true)} />
-        )
-      ) : (
-        <RestrictionsContext.Provider value={restrictions}>
           <ChatList currentUser={user} onLogout={() => { localStorage.removeItem('chat_user'); setUser(null); }} />
-        </RestrictionsContext.Provider>
-      )}
-    </div>
+        )}
+      </div>
+    </RestrictionsContext.Provider>
   );
 }
 
