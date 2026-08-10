@@ -318,15 +318,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       } else if (selectionMode) {
         setSelectionMode(null);
         setSelectedMessages(new Set());
-      } else if (viewProfileUser) {
-        setViewProfileUser(null);
       } else {
         onBack();
       }
     };
     window.addEventListener('hardwareBack', handleHardwareBack);
     return () => window.removeEventListener('hardwareBack', handleHardwareBack);
-  }, [previewModalImage, selectedImage, showEditModal, showDeleteActionModal, showDeleteModal, showEmojiPicker, showMenu, selectionMode, viewProfileUser, onBack]);
+  }, [previewModalImage, selectedImage, showEditModal, showDeleteActionModal, showDeleteModal, showEmojiPicker, showMenu, selectionMode, onBack]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

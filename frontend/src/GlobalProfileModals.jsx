@@ -20,6 +20,8 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
   const [viewProfileUser, setViewProfileUser] = useState(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [previewModalImage, setPreviewModalImage] = useState(null);
+  
+  const currentProfileViewRef = React.useRef(null);
 
   useEffect(() => {
     const handleOpenMoments = async (e) => {
@@ -79,6 +81,7 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
 
     const handleViewProfileEvent = async (e) => {
       const username = e.detail;
+      currentProfileViewRef.current = username;
       const cacheKey = `profile_cache_${username}`;
       const cachedData = localStorage.getItem(cacheKey);
       
@@ -95,7 +98,9 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
             } catch (e) {
               console.warn('Failed to cache profile:', e);
             }
-            setViewProfileUser(newData);
+            if (currentProfileViewRef.current === username) {
+              setViewProfileUser(newData);
+            }
           }
         } catch (err) {}
         return;
@@ -112,7 +117,9 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
           } catch (e) {
             console.warn('Failed to cache profile:', e);
           }
-          setViewProfileUser(newData);
+          if (currentProfileViewRef.current === username) {
+            setViewProfileUser(newData);
+          }
         } else {
           // You might need a global notify or just alert
           console.warn('Gagal memuat profil');
@@ -295,7 +302,10 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
                 )}
               </div>
               <button 
-                onClick={() => setViewProfileUser(null)}
+                onClick={() => {
+                  currentProfileViewRef.current = null;
+                  setViewProfileUser(null);
+                }}
                 style={{ width: '100%', padding: '3cqw', marginTop: '3cqh', borderRadius: '3cqw', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--dark-border)', color: 'white', fontWeight: '600', cursor: 'pointer' }}
               >
                 Tutup
