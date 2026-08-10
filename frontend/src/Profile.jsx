@@ -443,6 +443,8 @@ const Profile = ({ onLogout, email }) => {
         )}
       </div>
 
+      </div>
+
       <div style={{ padding: '0 var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '1.2cqh', marginTop: '1cqh' }}>
         <button 
           onClick={() => setShowLogoutConfirm(true)}
