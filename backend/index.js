@@ -171,6 +171,7 @@ async function initDb() {
       )
     `);
     try { await db.execute("ALTER TABLE users ADD COLUMN avatar TEXT"); } catch (e) {}
+    try { await db.execute("ALTER TABLE users ADD COLUMN cover_url TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) {}
     try { await db.execute("ALTER TABLE users ADD COLUMN notif_message INTEGER DEFAULT 1"); } catch (e) {}
