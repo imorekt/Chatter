@@ -368,7 +368,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
     <div className="hide-scrollbar" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflowY: 'auto' }}>
       
       {/* HEADER SECTION (Cover & Avatar) */}
-      <div style={{ position: 'relative', width: '100%', marginBottom: '12cqh' }}>
+      <div style={{ position: 'relative', width: '100%', marginBottom: '8cqh' }}>
         {/* Cover Photo */}
         <div style={{ width: '100%', height: '25cqh', background: coverUrl ? `url(${coverUrl}) center/cover no-repeat` : 'linear-gradient(135deg, var(--dark-bg), var(--dark-border))', position: 'relative' }}>
           <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)' }} />
@@ -408,7 +408,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
         </div>
 
         {/* Overlapping Avatar */}
-        <div style={{ position: 'absolute', bottom: '-8cqh', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+        <div style={{ position: 'absolute', bottom: '-11cqw', left: '50%', transform: 'translateX(-50%)', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
           <div style={{ position: 'relative', width: '22cqw', height: '22cqw', borderRadius: '50%', padding: '0.8cqw', background: 'var(--dark-bg)' }}>
             {avatar ? (
               <img src={avatar} alt="Avatar" style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
