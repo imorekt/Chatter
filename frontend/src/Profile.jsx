@@ -569,35 +569,68 @@ const Profile = ({ onLogout, email, friends = [] }) => {
 
       {/* Moments Popup */}
       {showMomentsPopup && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 1000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ padding: '4cqh 4cqw 2cqh 4cqw', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--dark-border)' }}>
-            <h3 style={{ margin: 0, color: 'white', fontSize: 'var(--font-title)' }}>Moments</h3>
-            <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowMomentsPopup(false)} />
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'url(/background.png) center/cover no-repeat', zIndex: 1000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: -1 }} />
+          
+          <div style={{ padding: '6cqh 4cqw 3cqh 4cqw', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ margin: 0, color: 'white', fontSize: 'var(--font-title)', fontWeight: 'bold' }}>Moments Anda</h3>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '2cqw' }} className="hide-scrollbar">
+          
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4cqw', paddingBottom: '12cqh' }} className="hide-scrollbar">
             {isLoadingMoments ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '20cqh' }}>
                 <Loader2 size={24} className="animate-spin" color="var(--primary)" />
               </div>
+            ) : userMoments.length === 0 ? (
+              <div style={{ color: 'var(--dark-text-muted)', textAlign: 'center', padding: '4cqw', fontSize: 'var(--font-body)' }}>
+                Belum ada moment.
+              </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1cqw' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4cqw' }}>
                 {userMoments.map(m => (
                   <div 
                     key={m.id} 
                     onClick={() => setPreviewMoment(m)}
-                    style={{ aspectRatio: '1/1', background: 'var(--dark-surface)', borderRadius: '2cqw', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ 
+                      aspectRatio: '3/4', 
+                      background: 'rgba(255,255,255,0.05)', 
+                      borderRadius: '4cqw', 
+                      overflow: 'hidden', 
+                      cursor: 'pointer', 
+                      border: '1px solid rgba(255,255,255,0.1)', 
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      position: 'relative'
+                    }}
                   >
                     {m.image_url ? (
                       <img src={m.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ padding: '2cqw', fontSize: '10px', color: 'var(--dark-text-muted)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                        {m.content}
+                      <div style={{ flex: 1, background: 'linear-gradient(135deg, rgba(164,139,255,0.2), rgba(101,31,255,0.2))', padding: '3cqw', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', fontWeight: '500', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                          {m.content}
+                        </div>
                       </div>
+                    )}
+                    {m.image_url && m.content && (
+                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '6cqw 2cqw 2cqw', color: 'white', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                         {m.content}
+                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
+          </div>
+          
+          <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 2cqh) + 2cqh)', left: '50%', transform: 'translateX(-50%)', width: '90%', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+            <button 
+              onClick={() => setShowMomentsPopup(false)}
+              style={{ width: '100%', padding: '3.5cqw', borderRadius: '4cqw', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}
