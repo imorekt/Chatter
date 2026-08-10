@@ -249,6 +249,7 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
             </div>
           ))}
         </div>
+      )}
     </div>
   );
 };
