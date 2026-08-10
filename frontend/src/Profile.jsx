@@ -741,7 +741,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
       )}
       {showSettingsMenu && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
-          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', paddingBottom: 'max(env(safe-area-inset-bottom), 30px)', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4cqh' }}>
               <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Pengaturan</h3>
               <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowSettingsMenu(false)} />

@@ -109,24 +109,6 @@ const ChatList = ({ onLogout, currentUser }) => {
     }
   }, [currentTrack, musicQueue]);
 
-  useEffect(() => {
-    if (window.cordova && window.cordova.plugins && window.cordova.plugins.backgroundMode) {
-      if (isPlaying) {
-        window.cordova.plugins.backgroundMode.enable();
-        window.cordova.plugins.backgroundMode.setDefaults({
-            title: currentTrack?.title || 'ImoCloud Music',
-            text: 'Memutar musik di latar belakang',
-            icon: 'icon',
-            color: 'F14F4D',
-            resume: true,
-            hidden: false
-        });
-      } else {
-        // We can disable it if paused to save battery, or keep it enabled
-        window.cordova.plugins.backgroundMode.disable();
-      }
-    }
-  }, [isPlaying, currentTrack]);
 
   useEffect(() => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
