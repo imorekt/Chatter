@@ -16,6 +16,7 @@
     "@capacitor/cli": "^8.5.0",
     "@capacitor/core": "^8.5.0",
     "@capacitor/filesystem": "^8.1.2",
+    "@capacitor/splash-screen": "^8.0.2",
     "@google/generative-ai": "^0.24.1",
     "@onesignal/capacitor-plugin": "^1.1.7",
     "emoji-picker-react": "^4.19.1",
