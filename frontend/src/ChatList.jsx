@@ -324,14 +324,6 @@ const ChatList = ({ onLogout, currentUser }) => {
          setActiveChat(null);
       }
     };
-    const handleOpenMoment = (e) => {
-      const moment_id = e.detail;
-      if (moment_id) {
-         setHighlightMomentId(moment_id);
-         setActiveNav('moment');
-         setActiveChat(null);
-      }
-    };
     window.addEventListener('openChat', handleOpenChat);
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openMoment', handleOpenMoment);
@@ -996,14 +988,8 @@ const ChatList = ({ onLogout, currentUser }) => {
           <span>Profil</span>
         </div>
       </div>
-      
-      {activeNav === 'favorit' && activeFavoriteUser && (
-        <FavoriteRoom 
-          currentUser={currentUser} 
-          partner={activeFavoriteUser} 
-          onBack={() => setActiveFavoriteUser(null)} 
-        />
-      )}
+    </div>
+    )}
 
       <GlobalProfileModals 
         currentUser={currentUser}
