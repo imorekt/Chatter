@@ -131,16 +131,38 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
       }
     };
 
+    const handleHardwareBack = (e) => {
+      if (previewModalImage) {
+        e.preventDefault();
+        setPreviewModalImage(null);
+      } else if (previewMoment) {
+        e.preventDefault();
+        setPreviewMoment(null);
+      } else if (showMomentsPopup) {
+        e.preventDefault();
+        setShowMomentsPopup(false);
+      } else if (showFriendsPopup) {
+        e.preventDefault();
+        setShowFriendsPopup(false);
+      } else if (viewProfileUser) {
+        e.preventDefault();
+        currentProfileViewRef.current = null;
+        setViewProfileUser(null);
+      }
+    };
+
     window.addEventListener('openPreviewMoments', handleOpenMoments);
     window.addEventListener('openPreviewFriends', handleOpenFriends);
     window.addEventListener('openContactProfile', handleViewProfileEvent);
+    window.addEventListener('hardwareBack', handleHardwareBack);
     
     return () => {
       window.removeEventListener('openPreviewMoments', handleOpenMoments);
       window.removeEventListener('openPreviewFriends', handleOpenFriends);
       window.removeEventListener('openContactProfile', handleViewProfileEvent);
+      window.removeEventListener('hardwareBack', handleHardwareBack);
     };
-  }, []);
+  }, [previewModalImage, previewMoment, showMomentsPopup, showFriendsPopup, viewProfileUser]);
 
   const navigateToMoment = (momentId) => {
     setPreviewMoment(null);
@@ -160,8 +182,10 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
       {/* Global View Profile Popup */}
       {viewProfileUser && (
         <>
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 99, backdropFilter: 'blur(4px)' }} />
-          <div className="hide-scrollbar" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '4cqw', width: '90%', maxWidth: '85vw', maxHeight: '90vh', overflowY: 'auto', zIndex: 100, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'url(/background.png) center/cover no-repeat', zIndex: 99 }} >
+            <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)' }} />
+          </div>
+          <div className="hide-scrollbar" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '4cqw', width: '90%', maxWidth: '85vw', maxHeight: '90vh', overflowY: 'auto', zIndex: 100, border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }}>
             
             {/* Cover Photo */}
             <div style={{ width: '100%', height: '20cqh', background: viewProfileUser.cover_url ? `url(${viewProfileUser.cover_url}) center/cover no-repeat` : 'linear-gradient(135deg, var(--dark-bg), var(--dark-border))', position: 'relative', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }}>
@@ -327,47 +351,79 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
 
       {/* Moments Popup */}
       {showMomentsPopup && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 10000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ padding: '4cqh 4cqw 2cqh 4cqw', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--dark-border)' }}>
-            <h3 style={{ margin: 0, color: 'white', fontSize: 'var(--font-title)' }}>Moments {targetUser?.display_name || targetUser?.username}</h3>
-            <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowMomentsPopup(false)} />
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'url(/background.png) center/cover no-repeat', zIndex: 10000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(10px)', zIndex: -1 }} />
+          
+          <div style={{ padding: '6cqh 4cqw 3cqh 4cqw', display: 'flex', alignItems: 'center', justifyContent: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+            <h3 style={{ margin: 0, color: 'white', fontSize: 'var(--font-title)', fontWeight: 'bold' }}>Moments {targetUser?.display_name || targetUser?.username}</h3>
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '2cqw' }} className="hide-scrollbar">
+          
+          <div style={{ flex: 1, overflowY: 'auto', padding: '4cqw', paddingBottom: '12cqh' }} className="hide-scrollbar">
             {isLoadingMoments ? (
               <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '20cqh' }}>
-                <Loader2 size={24} className="animate-spin" color="var(--primary)" />
+                <Loader2 size={32} className="animate-spin" color="white" />
+              </div>
+            ) : userMoments.length === 0 ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50cqh', color: 'rgba(255,255,255,0.6)' }}>
+                Belum ada moment.
               </div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1cqw' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '4cqw' }}>
                 {userMoments.map(m => (
                   <div 
                     key={m.id} 
                     onClick={() => setPreviewMoment(m)}
-                    style={{ aspectRatio: '1/1', background: 'var(--dark-surface)', borderRadius: '2cqw', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ 
+                      aspectRatio: '3/4', 
+                      background: 'rgba(255,255,255,0.05)', 
+                      borderRadius: '4cqw', 
+                      overflow: 'hidden', 
+                      cursor: 'pointer', 
+                      border: '1px solid rgba(255,255,255,0.1)', 
+                      boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      position: 'relative'
+                    }}
                   >
                     {m.image_url ? (
                       <img src={m.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     ) : (
-                      <div style={{ padding: '2cqw', fontSize: '10px', color: 'var(--dark-text-muted)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
-                        {m.content}
+                      <div style={{ flex: 1, background: 'linear-gradient(135deg, rgba(164,139,255,0.2), rgba(101,31,255,0.2))', padding: '3cqw', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <div style={{ fontSize: '13px', color: 'rgba(255,255,255,0.9)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 5, WebkitBoxOrient: 'vertical', fontWeight: '500', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
+                          {m.content}
+                        </div>
                       </div>
+                    )}
+                    {m.image_url && m.content && (
+                       <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, background: 'linear-gradient(transparent, rgba(0,0,0,0.8))', padding: '6cqw 2cqw 2cqw', color: 'white', fontSize: '11px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                         {m.content}
+                       </div>
                     )}
                   </div>
                 ))}
               </div>
             )}
           </div>
+          
+          <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 2cqh) + 2cqh)', left: '50%', transform: 'translateX(-50%)', width: '90%', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+            <button 
+              onClick={() => setShowMomentsPopup(false)}
+              style={{ width: '100%', padding: '3.5cqw', borderRadius: '4cqw', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+            >
+              Tutup
+            </button>
+          </div>
         </div>
       )}
 
       {/* Preview Single Moment from Popup */}
       {previewMoment && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.9)', zIndex: 10001, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out', backdropFilter: 'blur(8px)' }}>
-          <div style={{ padding: '4cqh 4cqw', display: 'flex', justifyContent: 'flex-end' }}>
-            <X size={28} style={{ color: 'white', cursor: 'pointer' }} onClick={() => setPreviewMoment(null)} />
-          </div>
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 4cqw 10cqh 4cqw' }}>
-            <div style={{ width: '100%', maxWidth: '500px', background: 'var(--dark-bg)', borderRadius: '4cqw', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'url(/background.png) center/cover no-repeat', zIndex: 10001, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(15px)', zIndex: -1 }} />
+          
+          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', padding: '0 4cqw 12cqh 4cqw' }}>
+            <div style={{ width: '100%', maxWidth: '500px', background: 'rgba(255,255,255,0.03)', borderRadius: '6cqw', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 40px rgba(0,0,0,0.4)' }}>
               
               {previewMoment.image_url && (
                 <div style={{ width: '100%', aspectRatio: '1/1', background: '#000' }}>
@@ -376,31 +432,40 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
               )}
               
               {previewMoment.content && (
-                <div style={{ padding: '4cqw' }}>
-                  <div style={{ background: 'rgba(164, 139, 255, 0.1)', border: '1px solid rgba(164, 139, 255, 0.2)', padding: '4cqw', borderRadius: '4cqw', borderTopLeftRadius: previewMoment.image_url ? '4cqw' : '1cqw', color: 'white', fontSize: 'var(--font-body)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                <div style={{ padding: '5cqw' }}>
+                  <div style={{ background: 'rgba(255,255,255,0.05)', padding: '4cqw', borderRadius: '4cqw', color: 'white', fontSize: 'var(--font-body)', lineHeight: '1.6', whiteSpace: 'pre-wrap', textShadow: '0 1px 2px rgba(0,0,0,0.5)' }}>
                     {previewMoment.content}
                   </div>
                 </div>
               )}
-            </div>
 
-            <div style={{ padding: '4cqw', background: 'var(--dark-surface)', borderTop: '1px solid rgba(255,255,255,0.05)', width: '100%', maxWidth: '500px', marginTop: '4cqh', borderRadius: '4cqw' }}>
-              <button 
-                onClick={() => navigateToMoment(previewMoment.id)}
-                style={{ width: '100%', padding: '3cqh', background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: 'white', border: 'none', borderRadius: '3cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2cqw' }}
-              >
-                Lihat Postingan Aslinya
-                <ChevronRight size={18} />
-              </button>
+              <div style={{ padding: '4cqw', display: 'flex', justifyContent: 'center', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                <button 
+                  onClick={() => navigateToMoment(previewMoment.id)}
+                  style={{ width: '100%', padding: '3cqh', background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: 'white', border: 'none', borderRadius: '3cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2cqw' }}
+                >
+                  Lihat Postingan Aslinya
+                  <ChevronRight size={18} />
+                </button>
+              </div>
             </div>
-            
+          </div>
+
+          <div style={{ position: 'absolute', bottom: 'calc(env(safe-area-inset-bottom, 2cqh) + 2cqh)', left: '50%', transform: 'translateX(-50%)', width: '90%', display: 'flex', justifyContent: 'center', zIndex: 10 }}>
+            <button 
+              onClick={() => setPreviewMoment(null)}
+              style={{ width: '100%', padding: '3.5cqw', borderRadius: '4cqw', background: 'rgba(255, 255, 255, 0.15)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.3)', color: 'white', fontWeight: 'bold', fontSize: '16px', cursor: 'pointer', boxShadow: '0 4px 15px rgba(0,0,0,0.3)' }}
+            >
+              Tutup
+            </button>
           </div>
         </div>
       )}
 
       {/* Friends Popup */}
       {showFriendsPopup && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', zIndex: 10000, padding: '4cqw', paddingTop: '10cqh' }}>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'url(/background.png) center/cover no-repeat', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', zIndex: 10000, padding: '4cqw', paddingTop: '10cqh' }}>
+          <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(10px)', zIndex: -1 }} />
           <div style={{ width: '100%', maxWidth: '400px', maxHeight: '80vh', background: 'var(--dark-surface)', borderRadius: '6cqw', border: '1px solid rgba(255,255,255,0.1)', animation: 'slideDown 0.3s ease-out', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
             
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4cqw', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>

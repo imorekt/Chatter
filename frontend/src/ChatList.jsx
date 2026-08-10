@@ -212,6 +212,33 @@ const ChatList = ({ onLogout, currentUser }) => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleHardwareBack = (e) => {
+      if (e.defaultPrevented) return;
+      if (activeChat || activeFavoriteUser) return; // Handled by ChatRoom or FavoriteRoom
+      
+      if (showSettings) {
+        e.preventDefault();
+        setShowSettings(false);
+      } else if (showNewChatPopup) {
+        e.preventDefault();
+        setShowNewChatPopup(false);
+      } else if (showBulkDeleteConfirm) {
+        e.preventDefault();
+        setShowBulkDeleteConfirm(false);
+      } else if (selectionMode) {
+        e.preventDefault();
+        setSelectionMode(null);
+        setSelectedItems(new Set());
+      } else if (activeNav !== 'chat') {
+        e.preventDefault();
+        setActiveNav('chat');
+      }
+    };
+    window.addEventListener('hardwareBack', handleHardwareBack);
+    return () => window.removeEventListener('hardwareBack', handleHardwareBack);
+  }, [activeNav, activeChat, activeFavoriteUser, showSettings, showNewChatPopup, showBulkDeleteConfirm, selectionMode]);
+
   const prevNotifCountRef = useRef(0);
   useEffect(() => {
     const fetchNotifications = async () => {
