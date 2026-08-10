@@ -218,6 +218,16 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
+app.get('/api/maintenance', (req, res) => {
+  try {
+    const fs = require('fs');
+    const content = fs.readFileSync(path.join(__dirname, 'maintenance.txt'), 'utf8').trim().toUpperCase();
+    res.json({ maintenance: content === 'YES' });
+  } catch (e) {
+    res.json({ maintenance: false });
+  }
+});
+
 // --- HELPER FUNCTIONS ---
 const lastSeenMap = new Map();
 async function updateLastSeen(username) {

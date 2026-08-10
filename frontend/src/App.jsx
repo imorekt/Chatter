@@ -34,6 +34,23 @@ function App() {
     disable_moment: false,
     full_mute: false
   });
+  const [isMaintenance, setIsMaintenance] = useState(false);
+
+  useEffect(() => {
+    const checkMaintenance = async () => {
+      try {
+        const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API_URL}/api/maintenance`);
+        if (res.ok) {
+          const data = await res.json();
+          setIsMaintenance(data.maintenance);
+        }
+      } catch (e) {
+        console.error('Failed to check maintenance:', e);
+      }
+    };
+    checkMaintenance();
+  }, []);
 
   const fetchRestrictions = async (username) => {
     try {
@@ -76,11 +93,11 @@ function App() {
           CapApp.exitApp();
         }
       });
-      
+
       // Hide the native OS splash screen immediately so our React one takes over
       SplashScreen.hide();
     }
-    
+
     // Hide our custom React splash screen after exactly 3 seconds
     const splashTimer = setTimeout(() => {
       setShowCustomSplash(false);
@@ -257,43 +274,64 @@ function App() {
       )}
       <div className="app-container">
         {showUpdate && (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backdropFilter: 'blur(5px)'
+          }}>
             <div style={{
-                position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                backdropFilter: 'blur(5px)'
+              backgroundColor: 'var(--surface)', padding: '2rem',
+              borderRadius: '16px', width: '85%', maxWidth: '400px',
+              textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
             }}>
-                <div style={{
-                    backgroundColor: 'var(--surface)', padding: '2rem',
-                    borderRadius: '16px', width: '85%', maxWidth: '400px',
-                    textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
-                }}>
-                    <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
-                    <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
-                        Kiw versi baru tersedia,, tolong update ya!
-                    </p>
-                    <button
-                        onClick={handleUpdate}
-                        disabled={isDownloadingUpdate}
-                        style={{
-                            width: '100%', padding: '12px', borderRadius: '12px',
-                            backgroundColor: 'var(--primary)', color: 'white',
-                            border: 'none', fontWeight: 'bold', fontSize: '1rem',
-                            display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            gap: '8px'
-                        }}
-                    >
-                        {isDownloadingUpdate ? (
-                            <>Mengunduh... {downloadProgress}%</>
-                        ) : (
-                            <><Download size={20} /> Update Sekarang</>
-                        )}
-                    </button>
-                </div>
+              <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
+              <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+                Kiw versi baru tersedia,, tolong update ya!
+              </p>
+              <button
+                onClick={handleUpdate}
+                disabled={isDownloadingUpdate}
+                style={{
+                  width: '100%', padding: '12px', borderRadius: '12px',
+                  backgroundColor: 'var(--primary)', color: 'white',
+                  border: 'none', fontWeight: 'bold', fontSize: '1rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  gap: '8px'
+                }}
+              >
+                {isDownloadingUpdate ? (
+                  <>Mengunduh... {downloadProgress}%</>
+                ) : (
+                  <><Download size={20} /> Update Sekarang</>
+                )}
+              </button>
             </div>
+          </div>
         )}
         <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
-        {!user ? (
+        {isMaintenance && user && user !== 'admin1' && user !== 'admin2' ? (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            backgroundColor: 'var(--dark-bg)', color: 'white',
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '20px', textAlign: 'center'
+          }}>
+            <h2 style={{ color: 'var(--primary)', marginBottom: '20px' }}>Maintenance🛠️</h2>
+            <p style={{ marginBottom: '30px', color: 'var(--dark-text-muted)' }}>
+              Aplikasi sedang OFF.
+            </p>
+            <button
+              onClick={() => { localStorage.removeItem('chat_user'); localStorage.removeItem('chat_email'); setUser(null); }}
+              style={{
+                padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white',
+                border: 'none', borderRadius: '12px', fontWeight: 'bold'
+              }}
+            >
+              Kembali ke Login
+            </button>
+          </div>
+        ) : !user ? (
           isRegistering ? (
             <Register onBackToLogin={() => setIsRegistering(false)} />
           ) : (
