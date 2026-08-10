@@ -465,7 +465,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
         ) : (
           <>
             <div className="input-group" style={{ marginBottom: 0, position: 'relative', marginTop: '8px' }}>
-              <span style={{ position: 'absolute', top: '-8px', left: '16px', background: 'var(--dark-bg)', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Nama</span>
+              <span style={{ position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)', background: 'transparent', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Nama</span>
               <User className="input-icon" />
               <input
                 type="text"
@@ -478,7 +478,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
             </div>
 
             <div className="input-group" style={{ marginBottom: 0, position: 'relative', marginTop: '8px' }}>
-              <span style={{ position: 'absolute', top: '-8px', left: '16px', background: 'var(--dark-bg)', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Bio</span>
+              <span style={{ position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)', background: 'transparent', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Bio</span>
               <textarea
                 className="input-field hide-scrollbar"
                 placeholder=""
