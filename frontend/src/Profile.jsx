@@ -574,27 +574,59 @@ const Profile = ({ onLogout, email, friends = [] }) => {
 
       {/* Moment Preview Popup */}
       {previewMoment && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5cqw', animation: 'fadeIn 0.2s ease-out' }}>
-          <div style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%' }} onClick={() => setPreviewMoment(null)}>
-            <X size={24} color="white" />
-          </div>
-          <div style={{ width: '100%', maxWidth: '400px', height: '60cqh', background: 'var(--dark-surface)', borderRadius: '4cqw', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--dark-border)' }}>
-            <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
-              {previewMoment.image_url && (
-                <img src={previewMoment.image_url} alt="" style={{ width: '100%', height: 'auto', background: '#000' }} />
-              )}
-              <div style={{ padding: '4cqw', color: 'white', fontSize: 'var(--font-body)', whiteSpace: 'pre-wrap' }}>
-                {previewMoment.content}
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', zIndex: 1100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4cqw', animation: 'fadeIn 0.25s ease-out' }}>
+          
+          <div style={{ width: '100%', maxWidth: '400px', maxHeight: '85vh', background: 'var(--dark-surface)', borderRadius: '6cqw', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 10px 40px rgba(0,0,0,0.5)' }}>
+            
+            {/* Header: Author info & Close button */}
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4cqw', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw' }}>
+                {avatar ? (
+                  <img src={avatar} alt="" style={{ width: '10cqw', height: '10cqw', borderRadius: '50%', objectFit: 'cover' }} />
+                ) : (
+                  <div style={{ width: '10cqw', height: '10cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold' }}>
+                    {email.charAt(0).toUpperCase()}
+                  </div>
+                )}
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                  <span style={{ color: 'white', fontWeight: '600', fontSize: 'var(--font-body)' }}>{originalDisplayName || email}</span>
+                  <span style={{ color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)' }}>
+                    {previewMoment.created_at ? new Date(previewMoment.created_at.replace(' ', 'T') + 'Z').toLocaleString('id-ID', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' }) : 'Baru saja'}
+                  </span>
+                </div>
+              </div>
+              <div style={{ cursor: 'pointer', background: 'rgba(255,255,255,0.1)', padding: '2cqw', borderRadius: '50%', display: 'flex' }} onClick={() => setPreviewMoment(null)}>
+                <X size={20} color="white" />
               </div>
             </div>
-            <div style={{ padding: '4cqw', borderTop: '1px solid var(--dark-border)', background: 'var(--dark-bg)' }}>
+
+            {/* Scrollable Content */}
+            <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {previewMoment.image_url && (
+                <div style={{ width: '100%', background: '#000', display: 'flex', justifyContent: 'center' }}>
+                   <img src={previewMoment.image_url} alt="" style={{ width: '100%', maxHeight: '50vh', objectFit: 'contain' }} />
+                </div>
+              )}
+              {previewMoment.content && (
+                <div style={{ padding: '4cqw' }}>
+                  <div style={{ background: 'rgba(164, 139, 255, 0.1)', border: '1px solid rgba(164, 139, 255, 0.2)', padding: '4cqw', borderRadius: '4cqw', borderTopLeftRadius: previewMoment.image_url ? '4cqw' : '1cqw', color: 'white', fontSize: 'var(--font-body)', lineHeight: '1.5', whiteSpace: 'pre-wrap' }}>
+                    {previewMoment.content}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Footer Button */}
+            <div style={{ padding: '4cqw', background: 'var(--dark-surface)', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
               <button 
                 onClick={() => { setPreviewMoment(null); navigateToMoment(previewMoment.id); }}
-                style={{ width: '100%', padding: '2cqh', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer' }}
+                style={{ width: '100%', padding: '3cqh', background: 'linear-gradient(135deg, #8B5CF6, #6D28D9)', color: 'white', border: 'none', borderRadius: '3cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 12px rgba(139, 92, 246, 0.3)', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '2cqw' }}
               >
                 Lihat Postingan Aslinya
+                <ChevronRight size={18} />
               </button>
             </div>
+            
           </div>
         </div>
       )}
