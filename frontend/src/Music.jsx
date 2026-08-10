@@ -302,7 +302,7 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                     <Play size={14} fill="white" style={{ marginLeft: '2px' }} />
                   )}
                 </button>
-              </div>>
+              </div>
             </div>
           ))}
         </div>
