@@ -201,7 +201,27 @@ const Profile = ({ onLogout, email, friends = [] }) => {
 
     const reader = new FileReader();
     reader.onloadend = () => {
-      setImageSrc(reader.result);
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+        const MAX_DIM = 1000;
+        if (width > height) {
+          if (width > MAX_DIM) { height *= MAX_DIM / width; width = MAX_DIM; }
+        } else {
+          if (height > MAX_DIM) { width *= MAX_DIM / height; height = MAX_DIM; }
+        }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        setImageSrc(canvas.toDataURL('image/jpeg', 0.8));
+      };
+      img.onerror = () => {
+        notify.error('Gagal memproses gambar');
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
     e.target.value = '';
@@ -220,8 +240,8 @@ const Profile = ({ onLogout, email, friends = [] }) => {
       const img = new Image();
       img.onload = async () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 1200;
-        const MAX_HEIGHT = 800;
+        const MAX_WIDTH = 600;
+        const MAX_HEIGHT = 400;
         let width = img.width;
         let height = img.height;
         if (width > height) {
@@ -233,10 +253,10 @@ const Profile = ({ onLogout, email, friends = [] }) => {
         canvas.height = height;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
-        const base64Data = canvas.toDataURL('image/jpeg', 0.6);
+        const base64Data = canvas.toDataURL('image/jpeg', 0.5);
         setCoverUrl(base64Data);
         try {
-          const res = await fetch(`${API_URL}/api/users/${email}`, {
+          const res = await fetch(`${API_URL}/api/users/${currentUser}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ display_name: displayName, bio: bio, cover_url: base64Data })
@@ -248,9 +268,10 @@ const Profile = ({ onLogout, email, friends = [] }) => {
             notify.error('Gagal menyimpan sampul');
           }
         } catch (err) {
-          notify.error('Terjadi kesalahan koneksi');
+          notify.error('Terjadi kesalahan koneksi saat upload');
         }
       };
+      img.onerror = () => { notify.error("Gagal membaca gambar") };
       img.src = reader.result;
     };
     reader.readAsDataURL(file);
