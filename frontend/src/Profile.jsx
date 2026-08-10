@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, User, Loader2, Trash2, Bell, Terminal, X, Send } from 'lucide-react';
+import { Camera, LogOut, Save, User, Loader2, Trash2, Bell, Terminal, X, Send, Settings, ChevronRight } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
@@ -22,6 +22,7 @@ const Profile = ({ onLogout, email }) => {
   const [friendCount, setFriendCount] = useState(0);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
   const [showNotifSettings, setShowNotifSettings] = useState(false);
+  const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
   const [isSavingNotif, setIsSavingNotif] = useState(false);
   const fileInputRef = useRef(null);
@@ -334,12 +335,20 @@ const Profile = ({ onLogout, email }) => {
             <h2 style={{ fontSize: 'var(--font-title)', fontWeight: 'bold', margin: 0, color: 'white', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>Profil</h2>
           </div>
           
-          {/* Settings Icon */}
-          <div 
-            onClick={() => setShowNotifSettings(true)}
-            style={{ position: 'absolute', top: '2cqh', right: '4cqw', zIndex: 10, cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)' }}
-          >
-            <Bell size={20} color="white" />
+          {/* Header Icons */}
+          <div style={{ position: 'absolute', top: '2cqh', right: '4cqw', zIndex: 10, display: 'flex', gap: '3cqw' }}>
+            <div 
+              onClick={() => setShowNotifSettings(true)}
+              style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)', display: 'flex' }}
+            >
+              <Bell size={20} color="white" />
+            </div>
+            <div 
+              onClick={() => setShowSettingsMenu(true)}
+              style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)', display: 'flex' }}
+            >
+              <Settings size={20} color="white" />
+            </div>
           </div>
 
           <button
@@ -445,27 +454,52 @@ const Profile = ({ onLogout, email }) => {
 
       </div>
 
-      <div style={{ padding: '0 var(--pad-h)', display: 'flex', flexDirection: 'column', gap: '1.2cqh', marginTop: '1cqh' }}>
-        <button 
-          onClick={() => setShowLogoutConfirm(true)}
-          style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}
-        >
-          <LogOut size={18} />
-          Keluar dari Akun
-        </button>
-
-        <button 
-          onClick={() => setShowDeleteConfirm(true)}
-          style={{ width: '100%', padding: '1.2cqh 3cqw', borderRadius: '2cqw', background: 'rgba(153, 27, 27, 0.1)', border: '1px solid rgba(153, 27, 27, 0.2)', color: '#DC2626', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', fontWeight: '600', cursor: 'pointer', transition: 'all 0.2s', fontSize: 'var(--font-body)' }}
-        >
-          <Trash2 size={18} />
-          Hapus Akun
-        </button>
       </div>
 
       <div style={{ textAlign: 'center', marginTop: 'auto', marginBottom: '1cqh', color: 'var(--dark-text-muted)', fontSize: '10px' }}>
         Versi App: v{import.meta.env.VITE_APP_VERSION_NAME || '1.0.0'}
       </div>
+
+      {/* Settings Menu Modal */}
+      {showSettingsMenu && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4cqh' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Pengaturan</h3>
+              <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowSettingsMenu(false)} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2cqh' }}>
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowNotifSettings(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'var(--dark-bg)', border: '1px solid var(--dark-border)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw' }}>
+                  <Bell size={18} color="var(--primary)" />
+                  Pengaturan Notifikasi
+                </div>
+                <ChevronRight size={18} color="var(--dark-text-muted)" />
+              </button>
+
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowLogoutConfirm(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <LogOut size={18} />
+                Keluar dari Akun
+              </button>
+
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowDeleteConfirm(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'rgba(153, 27, 27, 0.1)', border: '1px solid rgba(153, 27, 27, 0.2)', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <Trash2 size={18} />
+                Hapus Akun
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Notification Settings Modal */}
       {showNotifSettings && (
