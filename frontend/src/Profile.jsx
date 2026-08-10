@@ -644,19 +644,27 @@ const Profile = ({ onLogout, email, friends = [] }) => {
 
       {/* Friends Popup */}
       {showFriendsPopup && (
-        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
-          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2cqh' }}>
-              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Teman</h3>
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', alignItems: 'center', zIndex: 1000, padding: '4cqw', paddingTop: '10cqh' }}>
+          <div style={{ width: '100%', maxWidth: '400px', maxHeight: '80vh', background: 'var(--dark-surface)', borderRadius: '6cqw', border: '1px solid rgba(255,255,255,0.1)', animation: 'slideDown 0.3s ease-out', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+            
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4cqw', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(255,255,255,0.02)' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Teman ({friends.length})</h3>
               <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowFriendsPopup(false)} />
             </div>
 
-            <div className="hide-scrollbar" style={{ display: 'flex', gap: '4cqw', overflowX: 'auto', paddingBottom: '2cqh' }}>
+            <div className="hide-scrollbar" style={{ display: 'flex', flexDirection: 'column', overflowY: 'auto', flex: 1 }}>
               {friends.length === 0 ? (
-                <div style={{ color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)', textAlign: 'center', width: '100%' }}>Belum ada teman.</div>
+                <div style={{ padding: '8cqw', color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)', textAlign: 'center' }}>Belum ada teman.</div>
               ) : (
                 friends.map(friend => (
-                  <div key={friend.username} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1cqh', minWidth: '15cqw' }}>
+                  <div 
+                    key={friend.username} 
+                    onClick={() => {
+                      setShowFriendsPopup(false);
+                      window.dispatchEvent(new CustomEvent('openContactProfile', { detail: friend.username }));
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', gap: '4cqw', padding: '4cqw', borderBottom: '1px solid rgba(255,255,255,0.02)', cursor: 'pointer', background: 'transparent' }}
+                  >
                     {friend.avatar ? (
                       <img src={friend.avatar} alt="" style={{ width: '12cqw', height: '12cqw', borderRadius: '50%', objectFit: 'cover' }} />
                     ) : (
@@ -664,9 +672,15 @@ const Profile = ({ onLogout, email, friends = [] }) => {
                         {friend.displayName ? friend.displayName.charAt(0).toUpperCase() : friend.username.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    <span style={{ color: 'white', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
-                      {friend.displayName || friend.username}
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', flex: 1 }}>
+                      <span style={{ color: 'white', fontSize: 'var(--font-body)', fontWeight: '600' }}>
+                        {friend.displayName || friend.username}
+                      </span>
+                      <span style={{ color: 'var(--primary)', fontSize: 'var(--font-caption)' }}>
+                        @{friend.username}
+                      </span>
+                    </div>
+                    <ChevronRight size={18} color="var(--dark-text-muted)" />
                   </div>
                 ))
               )}

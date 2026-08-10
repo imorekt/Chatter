@@ -323,13 +323,22 @@ const ChatList = ({ onLogout, currentUser }) => {
          setActiveChat(null);
       }
     };
+    const handleOpenContactProfile = (e) => {
+      handleNavChange('kontak');
+      setActiveChat(null);
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('viewProfile', { detail: e.detail }));
+      }, 100);
+    };
     window.addEventListener('openChat', handleOpenChat);
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openMoment', handleOpenMoment);
+    window.addEventListener('openContactProfile', handleOpenContactProfile);
     return () => {
       window.removeEventListener('openChat', handleOpenChat);
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openMoment', handleOpenMoment);
+      window.removeEventListener('openContactProfile', handleOpenContactProfile);
     };
   }, [contactsData]);
 

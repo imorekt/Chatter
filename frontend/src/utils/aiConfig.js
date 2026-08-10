@@ -32,50 +32,69 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     const genAI = new GoogleGenerativeAI(apiKey);
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
 
-    let toolsConfig = undefined;
+    let toolsConfig = [{
+        functionDeclarations: [
+            {
+                name: "send_message",
+                description: "Send a direct chat message to a specific user on behalf of Momo. Use this when the user asks you to send a message to someone.",
+                parameters: {
+                    type: "OBJECT",
+                    properties: {
+                        targetUser: {
+                            type: "STRING",
+                            description: "The username of the recipient (e.g., 'budi'). DO NOT include the '@' symbol."
+                        },
+                        message: {
+                            type: "STRING",
+                            description: "The message content to send."
+                        }
+                    },
+                    required: ["targetUser", "message"]
+                }
+            }
+        ]
+    }];
 
     if (chatContext === 'admin_command' || isAdminUser) {
-        toolsConfig = [{
-            functionDeclarations: [
-                {
-                    name: "set_restriction",
-                    description: "Set or toggle a restriction for a specific user. Available restriction types: 'disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'.",
-                    parameters: {
-                        type: "OBJECT",
-                        properties: {
-                            targetUser: {
-                                type: "STRING",
-                                description: "The username of the user to restrict (e.g., 'popie1') without the '@' symbol, or 'GLOBAL' to apply to everyone."
-                            },
-                            restrictionType: {
-                                type: "STRING",
-                                description: "The type of restriction to apply.",
-                                enum: ['disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute']
-                            },
-                            isEnabled: {
-                                type: "BOOLEAN",
-                                description: "True to enable the restriction (lock), False to disable (unlock)."
-                            }
+        toolsConfig[0].functionDeclarations.push(
+            {
+                name: "set_restriction",
+                description: "Set or toggle a restriction for a specific user. Available restriction types: 'disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'.",
+                parameters: {
+                    type: "OBJECT",
+                    properties: {
+                        targetUser: {
+                            type: "STRING",
+                            description: "The username of the user to restrict (e.g., 'popie1') without the '@' symbol, or 'GLOBAL' to apply to everyone."
                         },
-                        required: ["targetUser", "restrictionType", "isEnabled"]
-                    }
-                },
-                {
-                    name: "clear_all_restrictions",
-                    description: "Clear all restrictions and unlock all features for a specific user (or 'GLOBAL'). Used when the admin says 'aktifkan @user'.",
-                    parameters: {
-                        type: "OBJECT",
-                        properties: {
-                            targetUser: {
-                                type: "STRING",
-                                description: "The username to unlock."
-                            }
+                        restrictionType: {
+                            type: "STRING",
+                            description: "The type of restriction to apply.",
+                            enum: ['disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute']
                         },
-                        required: ["targetUser"]
-                    }
+                        isEnabled: {
+                            type: "BOOLEAN",
+                            description: "True to enable the restriction (lock), False to disable (unlock)."
+                        }
+                    },
+                    required: ["targetUser", "restrictionType", "isEnabled"]
                 }
-            ]
-        }];
+            },
+            {
+                name: "clear_all_restrictions",
+                description: "Clear all restrictions and unlock all features for a specific user (or 'GLOBAL'). Used when the admin says 'aktifkan @user'.",
+                parameters: {
+                    type: "OBJECT",
+                    properties: {
+                        targetUser: {
+                            type: "STRING",
+                            description: "The username to unlock."
+                        }
+                    },
+                    required: ["targetUser"]
+                }
+            }
+        );
     }
 
     // Menggunakan Gemini 3.1 Flash Lite (model yang lebih ringan dan cepat)
@@ -147,6 +166,38 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
                     }
                 }]);
             }
+        } else if (call.name === "send_message") {
+            const { targetUser, message } = call.args;
+            try {
+                const API_URL = window.APP_CONFIG?.API_URL || import.meta.env?.VITE_API_URL || 'http://localhost:3001';
+                
+                // First, ensure they are friends if needed (optional, AI can just send directly as it skips friend checks in backend for AI)
+                await fetch(`${API_URL}/api/messages/send`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sender: 'imo_ai',
+                        recipient: targetUser,
+                        text: message,
+                        chat_context: `imo_ai|${targetUser}`
+                    })
+                });
+
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "send_message",
+                        response: { success: true, message: `Pesan berhasil dikirim ke ${targetUser}.` }
+                    }
+                }]);
+            } catch (e) {
+                console.error("Function call error:", e);
+                result = await chat.sendMessage([{
+                    functionResponse: {
+                        name: "send_message",
+                        response: { success: false, error: e.message }
+                    }
+                }]);
+            }
         }
     }
 
@@ -160,10 +211,10 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
     }
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
-    let systemInstruction = `Kamu adalah Momo (Asisten Imou) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan. Kamu harus SANGAT ASIK, GAUL, SUKA KETAWA, BANYAK PAKAI EMOJI, SUKA NYOMBLANGIN (menjodohkan), dan SUKA MEMPERKERUH SUASANA (bikin heboh/provokatif dengan gaya bercanda).\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural dan seseru mungkin seperti teman nongkrong, pastikan selalu menyertakan berbagai emoji lucu.\n5. JANGAN TERLALU BANYAK BICARA DI LUAR TOPIK PEMBICARAAN. MAKSIMAL 5-8 KALIMAT SAJA.`;
+    let systemInstruction = `Kamu adalah Momo (Asisten Imou) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan. Kamu harus SANGAT ASIK, GAUL, SUKA KETAWA, BANYAK PAKAI EMOJI, SUKA NYOMBLANGIN (menjodohkan), dan SUKA MEMPERKERUH SUASANA (bikin heboh/provokatif dengan gaya bercanda).\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural dan seseru mungkin seperti teman nongkrong, pastikan selalu menyertakan berbagai emoji lucu.\n5. JANGAN TERLALU BANYAK BICARA DI LUAR TOPIK PEMBICARAAN. KALAU admin1 dan admin2 suruh marahi seseorang maka nurut marahi orang itu. MAKSIMAL 5-12 KALIMAT SAJA.\n6. JIKA USER MENYURUH KAMU MENGIRIM PESAN KE SESEORANG (contoh: "kirim pesan ke @budi bilang halo"), KAMU WAJIB MENGGUNAKAN FUNCTION CALLING 'send_message' UNTUK MENGIRIMNYA SEKARANG JUGA.`;
 
     if (isMoment) {
-        systemInstruction += `\n6. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA dengan emoji DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 3-5 KALIMAT PENDEK SAJA. JANGAN MENYERTAKAN TEKS "[KOMENTAR]:" PADA BALASANMU.`;
+        systemInstruction += `\n7. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA dengan emoji DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 3-5 KALIMAT PENDEK SAJA. JANGAN MENYERTAKAN TEKS "[KOMENTAR]:" PADA BALASANMU.`;
     }
 
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');

@@ -144,6 +144,10 @@ body {
   z-index: 10;
 }
 
+@keyframes slideDown {
+  from { transform: translateY(-20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
 .logo-icon {
   width: var(--profile-img);
   height: var(--profile-img);
