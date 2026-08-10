@@ -199,8 +199,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [replyingTo, setReplyingTo] = useState(null);
   const [isImageUploading, setIsImageUploading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(null); // popup for individual message (legacy)
-  const [viewProfileUser, setViewProfileUser] = useState(null);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
   const [currentUserDisplayName, setCurrentUserDisplayName] = useState(currentUser);
 
   useEffect(() => {
@@ -237,6 +235,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [unreadCount, setUnreadCount] = useState(0);
   const prevMessagesLength = useRef(messages.length);
+  const [isReadyToDisplay, setIsReadyToDisplay] = useState(false);
 
   const handleScroll = (e) => {
     const { scrollTop, scrollHeight, clientHeight } = e.target;
@@ -282,21 +281,8 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     });
   }, [cacheKey]);
 
-  const handleViewProfile = async (username) => {
-    setIsLoadingProfile(true);
-    try {
-      const res = await fetch(`${API_URL}/api/users/${username}`);
-      if (res.ok) {
-        const data = await res.json();
-        setViewProfileUser({ ...data, username });
-      } else {
-        notify.error('Gagal memuat profil');
-      }
-    } catch (err) {
-      notify.error('Terjadi kesalahan jaringan');
-    } finally {
-      setIsLoadingProfile(false);
-    }
+  const handleViewProfile = async (username, cachedData = null) => {
+    window.dispatchEvent(new CustomEvent('openContactProfile', { detail: username }));
   };
 
   useEffect(() => {
@@ -393,14 +379,19 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (!selectionMode) {
       setTimeout(() => {
         messagesEndRef.current?.scrollIntoView({ behavior });
+        setIsReadyToDisplay(true);
       }, 150);
     }
   };
 
   useEffect(() => {
     if (isFirstLoad.current) {
-      scrollToBottom('auto');
-      if (messages.length > 0) isFirstLoad.current = false;
+      if (messages.length > 0) {
+        scrollToBottom('auto');
+        isFirstLoad.current = false;
+      } else if (!loading) {
+        setIsReadyToDisplay(true);
+      }
     } else {
       if (isAtBottom) {
         scrollToBottom('smooth');
@@ -1087,7 +1078,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       <div
         className="chat-list"
         onScroll={handleScroll}
-        style={{ flex: 1, padding: '4px 16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', position: 'relative' }}
+        style={{ flex: 1, padding: '4px 16px 20px', display: 'flex', flexDirection: 'column', gap: '16px', overflowY: 'auto', position: 'relative', opacity: isReadyToDisplay ? 1 : 0, transition: 'opacity 0.2s ease-in' }}
       >
         {loading && <div style={{ textAlign: 'center', marginTop: '20px' }}><Loader2 className="animate-spin" color="var(--primary)" /></div>}
 
@@ -1474,75 +1465,6 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           40% { transform: scale(1); }
         }
       `}} />
-
-      {/* Loading Profile Popup */}
-      {isLoadingProfile && (
-        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Loader2 className="animate-spin" size={32} color="var(--primary)" />
-        </div>
-      )}
-
-      {/* View Profile Popup */}
-      {viewProfileUser && (
-        <>
-          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', zIndex: 10000, backdropFilter: 'blur(4px)' }} onClick={() => setViewProfileUser(null)} />
-          <div className="hide-scrollbar" style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--dark-surface)', borderRadius: '4cqw', width: '90%', maxWidth: '85vw', maxHeight: '90vh', overflowY: 'auto', zIndex: 10001, border: '1px solid var(--dark-border)', boxShadow: '0 5cqh 6cqh -1cqh rgba(0, 0, 0, 0.5)', display: 'flex', flexDirection: 'column' }}>
-            
-            {/* Cover Photo */}
-            <div style={{ width: '100%', height: '20cqh', background: viewProfileUser.cover_url ? `url(${viewProfileUser.cover_url}) center/cover no-repeat` : 'linear-gradient(135deg, var(--dark-bg), var(--dark-border))', position: 'relative', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }}>
-              <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw' }} />
-              
-              {/* Overlapping Avatar */}
-              <div style={{ position: 'absolute', bottom: '-8cqh', left: '50%', transform: 'translateX(-50%)' }}>
-                <div 
-                  style={{ width: '20cqw', height: '20cqw', borderRadius: '50%', background: 'var(--dark-bg)', padding: '0.8cqw', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 'bold', fontSize: '8cqw', overflow: 'hidden', cursor: viewProfileUser.avatar ? 'pointer' : 'default' }}
-                  onClick={() => viewProfileUser.avatar && setPreviewModalImage(viewProfileUser.avatar)}
-                >
-                  {viewProfileUser.avatar ? <img src={viewProfileUser.avatar} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} /> : (
-                    <div style={{ width: '100%', height: '100%', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      {viewProfileUser.username.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Profile Info */}
-            <div style={{ padding: '10cqh 5cqw 5cqw 5cqw', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <h2 style={{ margin: '0 0 1cqh 0', fontSize: '5cqw', color: 'white', fontWeight: 'bold' }}>{viewProfileUser.display_name || viewProfileUser.username}</h2>
-              <div style={{ fontSize: 'var(--font-body)', color: 'var(--primary)', marginBottom: '3cqh', fontWeight: '600' }}>@{viewProfileUser.username}</div>
-              
-              {/* Stats */}
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '3cqh', width: '100%' }}>
-                <div 
-                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewMoments', { detail: viewProfileUser }))}
-                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.momentCount || 0}</span>
-                  <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
-                </div>
-                <div 
-                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewFriends', { detail: viewProfileUser }))}
-                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
-                  <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.username === 'imo_ai' ? (viewProfileUser.followerCount || 0) : (viewProfileUser.friendCount || 0)}</span>
-                  <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{viewProfileUser.username === 'imo_ai' ? 'Follower' : 'Teman'}</span>
-                </div>
-              </div>
-
-              {/* Bio */}
-              <div style={{ background: 'var(--dark-bg)', padding: '4cqw', borderRadius: '3cqw', width: '100%', marginBottom: '4cqh', border: '1px solid var(--dark-border)' }}>
-                <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)', marginBottom: '1cqh', textTransform: 'uppercase', letterSpacing: '1px' }}>Bio</div>
-                <div style={{ fontSize: 'var(--font-body)', color: 'white', lineHeight: '1.5' }}>
-                  {viewProfileUser.bio || 'Tidak ada bio.'}
-                </div>
-              </div>
-              
-              <button onClick={() => setViewProfileUser(null)} style={{ width: '100%', padding: '3cqw', borderRadius: '3cqw', background: 'transparent', border: '1px solid var(--dark-border)', color: 'var(--dark-text-muted)', fontWeight: '600', cursor: 'pointer' }}>
-                Tutup
-              </button>
-            </div>
-          </div>
-        </>
-      )}
 
       {/* Lightbox Modal */}
       {previewModalImage && (

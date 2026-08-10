@@ -9,6 +9,7 @@ import { Music as MusicIcon } from 'lucide-react';
 import localforage from 'localforage';
 import pusher from './pusher';
 import FavoriteRoom from './FavoriteRoom';
+import GlobalProfileModals from './GlobalProfileModals';
 import { notify } from './utils/toast';
 
 const ChatList = ({ onLogout, currentUser }) => {
@@ -323,22 +324,21 @@ const ChatList = ({ onLogout, currentUser }) => {
          setActiveChat(null);
       }
     };
-    const handleOpenContactProfile = (e) => {
-      handleNavChange('kontak');
-      setActiveChat(null);
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('viewProfile', { detail: e.detail }));
-      }, 100);
+    const handleOpenMoment = (e) => {
+      const moment_id = e.detail;
+      if (moment_id) {
+         setHighlightMomentId(moment_id);
+         setActiveNav('moment');
+         setActiveChat(null);
+      }
     };
     window.addEventListener('openChat', handleOpenChat);
     window.addEventListener('openContact', handleOpenContact);
     window.addEventListener('openMoment', handleOpenMoment);
-    window.addEventListener('openContactProfile', handleOpenContactProfile);
     return () => {
       window.removeEventListener('openChat', handleOpenChat);
       window.removeEventListener('openContact', handleOpenContact);
       window.removeEventListener('openMoment', handleOpenMoment);
-      window.removeEventListener('openContactProfile', handleOpenContactProfile);
     };
   }, [contactsData]);
 
@@ -996,11 +996,23 @@ const ChatList = ({ onLogout, currentUser }) => {
           <span>Profil</span>
         </div>
       </div>
-      </div>
-    )}
+      
+      {activeNav === 'favorit' && activeFavoriteUser && (
+        <FavoriteRoom 
+          currentUser={currentUser} 
+          partner={activeFavoriteUser} 
+          onBack={() => setActiveFavoriteUser(null)} 
+        />
+      )}
+
+      <GlobalProfileModals 
+        currentUser={currentUser}
+        contactsData={contactsData}
+        onContactClick={(contact) => { setActiveChat(contact); handleNavChange('chat'); }}
+        onRefreshContacts={fetchContacts}
+      />
     </div>
   );
 };
 
 export default ChatList;
-
