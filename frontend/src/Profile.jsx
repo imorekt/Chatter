@@ -216,24 +216,42 @@ const Profile = ({ onLogout, email, friends = [] }) => {
     }
 
     const reader = new FileReader();
-    reader.onloadend = async () => {
-      const base64Data = reader.result;
-      setCoverUrl(base64Data);
-      try {
-        const res = await fetch(`${API_URL}/api/users/${email}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ display_name: displayName, bio: bio, cover_url: base64Data })
-        });
-        if (res.ok) {
-          localStorage.setItem(`cover_${email}`, base64Data);
-          notify.success('Sampul profil berhasil diperbarui.');
+    reader.onloadend = () => {
+      const img = new Image();
+      img.onload = async () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 1200;
+        const MAX_HEIGHT = 800;
+        let width = img.width;
+        let height = img.height;
+        if (width > height) {
+          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
         } else {
-          notify.error('Gagal menyimpan sampul');
+          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
         }
-      } catch (err) {
-        notify.error('Terjadi kesalahan koneksi');
-      }
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const base64Data = canvas.toDataURL('image/jpeg', 0.6);
+        setCoverUrl(base64Data);
+        try {
+          const res = await fetch(`${API_URL}/api/users/${email}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ display_name: displayName, bio: bio, cover_url: base64Data })
+          });
+          if (res.ok) {
+            localStorage.setItem(`cover_${email}`, base64Data);
+            notify.success('Sampul profil berhasil diperbarui.');
+          } else {
+            notify.error('Gagal menyimpan sampul');
+          }
+        } catch (err) {
+          notify.error('Terjadi kesalahan koneksi');
+        }
+      };
+      img.src = reader.result;
     };
     reader.readAsDataURL(file);
     e.target.value = '';

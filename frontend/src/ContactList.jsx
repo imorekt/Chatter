@@ -65,12 +65,32 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
   };
 
   const handleViewProfile = async (username) => {
+    const cacheKey = `profile_cache_${username}`;
+    const cachedData = localStorage.getItem(cacheKey);
+    
+    if (cachedData) {
+      setViewProfileUser(JSON.parse(cachedData));
+      // Refresh silently in background
+      try {
+        const res = await fetch(`${API_URL}/api/users/${username}`);
+        if (res.ok) {
+          const data = await res.json();
+          const newData = { ...data, username };
+          localStorage.setItem(cacheKey, JSON.stringify(newData));
+          setViewProfileUser(newData);
+        }
+      } catch (err) {}
+      return;
+    }
+
     setIsLoadingProfile(true);
     try {
       const res = await fetch(`${API_URL}/api/users/${username}`);
       if (res.ok) {
         const data = await res.json();
-        setViewProfileUser({ ...data, username });
+        const newData = { ...data, username };
+        localStorage.setItem(cacheKey, JSON.stringify(newData));
+        setViewProfileUser(newData);
       } else {
         notify.error('Gagal memuat profil');
       }
@@ -306,11 +326,15 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
               
               {/* Stats */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '3cqh', width: '100%' }}>
-                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewMoments', { detail: viewProfileUser }))}
+                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
                   <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.momentCount || 0}</span>
                   <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
                 </div>
-                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewFriends', { detail: viewProfileUser }))}
+                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
                   <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.username === 'imo_ai' ? (viewProfileUser.followerCount || 0) : (viewProfileUser.friendCount || 0)}</span>
                   <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{viewProfileUser.username === 'imo_ai' ? 'Follower' : 'Teman'}</span>
                 </div>
@@ -352,6 +376,55 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
                     Hapus Teman
                   </button>
                 )}
+
+                {viewProfileUser.username === 'imo_ai' && (() => {
+                  const isAIFriend = contactsData?.friends?.some(f => f.username === 'imo_ai');
+                  return (
+                    <button 
+                      onClick={async () => {
+                        if (isAIFriend) {
+                          if (!window.confirm(`Yakin ingin berhenti mengikuti ${viewProfileUser.display_name || viewProfileUser.username}?`)) return;
+                          try {
+                            const res = await fetch(`${API_URL}/api/contacts/delete-bulk`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ username: currentUser, targets: ['imo_ai'] })
+                            });
+                            if (res.ok) {
+                              notify.success('Berhenti mengikuti');
+                              setViewProfileUser(null);
+                              if (onRefreshContacts) onRefreshContacts();
+                            } else {
+                              notify.error('Gagal memproses');
+                            }
+                          } catch (err) {
+                            notify.error('Kesalahan jaringan');
+                          }
+                        } else {
+                          try {
+                            const res = await fetch(`${API_URL}/api/contacts/request`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({ sender: currentUser, receiver: 'imo_ai' })
+                            });
+                            if (res.ok) {
+                              notify.success('Berhasil mengikuti');
+                              setViewProfileUser(null);
+                              if (onRefreshContacts) onRefreshContacts();
+                            } else {
+                              notify.error('Gagal memproses');
+                            }
+                          } catch (err) {
+                            notify.error('Kesalahan jaringan');
+                          }
+                        }
+                      }}
+                      style={{ flex: 1, padding: '3cqw', borderRadius: '3cqw', background: isAIFriend ? 'rgba(239, 68, 68, 0.1)' : 'var(--primary)', border: isAIFriend ? '1px solid rgba(239, 68, 68, 0.2)' : 'none', color: isAIFriend ? '#EF4444' : 'white', fontWeight: '600', cursor: 'pointer' }}
+                    >
+                      {isAIFriend ? 'Tidak mengikuti' : 'Ikuti'}
+                    </button>
+                  );
+                })()}
                 
                 {viewProfileUser.username !== currentUser && (
                   <button 

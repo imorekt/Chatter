@@ -594,13 +594,13 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
                 )}
               <div style={{ display: 'flex', gap: '3cqw', marginBottom: '1.5cqh' }}>
                 {moment.user_avatar ? (
-                  <img src={moment.user_avatar} alt="Avatar" style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
+                  <img src={moment.user_avatar} alt="Avatar" onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('openContactProfile', { detail: moment.username })); }} style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', objectFit: 'cover', flexShrink: 0, cursor: 'pointer' }} />
                 ) : (
-                  <div style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0 }}>
+                  <div onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('openContactProfile', { detail: moment.username })); }} style={{ width: '8cqw', height: '8cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', flexShrink: 0, cursor: 'pointer' }}>
                     {moment.user_display_name ? moment.user_display_name.charAt(0).toUpperCase() : moment.username.charAt(0).toUpperCase()}
                   </div>
                 )}
-                <div style={{ flex: 1 }}>
+                <div style={{ flex: 1, cursor: 'pointer' }} onClick={(e) => { e.stopPropagation(); window.dispatchEvent(new CustomEvent('openContactProfile', { detail: moment.username })); }}>
                   <div style={{ fontWeight: '600', color: getUserColor(moment.username), fontSize: 'var(--font-body)' }}>{moment.user_display_name || moment.username}</div>
                   <div style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{formatDate(moment.created_at)}</div>
                 </div>

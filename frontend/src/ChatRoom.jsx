@@ -1037,7 +1037,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                       if (chat.isDeleted) return 'Akun telah dihapus';
                       if (chat.isSystem) return 'Sistem Chat';
                       if (partnerLastSeen === '') return 'Belum pernah online';
-                      if (!isFriend) return 'Tidak berteman';
+                      if (!isFriend) return chat.username === 'imo_ai' ? 'Tidak mengikuti' : 'Tidak berteman';
                       if (!partnerLastSeen) return 'Memuat status...';
 
                       const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
@@ -1148,7 +1148,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         </div>
       )}
       <form onSubmit={handleSend} style={{ padding: '2cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', position: 'relative' }}>
-        {(restrictions?.full_mute || restrictions?.disable_chat) ? (
+        {(restrictions?.full_mute || restrictions?.disable_chat || !isFriend) ? (
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', padding: '1cqh 0', color: '#52525b', background: 'rgba(255,255,255,0.02)', borderRadius: '5cqw' }}>
             <Lock size={20} />
             <span style={{ fontSize: 'var(--font-body)', fontWeight: 'bold' }}>Anda tidak dapat berinteraksi</span>
@@ -1514,11 +1514,15 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
               
               {/* Stats */}
               <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '3cqh', width: '100%' }}>
-                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewMoments', { detail: viewProfileUser }))}
+                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
                   <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.momentCount || 0}</span>
                   <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
                 </div>
-                <div style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+                <div 
+                  onClick={() => window.dispatchEvent(new CustomEvent('openPreviewFriends', { detail: viewProfileUser }))}
+                  style={{ background: 'var(--dark-bg)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: 'pointer' }}>
                   <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{viewProfileUser.username === 'imo_ai' ? (viewProfileUser.followerCount || 0) : (viewProfileUser.friendCount || 0)}</span>
                   <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>{viewProfileUser.username === 'imo_ai' ? 'Follower' : 'Teman'}</span>
                 </div>

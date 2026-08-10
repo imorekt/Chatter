@@ -9,6 +9,7 @@ import Register from './Register';
 import ChatList from './ChatList';
 import { Toaster } from 'react-hot-toast';
 import pusher from './pusher';
+import GlobalProfileModals from './GlobalProfileModals';
 
 export const RestrictionsContext = React.createContext({
   disable_chat_image: false,
@@ -276,6 +277,7 @@ function App() {
           <ChatList currentUser={user} onLogout={() => { localStorage.removeItem('chat_user'); setUser(null); }} />
         </RestrictionsContext.Provider>
       )}
+      <GlobalProfileModals />
     </div>
   );
 }
