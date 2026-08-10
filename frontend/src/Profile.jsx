@@ -39,6 +39,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
   const [showMomentsPopup, setShowMomentsPopup] = useState(false);
   const [userMoments, setUserMoments] = useState([]);
   const [isLoadingMoments, setIsLoadingMoments] = useState(false);
+  const [previewMoment, setPreviewMoment] = useState(null);
   const [showFriendsPopup, setShowFriendsPopup] = useState(false);
   
   const fileInputRef = useRef(null);
@@ -557,7 +558,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
                 {userMoments.map(m => (
                   <div 
                     key={m.id} 
-                    onClick={() => navigateToMoment(m.id)}
+                    onClick={() => setPreviewMoment(m)}
                     style={{ aspectRatio: '1/1', background: 'var(--dark-surface)', borderRadius: '2cqw', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >
                     {m.image_url ? (
@@ -571,6 +572,31 @@ const Profile = ({ onLogout, email, friends = [] }) => {
                 ))}
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Moment Preview Popup */}
+      {previewMoment && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)', zIndex: 1100, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '5cqw', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%' }} onClick={() => setPreviewMoment(null)}>
+            <X size={24} color="white" />
+          </div>
+          <div style={{ width: '100%', maxWidth: '400px', background: 'var(--dark-surface)', borderRadius: '4cqw', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--dark-border)' }}>
+            {previewMoment.image_url && (
+              <img src={previewMoment.image_url} alt="" style={{ width: '100%', maxHeight: '40cqh', objectFit: 'contain', background: '#000' }} />
+            )}
+            <div style={{ padding: '4cqw' }}>
+              <div style={{ color: 'white', fontSize: 'var(--font-body)', marginBottom: '4cqw', whiteSpace: 'pre-wrap', maxHeight: '20cqh', overflowY: 'auto' }} className="hide-scrollbar">
+                {previewMoment.content}
+              </div>
+              <button 
+                onClick={() => { setPreviewMoment(null); navigateToMoment(previewMoment.id); }}
+                style={{ width: '100%', padding: '2cqh', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer' }}
+              >
+                Lihat Postingan Aslinya
+              </button>
+            </div>
           </div>
         </div>
       )}
