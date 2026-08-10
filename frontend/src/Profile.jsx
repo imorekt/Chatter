@@ -484,7 +484,7 @@ const Profile = ({ onLogout, email, friends = [] }) => {
                 placeholder=""
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                style={{ minHeight: '45px', padding: '1.2cqh 4cqw', resize: 'none', fontSize: 'var(--font-caption)', overflowY: 'auto' }}
+                style={{ minHeight: '45px', paddingTop: '14px', paddingBottom: '14px', paddingLeft: '4cqw', paddingRight: '4cqw', resize: 'none', fontSize: 'var(--font-caption)', overflowY: 'auto' }}
               />
             </div>
 
