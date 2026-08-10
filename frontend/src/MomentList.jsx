@@ -34,8 +34,16 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
   const [newImageUrl, setNewImageUrl] = useState('');
   const [isPosting, setIsPosting] = useState(false);
   const [commentTexts, setCommentTexts] = useState({});
-  const [currentUserAvatar, setCurrentUserAvatar] = useState(null);
-  const [currentUserDisplayName, setCurrentUserDisplayName] = useState(currentUser);
+  const [currentUserAvatar, setCurrentUserAvatar] = useState(() => localStorage.getItem(`avatar_${currentUser}`) || null);
+  const [currentUserDisplayName, setCurrentUserDisplayName] = useState(() => {
+    try {
+      const syncProfile = localStorage.getItem(`profile_sync_${currentUser}`);
+      if (syncProfile) {
+        return JSON.parse(syncProfile).display_name || currentUser;
+      }
+    } catch (e) {}
+    return currentUser;
+  });
   const [showMenuId, setShowMenuId] = useState(null);
   const [editingMomentId, setEditingMomentId] = useState(null);
   const [editContent, setEditContent] = useState('');
@@ -74,8 +82,19 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
     fetch(`${API_URL}/api/users/${currentUser}`)
       .then(res => res.json())
       .then(data => {
-        if (data.avatar) setCurrentUserAvatar(data.avatar);
-        if (data.display_name) setCurrentUserDisplayName(data.display_name);
+        if (data.avatar) {
+          setCurrentUserAvatar(data.avatar);
+          localStorage.setItem(`avatar_${currentUser}`, data.avatar);
+        }
+        if (data.display_name) {
+          setCurrentUserDisplayName(data.display_name);
+          try {
+            const syncProfile = localStorage.getItem(`profile_sync_${currentUser}`);
+            const parsedProfile = syncProfile ? JSON.parse(syncProfile) : {};
+            parsedProfile.display_name = data.display_name;
+            localStorage.setItem(`profile_sync_${currentUser}`, JSON.stringify(parsedProfile));
+          } catch(e) {}
+        }
       })
       .catch(console.error);
   }, [currentUser]);
