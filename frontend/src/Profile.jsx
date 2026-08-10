@@ -5,7 +5,7 @@ import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
 
-const Profile = ({ onLogout, email }) => {
+const Profile = ({ onLogout, email, friends = [] }) => {
   const [bio, setBio] = useState(() => {
     try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.bio || 'Hey there! I am using Chatter.'; } catch(e) { return 'Hey there! I am using Chatter.'; }
   });
@@ -35,6 +35,12 @@ const Profile = ({ onLogout, email }) => {
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
   const [isSavingNotif, setIsSavingNotif] = useState(false);
+  
+  const [showMomentsPopup, setShowMomentsPopup] = useState(false);
+  const [userMoments, setUserMoments] = useState([]);
+  const [isLoadingMoments, setIsLoadingMoments] = useState(false);
+  const [showFriendsPopup, setShowFriendsPopup] = useState(false);
+  
   const fileInputRef = useRef(null);
   const coverInputRef = useRef(null);
 
@@ -112,6 +118,30 @@ const Profile = ({ onLogout, email }) => {
         setIsLoadingProfile(false);
       });
   }, [email, API_URL]);
+
+  const handleOpenMomentsPopup = async () => {
+    if (momentCount === 0) return;
+    setShowMomentsPopup(true);
+    setIsLoadingMoments(true);
+    try {
+      const res = await fetch(`${API_URL}/api/moments`);
+      const data = await res.json();
+      setUserMoments(data.filter(m => m.username === email));
+    } catch(e) {
+      console.error(e);
+    }
+    setIsLoadingMoments(false);
+  };
+
+  const handleOpenFriendsPopup = () => {
+    if (friendCount === 0) return;
+    setShowFriendsPopup(true);
+  };
+
+  const navigateToMoment = (momentId) => {
+    setShowMomentsPopup(false);
+    window.dispatchEvent(new CustomEvent('openMoment', { detail: momentId }));
+  };
 
   // Crop states
   const [imageSrc, setImageSrc] = useState(null);
@@ -411,11 +441,11 @@ const Profile = ({ onLogout, email }) => {
 
         {/* Stats Row */}
         <div style={{ display: 'flex', justifyContent: 'center', gap: '4cqw', marginBottom: '1cqh' }}>
-          <div style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+          <div onClick={handleOpenMomentsPopup} style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: momentCount > 0 ? 'pointer' : 'default' }}>
             <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{momentCount}</span>
             <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Moments</span>
           </div>
-          <div style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)' }}>
+          <div onClick={handleOpenFriendsPopup} style={{ background: 'var(--dark-surface)', padding: '2cqh 4cqw', borderRadius: '3cqw', display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1, border: '1px solid var(--dark-border)', cursor: friendCount > 0 ? 'pointer' : 'default' }}>
             <span style={{ fontSize: '5cqw', fontWeight: 'bold', color: 'white' }}>{friendCount}</span>
             <span style={{ fontSize: 'var(--font-caption)', color: 'var(--dark-text-muted)' }}>Teman</span>
           </div>
@@ -470,6 +500,113 @@ const Profile = ({ onLogout, email }) => {
       </div>
 
       {/* Settings Menu Modal */}
+      {showSettingsMenu && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4cqh' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Pengaturan</h3>
+              <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowSettingsMenu(false)} />
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '2cqh' }}>
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowNotifSettings(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'var(--dark-bg)', border: '1px solid var(--dark-border)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '3cqw' }}>
+                  <Bell size={18} color="var(--primary)" />
+                  Pengaturan Notifikasi
+                </div>
+                <ChevronRight size={18} color="var(--dark-text-muted)" />
+              </button>
+
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowLogoutConfirm(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.2)', color: '#EF4444', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <LogOut size={18} />
+                Keluar dari Akun
+              </button>
+
+              <button 
+                onClick={() => { setShowSettingsMenu(false); setShowDeleteConfirm(true); }}
+                style={{ width: '100%', padding: '2cqh 4cqw', borderRadius: '2cqw', background: 'rgba(153, 27, 27, 0.1)', border: '1px solid rgba(153, 27, 27, 0.2)', color: '#DC2626', display: 'flex', alignItems: 'center', gap: '3cqw', cursor: 'pointer', fontSize: 'var(--font-body)' }}
+              >
+                <Trash2 size={18} />
+                Hapus Akun
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Moments Popup */}
+      {showMomentsPopup && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'var(--dark-bg)', zIndex: 1000, display: 'flex', flexDirection: 'column', animation: 'fadeIn 0.2s ease-out' }}>
+          <div style={{ padding: '4cqh 4cqw 2cqh 4cqw', display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid var(--dark-border)' }}>
+            <h3 style={{ margin: 0, color: 'white', fontSize: 'var(--font-title)' }}>Moments</h3>
+            <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowMomentsPopup(false)} />
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '2cqw' }} className="hide-scrollbar">
+            {isLoadingMoments ? (
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '20cqh' }}>
+                <Loader2 size={24} className="animate-spin" color="var(--primary)" />
+              </div>
+            ) : (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1cqw' }}>
+                {userMoments.map(m => (
+                  <div 
+                    key={m.id} 
+                    onClick={() => navigateToMoment(m.id)}
+                    style={{ aspectRatio: '1/1', background: 'var(--dark-surface)', borderRadius: '2cqw', overflow: 'hidden', cursor: 'pointer', border: '1px solid var(--dark-border)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  >
+                    {m.image_url ? (
+                      <img src={m.image_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ padding: '2cqw', fontSize: '10px', color: 'var(--dark-text-muted)', textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical' }}>
+                        {m.content}
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Friends Popup */}
+      {showFriendsPopup && (
+        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
+          <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2cqh' }}>
+              <h3 style={{ margin: 0, fontSize: 'var(--font-title)', color: 'white' }}>Teman</h3>
+              <X size={24} style={{ color: 'var(--dark-text-muted)', cursor: 'pointer' }} onClick={() => setShowFriendsPopup(false)} />
+            </div>
+
+            <div className="hide-scrollbar" style={{ display: 'flex', gap: '4cqw', overflowX: 'auto', paddingBottom: '2cqh' }}>
+              {friends.length === 0 ? (
+                <div style={{ color: 'var(--dark-text-muted)', fontSize: 'var(--font-caption)', textAlign: 'center', width: '100%' }}>Belum ada teman.</div>
+              ) : (
+                friends.map(friend => (
+                  <div key={friend.username} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1cqh', minWidth: '15cqw' }}>
+                    {friend.avatar ? (
+                      <img src={friend.avatar} alt="" style={{ width: '12cqw', height: '12cqw', borderRadius: '50%', objectFit: 'cover' }} />
+                    ) : (
+                      <div style={{ width: '12cqw', height: '12cqw', borderRadius: '50%', background: 'linear-gradient(135deg, #A48BFF, #651FFF)', display: 'flex', justifyContent: 'center', alignItems: 'center', color: 'white', fontWeight: 'bold', fontSize: '14px' }}>
+                        {friend.displayName ? friend.displayName.charAt(0).toUpperCase() : friend.username.charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <span style={{ color: 'white', fontSize: '10px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                      {friend.displayName || friend.username}
+                    </span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {showSettingsMenu && (
         <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)', display: 'flex', flexDirection: 'column', justifyContent: 'flex-end', zIndex: 1000 }}>
           <div style={{ background: 'var(--dark-surface)', padding: '5cqw', borderTopLeftRadius: '4cqw', borderTopRightRadius: '4cqw', borderTop: '1px solid var(--dark-border)', animation: 'slideUp 0.3s ease-out' }}>

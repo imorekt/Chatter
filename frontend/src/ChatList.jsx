@@ -844,7 +844,7 @@ const ChatList = ({ onLogout, currentUser }) => {
       )}
       {activeNav === 'music' && <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />}
       {activeNav === 'moment' && <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} selectionMode={selectionMode === 'moment'} selectedItems={selectedItems} toggleSelectItem={toggleSelectItem} contactsData={contactsData} />}
-      {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser} />}
+      {activeNav === 'profil' && <Profile onLogout={onLogout} email={currentUser?.email || (typeof currentUser === 'string' ? currentUser : '')} friends={contactsData?.friends || []} />}
 
       {/* Bulk Delete Confirm Modal */}
       {showBulkDeleteConfirm && (
