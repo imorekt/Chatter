@@ -539,7 +539,7 @@ app.post('/api/moments/like', async (req, res) => {
       const moment = momentResult.rows[0];
       if (moment && moment.username !== username) {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id) VALUES (?, ?, 'like', ?)`, args: [moment.username, username, moment_id] });
-        sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`, null, 'like');
+        sendPushNotification(moment.username, "Moment Disukai", `${username} menyukai moment Anda.`, { type: 'moment', moment_id: moment.id }, 'like');
         pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'like' });
       }
       res.json({ success: true, action: 'liked' });
@@ -561,7 +561,7 @@ app.post('/api/moments/comment', async (req, res) => {
     const moment = momentResult.rows[0];
     if (moment && moment.username !== username && username !== 'imo_ai') {
       await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'comment', ?, ?)`, args: [moment.username, username, moment_id, content] });
-      sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`, null, 'comment');
+      sendPushNotification(moment.username, "Komentar Baru", `${username} mengomentari: ${content}`, { type: 'moment', moment_id: moment.id }, 'comment');
       pusher.trigger(`user-${moment.username}`, 'new-notification', { type: 'comment' });
     }
 
@@ -585,7 +585,7 @@ app.post('/api/moments/comment', async (req, res) => {
       const userCheck = await db.execute({ sql: 'SELECT username FROM users WHERE username = ?', args: [mUser] });
       if (userCheck.rows.length > 0 && username !== 'imo_ai') {
         await db.execute({ sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'mention', ?, ?)`, args: [mUser, username, moment_id, content] });
-        sendPushNotification(mUser, "Mention Baru", `${username} menyebut Anda dalam komentar: ${content}`, null, 'mention');
+        sendPushNotification(mUser, "Mention Baru", `${username} menyebut Anda dalam komentar: ${content}`, { type: 'moment', moment_id: moment.id }, 'mention');
         pusher.trigger(`user-${mUser}`, 'new-notification', { type: 'mention' });
       }
     }
@@ -757,7 +757,7 @@ app.post('/api/contacts/request', async (req, res) => {
       sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_request', -1, 'mengirim permintaan pertemanan')`,
       args: [receiver, sender]
     });
-    sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`, null, 'friend_request');
+    sendPushNotification(receiver, "Permintaan Teman", `${sender} ingin berteman dengan Anda.`, { type: 'friend', sender: sender }, 'friend_request');
     pusher.trigger(`user-${receiver}`, 'new-notification', { type: 'friend_request' });
     res.json({ success: true });
   } catch (err) {
@@ -793,7 +793,7 @@ app.post('/api/contacts/respond', async (req, res) => {
         sql: `INSERT INTO notifications (recipient, sender, type, moment_id, content) VALUES (?, ?, 'friend_accept', -1, 'menerima permintaan pertemanan')`,
         args: [sender, receiver]
       });
-      sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`, null, 'friend_accept');
+      sendPushNotification(sender, "Permintaan Diterima", `${receiver} menerima permintaan pertemanan Anda.`, { type: 'friend', sender: receiver }, 'friend_accept');
       pusher.trigger(`user-${sender}`, 'new-notification', { type: 'friend_accept' });
       res.json({ success: true });
     } else {

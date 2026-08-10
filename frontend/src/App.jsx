@@ -89,8 +89,14 @@ function App() {
           });
           OneSignalCapacitor.Notifications.addEventListener('click', (event) => {
             const data = event.notification.additionalData;
-            if (data && data.type === 'chat' && data.sender) {
-              window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+            if (data) {
+              if (data.type === 'chat' && data.sender) {
+                window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+              } else if (data.type === 'friend') {
+                window.dispatchEvent(new CustomEvent('openContact'));
+              } else if (data.type === 'moment' && data.moment_id) {
+                window.dispatchEvent(new CustomEvent('openMoment', { detail: data.moment_id }));
+              }
             }
           });
           if (user) {
@@ -110,8 +116,14 @@ function App() {
           OneSignal.Slidedown.promptPush();
           OneSignal.Notifications.addEventListener('click', (event) => {
             const data = event.notification.additionalData;
-            if (data && data.type === 'chat' && data.sender) {
-              window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+            if (data) {
+              if (data.type === 'chat' && data.sender) {
+                window.dispatchEvent(new CustomEvent('openChat', { detail: data.sender }));
+              } else if (data.type === 'friend') {
+                window.dispatchEvent(new CustomEvent('openContact'));
+              } else if (data.type === 'moment' && data.moment_id) {
+                window.dispatchEvent(new CustomEvent('openMoment', { detail: data.moment_id }));
+              }
             }
           });
           if (user) {

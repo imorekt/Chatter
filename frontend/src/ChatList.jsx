@@ -311,8 +311,26 @@ const ChatList = ({ onLogout, currentUser }) => {
         setActiveChat({ name: sender, username: sender, avatar: null });
       }
     };
+    const handleOpenContact = () => {
+      setActiveNav('kontak');
+      setActiveChat(null);
+    };
+    const handleOpenMoment = (e) => {
+      const moment_id = e.detail;
+      if (moment_id) {
+         setHighlightMomentId(moment_id);
+         setActiveNav('moment');
+         setActiveChat(null);
+      }
+    };
     window.addEventListener('openChat', handleOpenChat);
-    return () => window.removeEventListener('openChat', handleOpenChat);
+    window.addEventListener('openContact', handleOpenContact);
+    window.addEventListener('openMoment', handleOpenMoment);
+    return () => {
+      window.removeEventListener('openChat', handleOpenChat);
+      window.removeEventListener('openContact', handleOpenContact);
+      window.removeEventListener('openMoment', handleOpenMoment);
+    };
   }, [contactsData]);
 
   const closeModal = () => {
@@ -556,7 +574,7 @@ const ChatList = ({ onLogout, currentUser }) => {
                           setNotifications(notifications.map(notif => notif.id === n.id ? {...notif, is_clicked: 1} : notif));
                         });
                         setShowNotifications(false);
-                        if (n.type === 'friend_request') {
+                        if (n.type === 'friend_request' || n.type === 'friend_accept') {
                           handleNavChange('kontak');
                         } else {
                           setHighlightMomentId(n.moment_id);
