@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Camera, LogOut, Save, User, Loader2, Trash2, Bell, Terminal, X, Send, Settings, ChevronRight } from 'lucide-react';
+import { Camera, LogOut, Save, User, Loader2, Trash2, Bell, Terminal, X, Send, Settings, ChevronRight, FileText } from 'lucide-react';
 import Cropper from 'react-easy-crop';
 import getCroppedImg from './utils/cropImage';
 import { notify } from './utils/toast';
@@ -479,12 +479,13 @@ const Profile = ({ onLogout, email, friends = [] }) => {
 
             <div className="input-group" style={{ marginBottom: 0, position: 'relative', marginTop: '8px' }}>
               <span style={{ position: 'absolute', top: '-8px', left: '50%', transform: 'translateX(-50%)', background: 'transparent', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Bio</span>
+              <FileText className="input-icon" />
               <textarea
                 className="input-field hide-scrollbar"
                 placeholder=""
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
-                style={{ minHeight: '45px', paddingTop: '14px', paddingBottom: '14px', paddingLeft: '4cqw', paddingRight: '4cqw', resize: 'none', fontSize: 'var(--font-caption)', overflowY: 'auto' }}
+                style={{ minHeight: '45px', paddingTop: '14px', paddingBottom: '14px', paddingLeft: '12cqw', paddingRight: '4cqw', resize: 'none', fontSize: 'var(--font-caption)', overflowY: 'auto' }}
               />
             </div>
 
