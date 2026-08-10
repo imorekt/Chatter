@@ -633,7 +633,10 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
     if (!selectedImage) return;
 
     try {
-      const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
+      const keysString = import.meta.env.VITE_IMGBB_API_KEYS || import.meta.env.VITE_IMGBB_API_KEY;
+      if (!keysString) throw new Error("ImgBB API Key belum dikonfigurasi.");
+      const keys = keysString.split(',').map(k => k.trim()).filter(Boolean);
+      const imgbbKey = keys[Math.floor(Math.random() * keys.length)];
       const resBlob = await fetch(selectedImage);
       const blob = await resBlob.blob();
       const formData = new FormData();

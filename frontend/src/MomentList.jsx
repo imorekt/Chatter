@@ -219,10 +219,12 @@ const MomentList = ({ currentUser, highlightMomentId, setHighlightMomentId, sele
       
       // Jika ada gambar (berupa data base64/blob URL), upload dulu ke ImgBB
       if (newImageUrl && newImageUrl.startsWith('data:image/')) {
-        const imgbbKey = import.meta.env.VITE_IMGBB_API_KEY;
-        if (!imgbbKey) {
-          throw new Error("VITE_IMGBB_API_KEY belum dikonfigurasi.");
+        const keysString = import.meta.env.VITE_IMGBB_API_KEYS || import.meta.env.VITE_IMGBB_API_KEY;
+        if (!keysString) {
+          throw new Error("ImgBB API Key belum dikonfigurasi.");
         }
+        const keys = keysString.split(',').map(k => k.trim()).filter(Boolean);
+        const imgbbKey = keys[Math.floor(Math.random() * keys.length)];
         
         // Extract base64 part
         const base64Data = newImageUrl.split(',')[1];
