@@ -582,14 +582,16 @@ const Profile = ({ onLogout, email, friends = [] }) => {
           <div style={{ position: 'absolute', top: '4cqh', right: '4cqw', cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%' }} onClick={() => setPreviewMoment(null)}>
             <X size={24} color="white" />
           </div>
-          <div style={{ width: '100%', maxWidth: '400px', background: 'var(--dark-surface)', borderRadius: '4cqw', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--dark-border)' }}>
-            {previewMoment.image_url && (
-              <img src={previewMoment.image_url} alt="" style={{ width: '100%', maxHeight: '40cqh', objectFit: 'contain', background: '#000' }} />
-            )}
-            <div style={{ padding: '4cqw' }}>
-              <div style={{ color: 'white', fontSize: 'var(--font-body)', marginBottom: '4cqw', whiteSpace: 'pre-wrap', maxHeight: '20cqh', overflowY: 'auto' }} className="hide-scrollbar">
+          <div style={{ width: '100%', maxWidth: '400px', height: '60cqh', background: 'var(--dark-surface)', borderRadius: '4cqw', overflow: 'hidden', display: 'flex', flexDirection: 'column', border: '1px solid var(--dark-border)' }}>
+            <div className="hide-scrollbar" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column' }}>
+              {previewMoment.image_url && (
+                <img src={previewMoment.image_url} alt="" style={{ width: '100%', height: 'auto', background: '#000' }} />
+              )}
+              <div style={{ padding: '4cqw', color: 'white', fontSize: 'var(--font-body)', whiteSpace: 'pre-wrap' }}>
                 {previewMoment.content}
               </div>
+            </div>
+            <div style={{ padding: '4cqw', borderTop: '1px solid var(--dark-border)', background: 'var(--dark-bg)' }}>
               <button 
                 onClick={() => { setPreviewMoment(null); navigateToMoment(previewMoment.id); }}
                 style={{ width: '100%', padding: '2cqh', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '2cqw', fontSize: 'var(--font-body)', fontWeight: 'bold', cursor: 'pointer' }}
