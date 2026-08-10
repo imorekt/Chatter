@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, ChevronRight } from 'lucide-react';
+import localforage from 'localforage';
 
 const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
 
@@ -83,10 +84,14 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
       const username = e.detail;
       currentProfileViewRef.current = username;
       const cacheKey = `profile_cache_${username}`;
-      const cachedData = localStorage.getItem(cacheKey);
+      
+      let cachedData = null;
+      try {
+        cachedData = await localforage.getItem(cacheKey);
+      } catch(e) {}
       
       if (cachedData) {
-        setViewProfileUser(JSON.parse(cachedData));
+        setViewProfileUser(cachedData);
         // Refresh silently in background
         try {
           const res = await fetch(`${API_URL}/api/users/${encodeURIComponent(username)}`);
@@ -94,7 +99,7 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
             const data = await res.json();
             const newData = { ...data, username };
             try {
-              localStorage.setItem(cacheKey, JSON.stringify(newData));
+              await localforage.setItem(cacheKey, newData);
             } catch (e) {
               console.warn('Failed to cache profile:', e);
             }
@@ -113,7 +118,7 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
           const data = await res.json();
           const newData = { ...data, username };
           try {
-            localStorage.setItem(cacheKey, JSON.stringify(newData));
+            await localforage.setItem(cacheKey, newData);
           } catch (e) {
             console.warn('Failed to cache profile:', e);
           }
@@ -121,7 +126,6 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
             setViewProfileUser(newData);
           }
         } else {
-          // You might need a global notify or just alert
           console.warn('Gagal memuat profil');
         }
       } catch (err) {
