@@ -239,28 +239,48 @@ const Profile = ({ onLogout, email, friends = [] }) => {
     reader.onloadend = () => {
       const img = new Image();
       img.onload = async () => {
-        const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 600;
-        const MAX_HEIGHT = 400;
-        let width = img.width;
-        let height = img.height;
-        if (width > height) {
-          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
-        } else {
-          if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
-        }
-        canvas.width = width;
-        canvas.height = height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0, width, height);
-        const base64Data = canvas.toDataURL('image/jpeg', 0.5);
-        setCoverUrl(base64Data);
         try {
+          const canvas = document.createElement('canvas');
+          const MAX_WIDTH = 1200;
+          const MAX_HEIGHT = 800;
+          let width = img.width;
+          let height = img.height;
+          if (width > height) {
+            if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+          } else {
+            if (height > MAX_HEIGHT) { width *= MAX_HEIGHT / height; height = MAX_HEIGHT; }
+          }
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, width, height);
+          let base64Data = canvas.toDataURL('image/jpeg', 0.8);
+          
+          setCoverUrl(base64Data);
+
+          const keysString = import.meta.env.VITE_IMGBB_API_KEYS || import.meta.env.VITE_IMGBB_API_KEY;
+          if (keysString) {
+            const keys = keysString.split(',').map(k => k.trim());
+            const imgbbKey = keys[Math.floor(Math.random() * keys.length)];
+            const b64 = base64Data.split(',')[1];
+            const formData = new FormData();
+            formData.append('image', b64);
+            const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, { method: 'POST', body: formData });
+            if (imgbbRes.ok) {
+              const imgbbData = await imgbbRes.json();
+              if (imgbbData.success) {
+                base64Data = imgbbData.data.url;
+                setCoverUrl(base64Data);
+              }
+            }
+          }
+
           const res = await fetch(`${API_URL}/api/users/${currentUser}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ display_name: displayName, bio: bio, cover_url: base64Data })
           });
+          
           if (res.ok) {
             localStorage.setItem(`cover_${email}`, base64Data);
             notify.success('Sampul profil berhasil diperbarui.');
@@ -283,14 +303,38 @@ const Profile = ({ onLogout, email, friends = [] }) => {
   };
 
   const applyCrop = async () => {
+    if (!croppedAreaPixels) return notify.error("Menunggu pemotongan...");
     setIsCropping(true);
+    let croppedImage;
     try {
-      const croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+      croppedImage = await getCroppedImg(imageSrc, croppedAreaPixels);
+    } catch (e) {
+      console.error(e);
+      setIsCropping(false);
+      return notify.error('Gagal memotong gambar: ' + (e.message || 'Error tidak diketahui'));
+    }
+
+    try {
+      const keysString = import.meta.env.VITE_IMGBB_API_KEYS || import.meta.env.VITE_IMGBB_API_KEY;
+      if (keysString && croppedImage.startsWith('data:image')) {
+        const keys = keysString.split(',').map(k => k.trim());
+        const imgbbKey = keys[Math.floor(Math.random() * keys.length)];
+        const b64 = croppedImage.split(',')[1];
+        const formData = new FormData();
+        formData.append('image', b64);
+        const imgbbRes = await fetch(`https://api.imgbb.com/1/upload?key=${imgbbKey}`, { method: 'POST', body: formData });
+        if (imgbbRes.ok) {
+          const imgbbData = await imgbbRes.json();
+          if (imgbbData.success) {
+            croppedImage = imgbbData.data.url;
+          }
+        }
+      }
 
       const res = await fetch(`${API_URL}/api/users/avatar`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: email, avatar: croppedImage })
+        body: JSON.stringify({ username: currentUser, avatar: croppedImage })
       });
 
       if (res.ok) {
@@ -300,11 +344,10 @@ const Profile = ({ onLogout, email, friends = [] }) => {
       } else {
         notify.error('Gagal menyimpan foto profil ke server.');
       }
-
       setImageSrc(null);
     } catch (e) {
       console.error(e);
-      notify.error('Gagal memotong gambar.');
+      notify.error('Terjadi kesalahan koneksi saat upload foto profil.');
     } finally {
       setIsCropping(false);
     }
