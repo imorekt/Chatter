@@ -160,19 +160,19 @@ function App() {
   useEffect(() => {
     const checkUpdate = async () => {
       try {
-        // const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
-        // const res = await fetch(`${API_URL}/api/version`);
-        // const data = await res.json();
-        // const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
-        // // Jangan tampilkan peringatan update jika sedang jalan di localhost port 3111 (untuk development web)
-        // const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
-        // const isLocalWebDev = !isNative && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port === '3111';
-        // if (!isLocalWebDev && data.latest_version > currentVersion && data.update_url) {
-        //   setUpdateUrl(data.update_url);
-        //   setShowUpdate(true);
-        // }
+        const API_URL = window.APP_CONFIG?.API_URL || import.meta.env.VITE_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${API_URL}/api/version`);
+        const data = await res.json();
+        const currentVersion = parseInt(import.meta.env.VITE_APP_VERSION || '1');
+        // Jangan tampilkan peringatan update jika sedang jalan di localhost port 3111 (untuk development web)
+        const isNative = !!(window.Capacitor && window.Capacitor.isNativePlatform());
+        const isLocalWebDev = !isNative && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port === '3111';
+        if (!isLocalWebDev && data.latest_version > currentVersion && data.update_url) {
+          setUpdateUrl(data.update_url);
+          setShowUpdate(true);
+        }
       } catch (err) {
-        // console.error("Failed to check update", err);
+        console.error("Failed to check update", err);
       }
     };
     checkUpdate();
@@ -228,7 +228,42 @@ function App() {
 
   return (
     <div className="app-container">
-      {/* Update popup removed completely */}
+      {showUpdate && (
+          <div style={{
+              position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+              backgroundColor: 'rgba(0,0,0,0.8)', zIndex: 9999,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              backdropFilter: 'blur(5px)'
+          }}>
+              <div style={{
+                  backgroundColor: 'var(--surface)', padding: '2rem',
+                  borderRadius: '16px', width: '85%', maxWidth: '400px',
+                  textAlign: 'center', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+              }}>
+                  <h2 style={{ marginBottom: '1rem', color: '#a086ffff' }}>Update Tersedia!</h2>
+                  <p style={{ color: 'var(--dark-text-muted)', marginBottom: '2rem', lineHeight: '1.5' }}>
+                      Kiw versi baru tersedia,, tolong update ya!
+                  </p>
+                  <button
+                      onClick={handleUpdate}
+                      disabled={isDownloadingUpdate}
+                      style={{
+                          width: '100%', padding: '12px', borderRadius: '12px',
+                          backgroundColor: 'var(--primary)', color: 'white',
+                          border: 'none', fontWeight: 'bold', fontSize: '1rem',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          gap: '8px'
+                      }}
+                  >
+                      {isDownloadingUpdate ? (
+                          <>Mengunduh... {downloadProgress}%</>
+                      ) : (
+                          <><Download size={20} /> Update Sekarang</>
+                      )}
+                  </button>
+              </div>
+          </div>
+      )}
       <Toaster containerStyle={{ position: 'absolute', top: '10px' }} />
       {!user ? (
         isRegistering ? (
