@@ -123,11 +123,22 @@ const Profile = ({ onLogout, email, friends = [] }) => {
   const handleOpenMomentsPopup = async () => {
     if (momentCount === 0) return;
     setShowMomentsPopup(true);
-    setIsLoadingMoments(true);
+    
+    const cacheKey = `user_moments_${email}`;
+    const cached = localStorage.getItem(cacheKey);
+    if (cached) {
+      setUserMoments(JSON.parse(cached));
+      setIsLoadingMoments(false);
+    } else {
+      setIsLoadingMoments(true);
+    }
+
     try {
       const res = await fetch(`${API_URL}/api/moments`);
       const data = await res.json();
-      setUserMoments(data.filter(m => m.username === email));
+      const filtered = data.filter(m => m.username === email);
+      setUserMoments(filtered);
+      localStorage.setItem(cacheKey, JSON.stringify(filtered));
     } catch(e) {
       console.error(e);
     }
