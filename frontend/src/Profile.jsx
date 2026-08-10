@@ -453,22 +453,24 @@ const Profile = ({ onLogout, email, friends = [] }) => {
           </div>
         ) : (
           <>
-            <div className="input-group" style={{ marginBottom: 0 }}>
+            <div className="input-group" style={{ marginBottom: 0, position: 'relative', marginTop: '8px' }}>
+              <span style={{ position: 'absolute', top: '-8px', left: '16px', background: 'var(--dark-bg)', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Nama</span>
               <User className="input-icon" />
               <input
                 type="text"
                 className="input-field"
-                placeholder="Nama Tampilan"
+                placeholder=""
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 style={{ padding: '1cqh 3cqw 1cqh 12cqw', fontSize: 'var(--font-body)' }}
               />
             </div>
 
-            <div className="input-group" style={{ marginBottom: 0 }}>
+            <div className="input-group" style={{ marginBottom: 0, position: 'relative', marginTop: '8px' }}>
+              <span style={{ position: 'absolute', top: '-8px', left: '16px', background: 'var(--dark-bg)', padding: '0 6px', fontSize: '11px', color: 'var(--dark-text-muted)', fontWeight: '500', zIndex: 1 }}>Bio</span>
               <textarea
                 className="input-field hide-scrollbar"
-                placeholder="Bio"
+                placeholder=""
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 style={{ minHeight: '45px', padding: '1.2cqh 4cqw', resize: 'none', fontSize: 'var(--font-caption)', overflowY: 'auto' }}
