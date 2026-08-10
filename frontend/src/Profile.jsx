@@ -380,12 +380,6 @@ const Profile = ({ onLogout, email, friends = [] }) => {
           {/* Header Icons */}
           <div style={{ position: 'absolute', top: '2cqh', right: '4cqw', zIndex: 10, display: 'flex', gap: '3cqw' }}>
             <div 
-              onClick={() => setShowNotifSettings(true)}
-              style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)', display: 'flex' }}
-            >
-              <Bell size={20} color="white" />
-            </div>
-            <div 
               onClick={() => setShowSettingsMenu(true)}
               style={{ cursor: 'pointer', background: 'rgba(0,0,0,0.5)', padding: '2cqw', borderRadius: '50%', backdropFilter: 'blur(4px)', display: 'flex' }}
             >
