@@ -42,6 +42,7 @@ const ChatList = ({ onLogout, currentUser }) => {
   const [currentTrack, setCurrentTrack] = useState(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [musicResults, setMusicResults] = useState([]);
+  const [musicQueue, setMusicQueue] = useState([]); // Dynamic queue (results, recent, or favorites)
   const audioRef = useRef(null);
 
   const handlePlayPause = (track) => {
@@ -69,18 +70,18 @@ const ChatList = ({ onLogout, currentUser }) => {
   };
 
   const playNext = () => {
-    if (!currentTrack || musicResults.length === 0) return;
-    const currentIndex = musicResults.findIndex(t => t.id === currentTrack.id);
-    if (currentIndex >= 0 && currentIndex < musicResults.length - 1) {
-      handlePlayPause(musicResults[currentIndex + 1]);
+    if (!currentTrack || musicQueue.length === 0) return;
+    const currentIndex = musicQueue.findIndex(t => t.id === currentTrack.id);
+    if (currentIndex >= 0 && currentIndex < musicQueue.length - 1) {
+      handlePlayPause(musicQueue[currentIndex + 1]);
     }
   };
 
   const playPrev = () => {
-    if (!currentTrack || musicResults.length === 0) return;
-    const currentIndex = musicResults.findIndex(t => t.id === currentTrack.id);
+    if (!currentTrack || musicQueue.length === 0) return;
+    const currentIndex = musicQueue.findIndex(t => t.id === currentTrack.id);
     if (currentIndex > 0) {
-      handlePlayPause(musicResults[currentIndex - 1]);
+      handlePlayPause(musicQueue[currentIndex - 1]);
     }
   };
 
@@ -106,7 +107,26 @@ const ChatList = ({ onLogout, currentUser }) => {
       navigator.mediaSession.setActionHandler('previoustrack', () => playPrev());
       navigator.mediaSession.setActionHandler('nexttrack', () => playNext());
     }
-  }, [currentTrack, musicResults]);
+  }, [currentTrack, musicQueue]);
+
+  useEffect(() => {
+    if (window.cordova && window.cordova.plugins && window.cordova.plugins.backgroundMode) {
+      if (isPlaying) {
+        window.cordova.plugins.backgroundMode.enable();
+        window.cordova.plugins.backgroundMode.setDefaults({
+            title: currentTrack?.title || 'ImoCloud Music',
+            text: 'Memutar musik di latar belakang',
+            icon: 'icon',
+            color: 'F14F4D',
+            resume: true,
+            hidden: false
+        });
+      } else {
+        // We can disable it if paused to save battery, or keep it enabled
+        window.cordova.plugins.backgroundMode.disable();
+      }
+    }
+  }, [isPlaying, currentTrack]);
 
   useEffect(() => {
     localforage.getItem(`chats_${currentUser}`).then(val => { if (val) setChats(val); });
@@ -870,7 +890,7 @@ const ChatList = ({ onLogout, currentUser }) => {
         />
       </div>
       <div style={{ display: activeNav === 'music' ? 'contents' : 'none' }}>
-        <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} />
+        <MusicPage currentTrack={currentTrack} isPlaying={isPlaying} handlePlayPause={handlePlayPause} musicResults={musicResults} setMusicResults={setMusicResults} setMusicQueue={setMusicQueue} />
       </div>
       <div style={{ display: activeNav === 'moment' ? 'contents' : 'none' }}>
         <MomentList currentUser={currentUser} highlightMomentId={highlightMomentId} setHighlightMomentId={setHighlightMomentId} selectionMode={selectionMode === 'moment'} selectedItems={selectedItems} toggleSelectItem={toggleSelectItem} contactsData={contactsData} />

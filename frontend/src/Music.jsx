@@ -1,23 +1,44 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Play, X, Music as MusicIcon, Loader2, Pause, Clock } from 'lucide-react';
+import { Search, Play, X, Music as MusicIcon, Loader2, Pause, Clock, Heart } from 'lucide-react';
 import { notify } from './utils/toast';
 import localforage from 'localforage';
 
-const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusicResults }) => {
+const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusicResults, setMusicQueue }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [recentPlays, setRecentPlays] = useState([]);
+  const [favoriteSongs, setFavoriteSongs] = useState([]);
+  const [activeTab, setActiveTab] = useState('recent'); // 'recent' | 'favorites'
 
-  // Load recent plays
+  // Load recent plays and favorites
   useEffect(() => {
     localforage.getItem('music_recent_plays').then((data) => {
       if (data) setRecentPlays(data);
     });
+    localforage.getItem('music_favorite_songs').then((data) => {
+      if (data) setFavoriteSongs(data);
+    });
   }, []);
 
-  const onPlayClick = (item) => {
+  const toggleFavorite = (item, e) => {
+    e.stopPropagation();
+    setFavoriteSongs(prev => {
+      const isFav = prev.some(t => t.id === item.id);
+      let updated;
+      if (isFav) {
+        updated = prev.filter(t => t.id !== item.id);
+      } else {
+        updated = [item, ...prev];
+      }
+      localforage.setItem('music_favorite_songs', updated);
+      return updated;
+    });
+  };
+
+  const onPlayClick = (item, sourceList) => {
+    if (setMusicQueue && sourceList) setMusicQueue(sourceList);
     handlePlayPause(item);
     
     // Save to recent plays
@@ -116,14 +137,45 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
         </div>
       )}
 
-      {!debouncedQuery && !isLoading && recentPlays.length > 0 && (
+      {!debouncedQuery && !isLoading && (
         <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '16px', color: 'var(--dark-text-muted)' }}>
-            <Clock size={16} />
-            <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '600' }}>Terakhir Diputar</h3>
+          <div style={{ display: 'flex', gap: '20px', marginBottom: '16px', borderBottom: '1px solid var(--dark-border)' }}>
+            <div 
+              onClick={() => setActiveTab('recent')}
+              style={{ 
+                paddingBottom: '8px', 
+                color: activeTab === 'recent' ? 'white' : 'var(--dark-text-muted)',
+                borderBottom: activeTab === 'recent' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Clock size={16} /> Terakhir Diputar
+            </div>
+            <div 
+              onClick={() => setActiveTab('favorites')}
+              style={{ 
+                paddingBottom: '8px', 
+                color: activeTab === 'favorites' ? 'white' : 'var(--dark-text-muted)',
+                borderBottom: activeTab === 'favorites' ? '2px solid var(--primary)' : '2px solid transparent',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px'
+              }}
+            >
+              <Heart size={16} /> Favorit
+            </div>
           </div>
+          
           <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-            {recentPlays.map((item) => (
+            {(activeTab === 'recent' ? recentPlays : favoriteSongs).map((item) => (
               <div
                 key={item.id}
                 style={{
@@ -134,8 +186,10 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                   padding: '6px',
                   borderRadius: '10px',
                   border: currentTrack && currentTrack.id === item.id ? '1px solid var(--primary)' : '1px solid var(--dark-border)',
-                  transition: 'all 0.2s ease'
+                  transition: 'all 0.2s ease',
+                  cursor: 'pointer'
                 }}
+                onClick={() => onPlayClick(item, activeTab === 'recent' ? recentPlays : favoriteSongs)}
               >
                 <img
                   src={item.artwork && item.artwork['150x150'] ? item.artwork['150x150'] : 'https://via.placeholder.com/150'}
@@ -150,25 +204,41 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                     {item.user?.name || 'Unknown Artist'}
                   </div>
                 </div>
-                <button
-                  onClick={() => onPlayClick(item)}
-                  style={{
-                    background: 'var(--primary)',
-                    border: 'none',
-                    color: 'white',
-                    width: '28px',
-                    height: '28px',
-                    borderRadius: '50%',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer'
-                  }}
-                >
-                  {currentTrack && currentTrack.id === item.id && isPlaying ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: '2px' }} />}
-                </button>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '4px' }}>
+                  <Heart 
+                    size={18} 
+                    fill={favoriteSongs.some(t => t.id === item.id) ? "var(--primary)" : "none"}
+                    color={favoriteSongs.some(t => t.id === item.id) ? "var(--primary)" : "var(--dark-text-muted)"}
+                    onClick={(e) => toggleFavorite(item, e)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  <button
+                    onClick={(e) => { e.stopPropagation(); onPlayClick(item, activeTab === 'recent' ? recentPlays : favoriteSongs); }}
+                    style={{
+                      background: 'var(--primary)',
+                      border: 'none',
+                      color: 'white',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer'
+                    }}
+                  >
+                    {currentTrack && currentTrack.id === item.id && isPlaying ? <Pause size={16} /> : <Play size={16} style={{ marginLeft: '2px' }} />}
+                  </button>
+                </div>
               </div>
             ))}
+            
+            {(activeTab === 'recent' ? recentPlays : favoriteSongs).length === 0 && (
+              <div style={{ textAlign: 'center', color: 'var(--dark-text-muted)', marginTop: '20px', fontSize: '14px' }}>
+                {activeTab === 'recent' ? 'Belum ada lagu yang diputar.' : 'Belum ada lagu favorit.'}
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -202,28 +272,37 @@ const Music = ({ currentTrack, isPlaying, handlePlayPause, musicResults, setMusi
                   {item.user?.name || 'Unknown Artist'}
                 </div>
               </div>
-              <button
-                onClick={() => onPlayClick(item)}
-                style={{
-                  background: 'var(--primary)',
-                  border: 'none',
-                  color: 'white',
-                  width: '40px',
-                  height: '40px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  cursor: 'pointer',
-                  flexShrink: 0
-                }}
-              >
-                {currentTrack && currentTrack.id === item.id && isPlaying ? (
-                  <Pause size={14} fill="white" />
-                ) : (
-                  <Play size={14} fill="white" style={{ marginLeft: '2px' }} />
-                )}
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginRight: '4px' }}>
+                <Heart 
+                  size={20} 
+                  fill={favoriteSongs.some(t => t.id === item.id) ? "var(--primary)" : "none"}
+                  color={favoriteSongs.some(t => t.id === item.id) ? "var(--primary)" : "var(--dark-text-muted)"}
+                  onClick={(e) => toggleFavorite(item, e)}
+                  style={{ cursor: 'pointer' }}
+                />
+                <button
+                  onClick={() => onPlayClick(item, musicResults)}
+                  style={{
+                    background: 'var(--primary)',
+                    border: 'none',
+                    color: 'white',
+                    width: '40px',
+                    height: '40px',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    cursor: 'pointer',
+                    flexShrink: 0
+                  }}
+                >
+                  {currentTrack && currentTrack.id === item.id && isPlaying ? (
+                    <Pause size={14} fill="white" />
+                  ) : (
+                    <Play size={14} fill="white" style={{ marginLeft: '2px' }} />
+                  )}
+                </button>
+              </div>>
             </div>
           ))}
         </div>
