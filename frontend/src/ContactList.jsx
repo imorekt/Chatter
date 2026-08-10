@@ -81,6 +81,16 @@ const ContactList = ({ onContactClick, searchQuery, currentUser, contactsData, s
     }
   };
 
+  useEffect(() => {
+    const handleViewProfileEvent = (e) => {
+      if (e.detail) {
+        handleViewProfile(e.detail);
+      }
+    };
+    window.addEventListener('viewProfile', handleViewProfileEvent);
+    return () => window.removeEventListener('viewProfile', handleViewProfileEvent);
+  }, []);
+
   const handleCancelRequest = async (receiver) => {
     try {
       const res = await fetch(`${API_URL}/api/contacts/cancel`, {

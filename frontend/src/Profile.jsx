@@ -681,7 +681,6 @@ const Profile = ({ onLogout, email, friends = [] }) => {
                         @{friend.username}
                       </span>
                     </div>
-                    <ChevronRight size={18} color="var(--dark-text-muted)" />
                   </div>
                 ))
               )}
