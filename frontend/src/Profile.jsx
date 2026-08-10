@@ -6,9 +6,15 @@ import { notify } from './utils/toast';
 import localforage from 'localforage';
 
 const Profile = ({ onLogout, email }) => {
-  const [bio, setBio] = useState('Hey there! I am using Chatter.');
-  const [displayName, setDisplayName] = useState('');
-  const [originalDisplayName, setOriginalDisplayName] = useState('');
+  const [bio, setBio] = useState(() => {
+    try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.bio || 'Hey there! I am using Chatter.'; } catch(e) { return 'Hey there! I am using Chatter.'; }
+  });
+  const [displayName, setDisplayName] = useState(() => {
+    try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.display_name || ''; } catch(e) { return ''; }
+  });
+  const [originalDisplayName, setOriginalDisplayName] = useState(() => {
+    try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.display_name || ''; } catch(e) { return ''; }
+  });
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -18,9 +24,13 @@ const Profile = ({ onLogout, email }) => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [avatar, setAvatar] = useState(() => localStorage.getItem(`avatar_${email}`) || null);
   const [coverUrl, setCoverUrl] = useState(() => localStorage.getItem(`cover_${email}`) || null);
-  const [momentCount, setMomentCount] = useState(0);
-  const [friendCount, setFriendCount] = useState(0);
-  const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [momentCount, setMomentCount] = useState(() => {
+    try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.momentCount || 0; } catch(e) { return 0; }
+  });
+  const [friendCount, setFriendCount] = useState(() => {
+    try { const data = JSON.parse(localStorage.getItem(`profile_sync_${email}`)); return data?.friendCount || 0; } catch(e) { return 0; }
+  });
+  const [isLoadingProfile, setIsLoadingProfile] = useState(() => !localStorage.getItem(`profile_sync_${email}`));
   const [showNotifSettings, setShowNotifSettings] = useState(false);
   const [showSettingsMenu, setShowSettingsMenu] = useState(false);
   const [notifSettings, setNotifSettings] = useState({ notif_message: 1, notif_like: 1, notif_comment: 1 });
@@ -94,6 +104,7 @@ const Profile = ({ onLogout, email }) => {
         if (data.momentCount !== undefined) setMomentCount(data.momentCount);
         if (data.friendCount !== undefined) setFriendCount(data.friendCount);
         localforage.setItem(`profile_${email}`, data);
+        localStorage.setItem(`profile_sync_${email}`, JSON.stringify(data));
         setIsLoadingProfile(false);
       })
       .catch((e) => {
