@@ -167,6 +167,7 @@ const GlobalProfileModals = ({ currentUser, contactsData, onContactClick, onRefr
   const navigateToMoment = (momentId) => {
     setPreviewMoment(null);
     setShowMomentsPopup(false);
+    setViewProfileUser(null);
     window.dispatchEvent(new CustomEvent('openMoment', { detail: momentId }));
   };
 
