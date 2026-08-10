@@ -3,6 +3,7 @@ import { App as CapApp } from '@capacitor/app';
 import OneSignalCapacitor from '@onesignal/capacitor-plugin';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { FileOpener } from '@capacitor-community/file-opener';
+import { SplashScreen } from '@capacitor/splash-screen';
 import { Download } from 'lucide-react';
 import Login from './Login';
 import Register from './Register';
@@ -74,6 +75,11 @@ function App() {
           CapApp.exitApp();
         }
       });
+      
+      // Hide splash screen after exactly 3 seconds
+      setTimeout(() => {
+        SplashScreen.hide();
+      }, 3000);
     }
   }, []);
 
