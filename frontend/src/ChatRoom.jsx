@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useContext } from 'react';
+import React, { useState, useEffect, useRef, useContext, useMemo } from 'react';
 import { callImoAI } from './utils/aiConfig';
 import { ArrowLeft, MoreVertical, Send, Image as ImageIcon, Smile, Trash2, Check, CheckCheck, Loader2, Star, X, ImageOff, Ban, Edit2, Heart, Reply, Download, Clock, ChevronDown, Lock } from 'lucide-react';
 
@@ -1086,7 +1086,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           </div>
         )}
 
-        {renderMessages()}
+        {useMemo(() => renderMessages(), [messages, selectionMode, selectedMessages, currentUser, chat])}
 
         {isTyping && (
           <div style={{ alignSelf: 'flex-start', background: 'var(--dark-surface)', padding: '3cqh 4cqw', borderRadius: '4cqw', borderBottomLeftRadius: '1cqw', display: 'flex', gap: '1cqw' }}>
