@@ -422,7 +422,7 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
           const rawDate = typeof m.created_at === 'string' && !m.created_at.includes('T') ? m.created_at.replace(' ', 'T') + 'Z' : m.created_at;
 
           let msgStatus = 'sent';
-          if (!isFriend) {
+          if (!isFriend && chat.username !== 'imo_ai') {
             msgStatus = 'sent';
           } else if (m.is_read) {
             msgStatus = 'read';
@@ -1062,8 +1062,9 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
                     (() => {
                       if (chat.isDeleted) return 'Akun telah dihapus';
                       if (chat.isSystem) return 'Sistem Chat';
+                      if (chat.username === 'imo_ai') return 'Asisten AI';
                       if (partnerLastSeen === '') return 'Belum pernah online';
-                      if (!isFriend) return chat.username === 'imo_ai' ? 'Tidak mengikuti' : 'Tidak berteman';
+                      if (!isFriend) return 'Tidak berteman';
                       if (!partnerLastSeen) return 'Memuat status...';
 
                       const lastSeenStr = partnerLastSeen.includes('T') ? partnerLastSeen : partnerLastSeen.replace(' ', 'T') + 'Z';
@@ -1168,13 +1169,13 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
         </div>
       )}
 
-      {isAiTyping && (
+{isAiTyping && (
         <div style={{ padding: '4px 16px', fontSize: '12px', color: 'var(--primary)', fontStyle: 'italic', display: 'flex', alignItems: 'center', gap: '8px' }}>
           <Loader2 size={12} style={{ animation: 'spin 1s linear infinite' }} /> imo_ai sedang mengetik...
         </div>
       )}
       <form onSubmit={handleSend} style={{ padding: '2cqh 4cqw', display: 'flex', gap: '3cqw', background: 'var(--dark-surface)', borderTop: '1px solid var(--dark-border)', position: 'relative' }}>
-        {(restrictions?.full_mute || restrictions?.disable_chat || !isFriend) ? (
+        {(restrictions?.full_mute || restrictions?.disable_chat || (!isFriend && chat.username !== 'imo_ai')) ? (
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '2cqw', padding: '1cqh 0', color: '#52525b', background: 'rgba(255,255,255,0.02)', borderRadius: '5cqw' }}>
             <Lock size={20} />
             <span style={{ fontSize: 'var(--font-body)', fontWeight: 'bold' }}>Anda tidak dapat berinteraksi</span>
