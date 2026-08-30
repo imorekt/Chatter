@@ -1126,7 +1126,7 @@ app.post('/api/messages/send', async (req, res) => {
   try {
     const isRestricted = await checkRestriction(data.sender, data.text.includes('|||CAPTION|||') || data.text.startsWith('data:image/') || data.text === 'MEDIA_LOCAL_SAVED' ? 'chat_image' : 'chat');
     if (isRestricted) return res.status(403).json({ error: 'Anda sedang dibatasi (Muted)' });
-    if (data.sender !== 'imo_ai') {
+    if (data.sender !== 'imo_ai' && data.recipient !== 'imo_ai') {
       const contactCheck = await db.execute({
         sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
         args: [data.sender, data.recipient, data.recipient, data.sender]
