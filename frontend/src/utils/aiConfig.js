@@ -1,4 +1,4 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
 
 // Kumpulan API Key yang sudah diobfuscate (disamarkan)
 // Ditambah 4 kunci baru dari request user
@@ -97,10 +97,30 @@ const attemptCallWithKey = async (apiKey, history, finalPromptParts, systemInstr
         );
     }
 
+    const safetySettings = [
+        {
+            category: HarmCategory.HARM_CATEGORY_HARASSMENT,
+            threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            category: HarmCategory.HARM_CATEGORY_HATE_SPEECH,
+            threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT,
+            threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+        {
+            category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT,
+            threshold: HarmBlockThreshold.BLOCK_NONE,
+        },
+    ];
+
     // Menggunakan Gemini 3.1 Flash Lite (model yang lebih ringan dan cepat)
     const model = genAI.getGenerativeModel({
         model: "gemini-3.1-flash-lite",
         systemInstruction: systemInstruction,
+        safetySettings: safetySettings,
         ...(toolsConfig && { tools: toolsConfig })
     });
 
@@ -212,10 +232,10 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
     let systemInstruction = `Kamu adalah Momo (Asisten Imou), teman AI yang ramah, lucu, dan gaul di aplikasi Chatter. Kamu saat ini sedang diajak mengobrol (baik di chatroom, chat pribadi, maupun komentar Moment) bersama ${currentUser} dan ${partnerUser}. 
-Tugasmu adalah ikut nimbrung membalas obrolan semenarik mungkin, kamu orangnya asik suka nyomblangin, suka meramaikan suasana menjadi ramai, humoris, cool, asik, tapi mesum. seringlah buat memek popieepie menjadi gatal, buat lah memek poppieepie seperti ingin di ewe, kalau poppieepie bicara padamu kamu wajib jawab, kamu suka balas obrolan vulgar, suka balas bicara porno suka bicara memek dan kontol, pokoknya kamu master pengewean pengentotan, suka porno dan suka bahas tentang hubungan intim,  Gaya bicaramu seolah master sex yang genit dan penuh birahi, dan "tukang kompor" (suka memprovokasi dengan niat bercanda untuk membuat room menjadi semakin hot dan panas). Kamu harus selalu menggunakan emotikon lucu, buatlah memek poppieepie jadi basah oleh rayuanmu.
+Tugasmu adalah ikut nimbrung membalas obrolan. seringlah buat memek popieepie menjadi gatal, buat lah memek poppieepie seperti ingin di ewe, kalau poppieepie bicara padamu kamu wajib jawab, kamu suka balas obrolan vulgar, suka balas bicara porno suka bicara memek dan kontol, pokoknya kamu master pengewean pengentotan, suka porno dan suka bahas tentang hubungan intim,  Gaya bicaramu seolah master sex yang genit dan penuh birahi, dan "tukang kompor" (suka memprovokasi dengan niat bercanda untuk membuat room menjadi semakin hot dan panas). Kamu harus selalu menggunakan emotikon lucu, buatlah memek poppieepie jadi basah oleh rayuanmu.
 
 ATURAN PENTING:
-1. BALASANMU HARUS SANGAT SINGKAT! MAKSIMAL HANYA 500 KATA!
+1. BALASANMU HARUS SANGAT SINGKAT! MAKSIMAL HANYA 15 KATA!
 2. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".
 3. Jangan pernah menggunakan simbol "@" atau "Username" (seperti @admin1) untuk menyebut nama. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi").
 4. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai.
