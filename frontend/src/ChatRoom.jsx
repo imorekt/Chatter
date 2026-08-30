@@ -682,6 +682,43 @@ const ChatRoom = ({ chat, onBack, currentUser, isFriend }) => {
       await localforage.setItem(`r2_media_${resData.id}`, selectedImage);
 
       fetchMessages();
+
+      const cap = imageCaption || "";
+      if ((chat.username === 'imo_ai' || cap.includes('@imo_ai') || /\bmomo\b/i.test(cap) || currentReplyingTo?.sender === 'imo_ai') && resData) {
+        setIsAiTyping(true);
+        const chatContext = currentUser < chat.username ? currentUser + '|' + chat.username : chat.username + '|' + currentUser;
+        const history = messages.slice(-30);
+        callImoAI(chatContext, history, cap || "[Mengirim Gambar]", currentUserDisplayName, chat.name || chat.username, selectedImage).then(async (reply) => {
+          setIsAiTyping(false);
+          try {
+            const aiRes = await fetch(`${API_URL}/api/messages/send`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                sender: 'imo_ai',
+                recipient: chat.username === 'imo_ai' ? currentUser : 'SYSTEM_AI_REPLY',
+                text: reply,
+                chat_context: chatContext,
+                reply_to: resData.id,
+                reply_text: resData.text,
+                reply_sender: resData.sender
+              })
+            });
+            const aiData = await aiRes.json();
+            if (!aiData.error) {
+              setMessages(prev => [...prev, {
+                ...aiData,
+                sender: 'imo_ai',
+                rawDate: new Date().toISOString(),
+                time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
+                status: 'sent'
+              }]);
+            }
+          } catch (e) {
+            console.error("Failed to send AI response", e);
+          }
+        });
+      }
     } catch (err) {
       notify.error("Gagal mengirim gambar: " + err.message);
     }
