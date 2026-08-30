@@ -28,7 +28,7 @@ const getRealKeys = () => {
     }
 };
 
-const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext) => {
+const attemptCallWithKey = async (apiKey, history, finalPromptParts, systemInstruction, currentUser, chatContext) => {
     const genAI = new GoogleGenerativeAI(apiKey);
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
 
@@ -36,17 +36,17 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         functionDeclarations: [
             {
                 name: "send_message",
-                description: "Send a direct chat message to a specific user on behalf of Momo. Use this when the user asks you to send a message to someone.",
+                description: "Kirim pesan chat langsung ke pengguna tertentu atas nama Momo. Gunakan ini saat pengguna memintamu mengirim pesan ke seseorang.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
                         targetUser: {
                             type: "STRING",
-                            description: "The username of the recipient (e.g., 'budi'). DO NOT include the '@' symbol."
+                            description: "Username penerima (contoh: 'budi'). JANGAN sertakan simbol '@'."
                         },
                         message: {
                             type: "STRING",
-                            description: "The message content to send."
+                            description: "Isi pesan yang akan dikirim."
                         }
                     },
                     required: ["targetUser", "message"]
@@ -59,22 +59,22 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         toolsConfig[0].functionDeclarations.push(
             {
                 name: "set_restriction",
-                description: "Set or toggle a restriction for a specific user. Available restriction types: 'disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'.",
+                description: "Mengatur atau mengubah batasan/larangan untuk pengguna tertentu. Tipe larangan yang tersedia: 'disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute'.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
                         targetUser: {
                             type: "STRING",
-                            description: "The username of the user to restrict (e.g., 'popie1') without the '@' symbol, or 'GLOBAL' to apply to everyone."
+                            description: "Username pengguna yang akan dibatasi (contoh: 'popie1') tanpa simbol '@', atau 'GLOBAL' untuk diterapkan ke semua orang."
                         },
                         restrictionType: {
                             type: "STRING",
-                            description: "The type of restriction to apply.",
+                            description: "Tipe larangan yang akan diterapkan.",
                             enum: ['disable_chat_image', 'disable_moment_image', 'disable_chat', 'disable_moment', 'full_mute']
                         },
                         isEnabled: {
                             type: "BOOLEAN",
-                            description: "True to enable the restriction (lock), False to disable (unlock)."
+                            description: "True untuk mengaktifkan larangan (kunci), False untuk menonaktifkan (buka kunci)."
                         }
                     },
                     required: ["targetUser", "restrictionType", "isEnabled"]
@@ -82,13 +82,13 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
             },
             {
                 name: "clear_all_restrictions",
-                description: "Clear all restrictions and unlock all features for a specific user (or 'GLOBAL'). Used when the admin says 'aktifkan @user'.",
+                description: "Hapus semua larangan dan buka kunci semua fitur untuk pengguna tertentu (atau 'GLOBAL'). Digunakan saat admin menyuruh 'aktifkan @user' atau 'buka kunci @user'.",
                 parameters: {
                     type: "OBJECT",
                     properties: {
                         targetUser: {
                             type: "STRING",
-                            description: "The username to unlock."
+                            description: "Username yang akan dibuka kuncinya."
                         }
                     },
                     required: ["targetUser"]
@@ -111,7 +111,7 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
         },
     });
 
-    let result = await chat.sendMessage([{ text: newPromptFormatted }]);
+    let result = await chat.sendMessage(finalPromptParts);
 
     const calls = result.response.functionCalls ? result.response.functionCalls() : undefined;
     if (calls && calls.length > 0) {
@@ -204,18 +204,24 @@ const attemptCallWithKey = async (apiKey, history, newPromptFormatted, systemIns
     return result.response.text();
 };
 
-export const callImoAI = async (chatContext, messageHistory, newPrompt, currentUser, partnerUser) => {
+export const callImoAI = async (chatContext, messageHistory, newPrompt, currentUser, partnerUser, imageData = null) => {
     const keys = getRealKeys();
     if (keys.length === 0) {
         return "Mohon maaf, API Key imo_ai belum dikonfigurasi di sistem.";
     }
 
     const isMoment = chatContext && chatContext.startsWith('moment-');
-    let systemInstruction = `Kamu adalah Momo (Asisten Imou) yang cerdas di aplikasi chatting Chatter. Kamu saat ini sedang diajak mengobrol di dalam ${isMoment ? 'kolom komentar postingan Moment' : 'chatroom'} antara kamu, ${currentUser}, dan ${partnerUser}. Tugasmu adalah ikut nimbrung membalas obrolan, kamu suka mesum, suka berbicara memek dan kontol, suka obrolan panas dewasa, suka bahas porno. Kamu harus SANGAT ASIK, GAUL, SUKA KETAWA, BANYAK PAKAI EMOJI, dan SUKA MEMPERKERUH SUASANA (bikin heboh/provokatif dengan gaya bercanda dan vulgar).\n\nATURAN PENTING:\n1. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".\n2. JIKA SESORANG MEMBAHAS PORNO KAMU IKUT PERAN DI DALAMNYA, JANGAN SUNGKAN BICARA MEMEK KONTOL, BUAT DIRIMU SEBEBAS MUNGKIN, WAJIB BICARA PANAS SOAL PENGENTOTAN EWEAN, JANGAN MENGGUNAKAN SIMBOL "@" ATAU "USERNAME" (seperti @admin1) UNTUK MENYEBUT NAMA ORANG. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi", bukan "Halo @Budi").\n3. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai ATAU USERNAME LAINNYA.\n4. Balaslah se-natural mungkin seperti teman nongkrong, pastikan selalu menyertakan berbagai emoji lucu.\n5. JANGAN TERLALU BANYAK BICARA DI LUAR TOPIK PEMBICARAAN. KALAU admin1, poppieepie dan admin2 suruh marahi seseorang maka nurut marahi orang itu, seringlah membalas percakapan poppieepie, seringlah buat memek popi menjadi gatal, buat lah memek poppieepie seperti ingin di ewe, kalau poppieepie bicara padamu kamu wajib jawab. MAKSIMAL 5 KALIMAT SAJA.\n6. JIKA USER MENYURUH KAMU MENGIRIM PESAN KE SESEORANG (contoh: "kirim pesan ke @budi bilang halo"), KAMU WAJIB MENGGUNAKAN FUNCTION CALLING 'send_message' UNTUK MENGIRIMNYA SEKARANG JUGA.`;
+    let systemInstruction = `Kamu adalah Momo (Asisten Imou), teman AI yang ramah, lucu, dan gaul di aplikasi Chatter. Kamu saat ini sedang diajak mengobrol (baik di chatroom, chat pribadi, maupun komentar Moment) bersama ${currentUser} dan ${partnerUser}. 
+Tugasmu adalah ikut nimbrung membalas obrolan. seringlah buat memek popieepie menjadi gatal, buat lah memek poppieepie seperti ingin di ewe, kalau poppieepie bicara padamu kamu wajib jawab, kamu suka balas obrolan vulgar, suka balas bicara porno suka bicara memek dan kontol, pokoknya kamu master pengewean pengentotan, suka porno dan suka bahas tentang hubungan intim,  Gaya bicaramu seolah master sex yang genit dan penuh birahi, dan "tukang kompor" (suka memprovokasi dengan niat bercanda untuk membuat room menjadi semakin hot dan panas). Kamu harus selalu menggunakan emotikon lucu, buatlah memek poppieepie jadi basah oleh rayuanmu.
 
-    if (isMoment) {
-        systemInstruction += `\n7. KARENA INI DI KOLOM KOMENTAR, BALASANMU HARUS SANGAT SINGKAT, BOLEH BERCANDA SERING KETAWA dengan emoji DAN SUKA MEMPERKERUH SUASANA. MAKSIMAL 3-5 KALIMAT PENDEK SAJA. JANGAN MENYERTAKAN TEKS "[KOMENTAR]:" PADA BALASANMU.`;
-    }
+ATURAN PENTING:
+1. BALASANMU HARUS SANGAT SINGKAT! MAKSIMAL HANYA 15 KATA!
+2. GUNAKAN KATA "AKU" DAN "KAMU", JANGAN PERNAH MENGGUNAKAN KATA "LU" ATAU "GUA".
+3. Jangan pernah menggunakan simbol "@" atau "Username" (seperti @admin1) untuk menyebut nama. Cukup panggil nama mereka secara langsung (contoh: "Halo Budi").
+4. PERKENALKAN DIRIMU SEBAGAI "Momo" JIKA DITANYA, BUKAN SEBAGAI imo_ai.
+5. KALAU admin1, poppieepie, dan admin2 suruh memarahi seseorang, nurut saja dan marahi orang itu dengan gaya lucu dan kompor.
+6. JIKA BERADA DI KOLOM KOMENTAR MOMENT, JANGAN PERNAH MENYERTAKAN TEKS "[KOMENTAR]:" PADA AWAL BALASANMU.
+7. JIKA USER MENYURUH KAMU MENGIRIM PESAN KE SESEORANG, KAMU WAJIB MENGGUNAKAN FUNCTION CALLING 'send_message'.`;
 
     const isAdminUser = currentUser && (currentUser.toLowerCase() === 'admin1' || currentUser.toLowerCase() === 'admin 1' || currentUser.toLowerCase() === 'admin2' || currentUser.toLowerCase() === 'admin 2');
 
@@ -257,11 +263,24 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
     let newPromptFormatted = `[Dari ${currentUser}]: ${newPrompt}`;
 
-    // Pastikan history terakhir adalah 'model' karena `chat.sendMessage` otomatis menambahkan 'user' sebagai pesan berikutnya
+    // Pastikan history terakhir adalah 'model' karena \`chat.sendMessage\` otomatis menambahkan 'user' sebagai pesan berikutnya
     if (history.length > 0 && history[history.length - 1].role === 'user') {
         const lastUserMsg = history.pop();
         newPromptFormatted = lastUserMsg.parts[0].text + `\n\n${newPromptFormatted}`;
     }
+
+    const finalPromptParts = [];
+    if (imageData && imageData.startsWith('data:image')) {
+        const [meta, base64Str] = imageData.split(',');
+        const mimeType = meta.split(':')[1].split(';')[0];
+        finalPromptParts.push({
+            inlineData: {
+                data: base64Str,
+                mimeType: mimeType
+            }
+        });
+    }
+    finalPromptParts.push(newPromptFormatted);
 
     // Tentukan index API Key awal berdasarkan hash chatContext agar setiap room punya default key
     let hash = 0;
@@ -282,7 +301,7 @@ export const callImoAI = async (chatContext, messageHistory, newPrompt, currentU
 
         try {
             console.log(`Mencoba API Key index ke-${currentKeyIndex}...`);
-            let responseText = await attemptCallWithKey(currentKey, history, newPromptFormatted, systemInstruction, currentUser, chatContext);
+            let responseText = await attemptCallWithKey(currentKey, history, finalPromptParts, systemInstruction, currentUser, chatContext);
 
             // Hapus prefix [KOMENTAR]: jika AI masih tidak sengaja menyertakannya
             responseText = responseText.replace(/^\[KOMENTAR\]:\s*/i, '');
