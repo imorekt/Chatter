@@ -930,13 +930,15 @@ app.get('/api/messages/:user1/:user2', async (req, res) => {
       res.setHeader('X-Partner-Last-Seen', partnerResult.rows[0].last_seen || '');
     }
 
-    const contactCheck = await db.execute({
-      sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
-      args: [user1, user2, user2, user1]
-    });
-    
-    if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
-      return res.json([]);
+    if (user1 !== 'imo_ai' && user2 !== 'imo_ai') {
+      const contactCheck = await db.execute({
+        sql: `SELECT status FROM contacts WHERE (sender_username = ? AND receiver_username = ?) OR (sender_username = ? AND receiver_username = ?)`,
+        args: [user1, user2, user2, user1]
+      });
+      
+      if (contactCheck.rows.length === 0 || contactCheck.rows[0].status !== 'accepted') {
+        return res.json([]);
+      }
     }
 
     const userA = user1 < user2 ? user1 : user2;
